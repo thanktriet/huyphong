@@ -31,9 +31,22 @@
         </div>
     </div>
 
-    <script>
-        renderLayout('home'); // Vẽ menu, active tab Home
-        document.getElementById('sessionLeft').innerText = USER.sessionLeft || 0;
-    </script>
+<script>
+    // 1. Kiểm tra xem file layout.js có được nạp không
+    if (typeof renderLayout === "function") {
+        renderLayout('home'); // Vẽ menu
+    } else {
+        alert("Lỗi: Không tìm thấy file js/layout.js. Hãy kiểm tra lại thư mục!");
+    }
+
+    // 2. Hiển thị số buổi (chỉ chạy khi có USER)
+    // Lưu ý: auth.js dùng const USER, nên ta dùng trực tiếp biến USER thay vì window.USER
+    if (typeof USER !== 'undefined' && USER) {
+        const sessionEl = document.getElementById('sessionLeft');
+        if (sessionEl) {
+            sessionEl.innerText = USER.sessionLeft || 0;
+        }
+    }
+</script>
 </body>
 </html>
