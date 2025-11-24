@@ -2,91 +2,315 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Lịch Tập</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tập Luyện - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>.no-scrollbar::-webkit-scrollbar{display:none}.tab-active{background:#2563eb;color:white;border-color:#2563eb}</style>
-</head>
-<body class="bg-slate-50 pb-24">
-    <div class="bg-white p-4 sticky top-0 z-10 shadow-sm flex justify-between items-center max-w-md mx-auto">
-        <h1 class="text-xl font-bold text-slate-900">Lịch Tập</h1>
-        <span id="planCount" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Loading...</span>
-    </div>
+    
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="layout.js"></script>
 
-    <div class="max-w-md mx-auto px-4 mt-4">
-        <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2"></div>
-        <div id="list" class="space-y-3 pb-20"></div>
-        <div class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto">
-            <button onclick="finish()" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Hoàn Thành Buổi Tập</button>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Animation cho check */
+        @keyframes check-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .check-anim:checked { animation: check-bounce 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 pb-32">
+
+    <div class="bg-white p-4 sticky top-0 z-20 shadow-sm">
+        <div class="flex justify-between items-center max-w-md mx-auto">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="dumbbell" class="text-blue-600 w-6 h-6"></i> Lịch Tập
+                </h1>
+                <p class="text-xs text-slate-500" id="currentDate">Hôm nay: ...</p>
+            </div>
+            <button onclick="resetProgress()" class="text-xs text-red-400 hover:text-red-600 font-medium">
+                Reset
+            </button>
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px]">Home</span></a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-blue-600"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px] font-bold">Tập</span></a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px]">Ăn</span></a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px]">Lịch</span></a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
+    <div class="max-w-md mx-auto px-4 mt-4">
+        
+        <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4 sticky top-20 z-10 bg-slate-50/95 backdrop-blur pt-2">
+            <div class="w-full h-10 bg-slate-200 animate-pulse rounded-lg"></div>
+        </div>
+
+        <div id="todo-list" class="space-y-4 min-h-[200px]">
+            <p class="text-center text-slate-400 py-10">Đang tải giáo án...</p>
+        </div>
+
+        <div id="history-section" class="mt-8 border-t pt-6 hidden">
+            <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4"></i> Lịch sử vừa cập nhật
+            </h3>
+            <div id="done-list" class="space-y-3 opacity-75 grayscale hover:grayscale-0 transition-all">
+                </div>
+        </div>
+
+    </div>
+
+    <div class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto z-30">
+        <div class="bg-white/80 backdrop-blur p-2 rounded-2xl border border-slate-200 shadow-xl">
+            <div class="flex justify-between items-center mb-2 px-2">
+                <span class="text-xs font-bold text-slate-500">Đã chọn: <span id="selectedCount" class="text-blue-600 text-lg">0</span> bài</span>
+                <span class="text-xs text-slate-400">Tự động lưu</span>
+            </div>
+            <button onclick="finishWorkout()" id="btnFinish" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                <span>Gửi Kết Quả</span> <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
         </div>
     </div>
 
     <script>
-        lucide.createIcons();
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
-        let PLANS = {}, LOGS = [];
-        const user = JSON.parse(localStorage.getItem('pt_user'));
-        if(!user) window.location.href = 'login.html';
+        // --- 1. KHỞI TẠO ---
+        renderLayout('workout'); // Vẽ menu
+        const user = checkLogin(); // Lấy user từ auth.js
+        
+        document.getElementById('currentDate').innerText = `Hôm nay: ${new Date().toLocaleDateString('vi-VN')}`;
 
+        let PLANS = {}; // Dữ liệu giáo án
+        let CURRENT_DAY = ""; // Tab đang chọn
+        let PROGRESS = {}; // Dữ liệu đang tập (Lưu localStorage)
+
+        // Key để lưu vào bộ nhớ trình duyệt (theo User ID)
+        const STORAGE_KEY = `pt_progress_${user.id}`;
+
+        // --- 2. LOGIC LOAD DỮ LIỆU ---
         async function init() {
+            // Load tiến độ cũ từ localStorage (nếu có)
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if(saved) PROGRESS = JSON.parse(saved);
+
             try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } }) });
-                const result = await res.json();
-                if(result.success && result.data) {
-                    PLANS = result.data; renderTabs();
-                } else document.getElementById('list').innerHTML = '<p class="text-center text-slate-400 mt-10">Chưa có bài tập.</p>';
-            } catch(e) { alert("Lỗi tải dữ liệu"); }
+                const res = await callAPI('get_student_plan', { userId: user.id });
+                if(res.success && res.data) {
+                    PLANS = res.data;
+                    renderTabs();
+                } else {
+                    document.getElementById('todo-list').innerHTML = `
+                        <div class="text-center text-slate-400 mt-10">
+                            <i data-lucide="calendar-off" class="w-12 h-12 mx-auto mb-2 opacity-20"></i>
+                            <p>Chưa có lịch tập nào được giao.</p>
+                        </div>`;
+                    lucide.createIcons();
+                }
+            } catch(e) { 
+                alert("Lỗi tải dữ liệu: " + e); 
+            }
         }
 
+        // --- 3. RENDER GIAO DIỆN ---
         function renderTabs() {
             const days = Object.keys(PLANS);
-            document.getElementById('planCount').innerText = `${days.length} Buổi`;
-            document.getElementById('tabs').innerHTML = days.map((d,i) => 
-                `<button onclick="renderList('${d}', this)" class="px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap ${i===0?'tab-active':'bg-white text-slate-600'}">${d}</button>`
-            ).join('');
-            if(days.length>0) renderList(days[0], document.querySelector('#tabs button'));
+            const container = document.getElementById('tabs');
+            
+            container.innerHTML = days.map((day, i) => `
+                <button onclick="switchTab('${day}', this)" 
+                    class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border transition-all
+                    ${i===0 ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                    ${day}
+                </button>
+            `).join('');
+
+            if(days.length > 0) switchTab(days[0], container.children[0]);
         }
 
-        function renderList(day, btn) {
-            document.querySelectorAll('#tabs button').forEach(b => b.className = 'px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap bg-white text-slate-600');
-            btn.className = 'px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap tab-active';
-            document.getElementById('list').innerHTML = PLANS[day].map((ex, i) => `
-                <div class="bg-white p-4 rounded-xl shadow-sm border" id="card-${i}">
-                    <div class="flex justify-between mb-2"><h3 class="font-bold">${ex.exercise}</h3>${ex.video?`<a href="${ex.video}" target="_blank" class="text-blue-500"><i data-lucide="play-circle"></i></a>`:''}</div>
-                    <div class="flex gap-2 items-center mt-3">
-                        <input id="w-${i}" type="number" placeholder="kg" class="border rounded p-2 w-20 text-center font-bold">
-                        <input id="r-${i}" type="number" placeholder="reps" value="${ex.reps}" class="border rounded p-2 w-16 text-center">
-                        <input type="checkbox" onchange="toggle(${i}, '${ex.exercise}')" class="w-6 h-6 ml-auto accent-blue-600">
+        function switchTab(day, btnElement) {
+            CURRENT_DAY = day;
+            
+            // Update style active tabs
+            document.querySelectorAll('#tabs button').forEach(b => 
+                b.className = 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200');
+            if(btnElement) btnElement.className = 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-blue-600 text-white border-blue-600 shadow-md transform scale-105';
+
+            renderExercises(day);
+        }
+
+        function renderExercises(day) {
+            const list = document.getElementById('todo-list');
+            const exercises = PLANS[day] || [];
+            
+            list.innerHTML = exercises.map((ex, i) => {
+                // Kiểm tra xem bài này đã có trong bộ nhớ chưa
+                const key = `${day}_${ex.exercise}`; // Key duy nhất cho bài tập
+                const savedData = PROGRESS[key] || {};
+                const isChecked = savedData.checked ? 'checked' : '';
+                const wVal = savedData.weight || '';
+                const rVal = savedData.reps || ex.reps;
+                const cardClass = isChecked ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'bg-white border-slate-100';
+
+                return `
+                <div class="p-4 rounded-xl shadow-sm border transition-all duration-200 ${cardClass}" id="card-${i}">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">${ex.exercise}</h3>
+                            ${ex.note ? `<p class="text-xs text-slate-500 mt-1 bg-slate-100 inline-block px-2 py-1 rounded">💡 ${ex.note}</p>` : ''}
+                        </div>
+                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600 bg-blue-50 p-2 rounded-full hover:bg-blue-100"><i data-lucide="play-circle" class="w-5 h-5"></i></a>` : ''}
                     </div>
-                </div>`).join('');
+
+                    <div class="flex items-end gap-3">
+                        <div class="flex-1 grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Mức tạ (Kg)</label>
+                                <input type="number" id="w-${i}" value="${wVal}" oninput="saveTemp('${day}', '${ex.exercise}', ${i})" 
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Kg">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Số Reps</label>
+                                <input type="number" id="r-${i}" value="${rVal}" oninput="saveTemp('${day}', '${ex.exercise}', ${i})"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Reps">
+                            </div>
+                        </div>
+                        
+                        <div class="h-[62px] flex items-end pb-1">
+                            <label class="cursor-pointer">
+                                <input type="checkbox" ${isChecked} onchange="toggleCheck(${i}, '${day}', '${ex.exercise}')" 
+                                    class="check-anim w-10 h-10 rounded-xl border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600">
+                            </label>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            
             lucide.createIcons();
+            updateCounter();
         }
 
-        function toggle(i, name) {
-            const w = document.getElementById(`w-${i}`).value, r = document.getElementById(`r-${i}`).value, c = document.getElementById(`card-${i}`);
-            if(event.target.checked) { c.classList.add('bg-green-50','border-green-500'); LOGS.push({exercise:name, weight:w, reps:r}); }
-            else { c.classList.remove('bg-green-50','border-green-500'); LOGS = LOGS.filter(l=>l.exercise!==name); }
+        // --- 4. XỬ LÝ STATE (Lưu tạm & Logic) ---
+        
+        // Lưu tạm khi gõ phím (để F5 không mất)
+        function saveTemp(day, exName, idx) {
+            const w = document.getElementById(`w-${idx}`).value;
+            const r = document.getElementById(`r-${idx}`).value;
+            const key = `${day}_${exName}`;
+            
+            if (!PROGRESS[key]) PROGRESS[key] = {};
+            PROGRESS[key].weight = w;
+            PROGRESS[key].reps = r;
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
         }
 
-        async function finish() {
-            if(LOGS.length===0) return alert('Chưa tick bài nào!');
-            document.getElementById('btnSave').innerText = "Đang lưu...";
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs: LOGS } }) });
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } }) });
-            alert("Đã lưu thành công!"); window.location.href = 'index.html';
+        // Khi tick vào checkbox
+        function toggleCheck(idx, day, exName) {
+            const card = document.getElementById(`card-${idx}`);
+            const wInput = document.getElementById(`w-${idx}`);
+            const rInput = document.getElementById(`r-${idx}`);
+            const key = `${day}_${exName}`;
+
+            // Validate: Bắt buộc nhập
+            if (!wInput.value || !rInput.value) {
+                alert("Vui lòng nhập Mức tạ và Số Reps trước!");
+                event.target.checked = false; // Bỏ tick
+                wInput.focus();
+                return;
+            }
+
+            // Cập nhật giao diện & Data
+            if (event.target.checked) {
+                card.classList.remove('bg-white', 'border-slate-100');
+                card.classList.add('bg-blue-50', 'border-blue-500', 'ring-1', 'ring-blue-500');
+                
+                PROGRESS[key] = { weight: wInput.value, reps: rInput.value, checked: true, exercise: exName };
+            } else {
+                card.classList.add('bg-white', 'border-slate-100');
+                card.classList.remove('bg-blue-50', 'border-blue-500', 'ring-1', 'ring-blue-500');
+                
+                if(PROGRESS[key]) PROGRESS[key].checked = false;
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
+            updateCounter();
         }
-        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+
+        // Đếm số bài đã chọn
+        function updateCounter() {
+            const count = Object.values(PROGRESS).filter(i => i.checked).length;
+            document.getElementById('selectedCount').innerText = count;
+            document.getElementById('btnFinish').disabled = count === 0;
+        }
+
+        // Nút Reset (Xóa dữ liệu tạm)
+        function resetProgress() {
+            if(confirm("Xóa toàn bộ dữ liệu nhập tạm thời?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                PROGRESS = {};
+                renderExercises(CURRENT_DAY);
+            }
+        }
+
+        // --- 5. GỬI DỮ LIỆU (FINISH) ---
+        async function finishWorkout() {
+            // Lọc ra các bài đã tick
+            const logsToSend = Object.values(PROGRESS).filter(item => item.checked).map(item => ({
+                exercise: item.exercise,
+                weight: item.weight,
+                reps: item.reps
+            }));
+
+            if (logsToSend.length === 0) return alert("Bạn chưa hoàn thành bài nào!");
+            if (!confirm(`Xác nhận gửi ${logsToSend.length} bài tập về hệ thống?`)) return;
+
+            const btn = document.getElementById('btnFinish');
+            btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Đang gửi...';
+            btn.disabled = true;
+
+            try {
+                // 1. Gửi Log
+                await callAPI('log_workout', { userId: user.id, logs: logsToSend });
+                
+                // 2. Trừ buổi
+                await callAPI('deduct_session', { userId: user.id });
+
+                // 3. Xử lý sau khi thành công
+                alert("✅ Đã lưu thành công!");
+                
+                // Move dữ liệu sang phần Lịch sử (UI)
+                addToHistoryUI(logsToSend);
+                
+                // Xóa dữ liệu tạm
+                localStorage.removeItem(STORAGE_KEY);
+                PROGRESS = {};
+                renderExercises(CURRENT_DAY); // Reset form
+
+            } catch(e) {
+                alert("Có lỗi xảy ra: " + e);
+            } finally {
+                btn.innerHTML = '<span>Gửi Kết Quả</span> <i data-lucide="send" class="w-4 h-4"></i>';
+                btn.disabled = false;
+            }
+        }
+
+        // Hiện lịch sử ngay bên dưới (Không cần F5)
+        function addToHistoryUI(logs) {
+            const historySec = document.getElementById('history-section');
+            const historyList = document.getElementById('done-list');
+            
+            historySec.classList.remove('hidden');
+            
+            logs.forEach(log => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center p-3 bg-slate-100 rounded-lg text-sm";
+                item.innerHTML = `
+                    <div class="font-medium text-slate-700">${log.exercise}</div>
+                    <div class="text-slate-500 font-bold">${log.weight}kg x ${log.reps}</div>
+                `;
+                historyList.prepend(item); // Thêm vào đầu danh sách
+            });
+        }
+
+        // Chạy app
         init();
     </script>
 </body>
