@@ -6,47 +6,74 @@
     <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
-    <script src="layout.js"></script>
 </head>
 <body class="bg-slate-50 pb-24">
+
     <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg relative">
-        <div id="header-area" class="p-6 bg-white sticky top-0 z-10"></div>
+        <div class="p-6 bg-white sticky top-0 z-10 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900">Hi, <span id="uName">User</span> 👋</h1>
+                <p class="text-slate-500 text-xs">Chúc bạn một ngày tốt lành!</p>
+            </div>
+            <div class="h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold" id="uAvatar">U</div>
+        </div>
 
         <div class="px-6 space-y-6">
-            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg">
                 <p class="text-blue-100 text-sm font-medium">Gói tập còn lại</p>
-                <h2 class="text-4xl font-bold"><span id="sessionLeft">...</span> <span class="text-lg font-normal opacity-80">buổi</span></h2>
+                <h2 class="text-4xl font-bold"><span id="uSession">0</span> <span class="text-lg font-normal opacity-80">buổi</span></h2>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <a href="workout.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-300">
-                    <span class="text-2xl">💪</span> <span class="font-semibold text-sm">Vào Tập</span>
+                <a href="workout.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                    <i data-lucide="dumbbell" class="w-6 h-6"></i>
+                    <span class="font-bold text-sm">Vào Tập</span>
                 </a>
-                <a href="nutrition.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-300">
-                    <span class="text-2xl">🥗</span> <span class="font-semibold text-sm">Nhập Ăn</span>
+                <a href="#" onclick="alert('Sắp có')" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-300 transition-all">
+                    <i data-lucide="utensils" class="w-6 h-6"></i>
+                    <span class="font-bold text-sm">Nhập Ăn</span>
                 </a>
             </div>
         </div>
     </div>
 
-<script>
-    // 1. Kiểm tra xem file layout.js có được nạp không
-    if (typeof renderLayout === "function") {
-        renderLayout('home'); // Vẽ menu
-    } else {
-        alert("Lỗi: Không tìm thấy file js/layout.js. Hãy kiểm tra lại thư mục!");
-    }
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600">
+                <i data-lucide="home" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold mt-1">Home</span>
+            </a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
+                <i data-lucide="dumbbell" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Tập</span>
+            </a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500">
+                <i data-lucide="log-out" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Thoát</span>
+            </button>
+        </div>
+    </div>
 
-    // 2. Hiển thị số buổi (chỉ chạy khi có USER)
-    // Lưu ý: auth.js dùng const USER, nên ta dùng trực tiếp biến USER thay vì window.USER
-    if (typeof USER !== 'undefined' && USER) {
-        const sessionEl = document.getElementById('sessionLeft');
-        if (sessionEl) {
-            sessionEl.innerText = USER.sessionLeft || 0;
+    <script>
+        lucide.createIcons();
+
+        // LOGIC KIỂM TRA ĐĂNG NHẬP & HIỂN THỊ
+        const userJson = localStorage.getItem('pt_user');
+        if (!userJson) {
+            window.location.href = 'login.html';
+        } else {
+            const user = JSON.parse(userJson);
+            document.getElementById('uName').innerText = user.name;
+            document.getElementById('uAvatar').innerText = user.name.charAt(0);
+            document.getElementById('uSession').innerText = user.sessionLeft || 0;
         }
-    }
-</script>
+
+        function logout() {
+            if(confirm('Đăng xuất khỏi tài khoản?')) {
+                localStorage.removeItem('pt_user');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
 </body>
 </html>
