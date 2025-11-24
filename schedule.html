@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Hẹn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+</head>
+<body class="bg-slate-50 pb-24">
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg px-4 pt-4">
+        <h1 class="text-xl font-bold mb-4">Lịch Hẹn PT</h1>
+        <div id="schedule-list" class="space-y-3">Đang tải...</div>
+    </div>
+
+    <script>
+        renderLayout('schedule');
+
+        async function loadSchedule() {
+            const res = await callAPI('get_schedule', { userId: USER.id });
+            const list = document.getElementById('schedule-list');
+            list.innerHTML = '';
+
+            if(res.success && res.data.length > 0) {
+                // Lọc lịch của user hiện tại
+                const myEvents = res.data.filter(e => e.userId === USER.id);
+                
+                if(myEvents.length === 0) {
+                    list.innerHTML = '<p class="text-center text-gray-400">Chưa có lịch hẹn nào.</p>';
+                    return;
+                }
+
+                myEvents.forEach(ev => {
+                    list.innerHTML += `
+                    <div class="border rounded-xl p-4 bg-white shadow-sm border-l-4 border-l-blue-500">
+                        <div class="font-bold text-lg">${ev.date}</div>
+                        <div class="flex items-center gap-2 text-slate-600 mt-1">
+                            <i data-lucide="clock" class="w-4 h-4"></i> ${ev.time}
+                        </div>
+                        <div class="mt-2 text-xs font-bold ${ev.status === 'Upcoming' ? 'text-green-600' : 'text-gray-400'}">
+                            ${ev.status === 'Upcoming' ? '● Sắp tới' : '● ' + ev.status}
+                        </div>
+                    </div>`;
+                });
+                lucide.createIcons();
+            } else {
+                list.innerHTML = '<p class="text-center text-gray-400">Chưa có lịch hẹn nào.</p>';
+            }
+        }
+        loadSchedule();
+    </script>
+</body>
+</html>
