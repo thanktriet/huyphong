@@ -7,10 +7,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Tùy chỉnh thanh cuộn */
+        /* Tùy chỉnh */
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* Hiệu ứng chuyển tab */
         .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        
+        /* Calendar Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #e2e8f0; border: 1px solid #e2e8f0; }
+        .calendar-cell { background-color: white; min-height: 100px; padding: 4px; font-size: 12px; transition: all 0.2s; }
+        .calendar-cell:hover { background-color: #f8fafc; }
+        .calendar-header { background-color: #f1f5f9; font-weight: bold; text-align: center; padding: 8px 0; font-size: 12px; color: #64748b; }
+        .event-tag { background-color: #eff6ff; border-left: 3px solid #3b82f6; padding: 2px 4px; margin-bottom: 2px; border-radius: 2px; font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+        
         /* Modal */
         .modal { transition: opacity 0.25s ease; }
         body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
@@ -19,7 +26,7 @@
 <body class="bg-slate-100 font-sans text-slate-800 pb-20">
 
     <div class="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-lg">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="w-6 h-6 text-white"></i></div>
                 <div>
@@ -27,13 +34,13 @@
                     <p class="text-slate-400 text-xs">Xin chào, <span id="ptName">Coach</span></p>
                 </div>
             </div>
-            <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition-colors text-slate-300 hover:text-white">
+            <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 hover:text-white">
                 <i data-lucide="log-out" class="w-5 h-5"></i>
             </button>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-4 mt-6 space-y-6">
+    <div class="max-w-5xl mx-auto px-4 mt-6 space-y-6">
 
         <div class="grid grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500">
@@ -45,299 +52,336 @@
                 <div class="text-3xl font-black text-slate-800" id="stat-active">...</div>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-orange-500">
-                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Lịch Hôm Nay</div>
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Ca Dạy Hôm Nay</div>
                 <div class="text-3xl font-black text-slate-800" id="stat-today">...</div>
             </div>
         </div>
 
         <div class="flex gap-2 overflow-x-auto no-scrollbar bg-white p-2 rounded-xl shadow-sm">
-            <button onclick="switchTab('students', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
+            <button onclick="switchTab('calendar', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
+                <i data-lucide="calendar-days" class="w-4 h-4"></i> Lịch Dạy
+            </button>
+            <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
+                <i data-lucide="pencil-ruler" class="w-4 h-4"></i> Soạn Giáo Án
+            </button>
+            <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
                 <i data-lucide="users" class="w-4 h-4"></i> Học Viên
             </button>
-            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
+            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
                 <i data-lucide="dumbbell" class="w-4 h-4"></i> Bài Tập
-            </button>
-            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
-                <i data-lucide="utensils" class="w-4 h-4"></i> Món Ăn
             </button>
         </div>
 
-        <div id="view-students" class="view-section space-y-4">
+        <div id="view-builder" class="view-section hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="pencil-ruler" class="text-blue-600"></i> Thiết Kế Giáo Án</h2>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Tên Giáo Án</label>
+                        <input id="plan-name" type="text" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Vd: Tăng cơ Phase 1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Giao cho ai?</label>
+                        <select id="plan-student" class="w-full border p-2.5 rounded-lg text-sm bg-white">
+                            <option value="">-- Chọn học viên --</option>
+                            </select>
+                    </div>
+                </div>
+
+                <div class="border rounded-xl overflow-hidden mb-4">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b">
+                            <tr>
+                                <th class="p-3 w-24">Ngày</th>
+                                <th class="p-3">Bài tập</th>
+                                <th class="p-3 w-16 text-center">Sets</th>
+                                <th class="p-3 w-16 text-center">Reps</th>
+                                <th class="p-3 w-32">Note</th>
+                                <th class="p-3 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="plan-rows" class="divide-y divide-slate-100">
+                            </tbody>
+                    </table>
+                    <button onclick="addPlanRow()" class="w-full py-2 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors border-t border-slate-100">
+                        + Thêm dòng
+                    </button>
+                </div>
+
+                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">
+                    Lưu & Gửi Giáo Án
+                </button>
+            </div>
+        </div>
+
+        <div id="view-calendar" class="view-section space-y-4">
+            <div class="bg-white p-3 rounded-xl shadow-sm flex justify-between items-center">
+                <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                <h2 class="text-lg font-bold text-slate-800 uppercase" id="cal-title">Tháng...</h2>
+                <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-right"></i></button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="calendar-grid" style="border:none; border-bottom:1px solid #e2e8f0">
+                    <div class="calendar-header">CN</div><div class="calendar-header">Thứ 2</div><div class="calendar-header">Thứ 3</div><div class="calendar-header">Thứ 4</div><div class="calendar-header">Thứ 5</div><div class="calendar-header">Thứ 6</div><div class="calendar-header">Thứ 7</div>
+                </div>
+                <div id="calendar-body" class="calendar-grid"></div>
+            </div>
+        </div>
+
+        <div id="view-students" class="view-section hidden space-y-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-lg font-bold text-slate-700">Danh sách lớp</h2>
-                <button onclick="toggleModal('modal-add-student')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-200">
+                <button onclick="toggleModal('modal-add-student')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg">
                     <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Mới
                 </button>
             </div>
-
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-sm text-left">
                     <thead class="bg-slate-50 text-slate-500 font-bold border-b">
-                        <tr>
-                            <th class="p-4">Học viên</th>
-                            <th class="p-4 text-center">Gói tập</th>
-                            <th class="p-4 text-right">Thao tác</th>
-                        </tr>
+                        <tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói tập</th><th class="p-4 text-right">Thao tác</th></tr>
                     </thead>
-                    <tbody id="student-list" class="divide-y divide-slate-100">
-                        <tr><td colspan="3" class="p-6 text-center text-slate-400">Đang tải dữ liệu...</td></tr>
-                    </tbody>
+                    <tbody id="student-list" class="divide-y divide-slate-100"><tr><td colspan="3" class="p-6 text-center text-slate-400">Đang tải...</td></tr></tbody>
                 </table>
             </div>
         </div>
 
         <div id="view-exercise" class="view-section hidden space-y-4">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="dumbbell" class="text-blue-600"></i> Thêm Bài Tập Mới</h2>
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="dumbbell" class="text-blue-600"></i> Thêm Bài Tập</h2>
                 <form id="form-exercise" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Tên bài tập</label>
-                            <input id="ex-name" type="text" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Vd: Squat" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Nhóm cơ</label>
-                            <select id="ex-group" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none bg-white">
-                                <option>Ngực (Chest)</option><option>Lưng (Back)</option><option>Chân (Legs)</option>
-                                <option>Vai (Shoulder)</option><option>Tay (Arms)</option><option>Bụng (Abs)</option><option>Cardio</option>
-                            </select>
-                        </div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Tên bài</label><input id="ex-name" class="w-full border p-2.5 rounded-lg text-sm" required></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Nhóm cơ</label><select id="ex-group" class="w-full border p-2.5 rounded-lg text-sm"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option></select></div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Video YouTube (URL)</label>
-                        <input id="ex-video" type="url" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="https://...">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Mô tả kỹ thuật</label>
-                        <textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Ghi chú kỹ thuật..."></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">Lưu Bài Tập</button>
+                    <input id="ex-video" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Link Video Youtube">
+                    <textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Mô tả kỹ thuật"></textarea>
+                    <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Lưu Bài Tập</button>
                 </form>
             </div>
         </div>
 
         <div id="view-food" class="view-section hidden space-y-4">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600"></i> Thêm Món Ăn Mới</h2>
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600"></i> Thêm Món Ăn</h2>
                 <form id="form-food" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Tên món ăn</label>
-                        <input id="fd-name" type="text" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-green-500 outline-none" placeholder="Vd: Ức gà luộc" required>
-                    </div>
+                    <input id="fd-name" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Tên món" required>
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Đơn vị</label>
-                            <input id="fd-unit" type="text" class="w-full border p-2.5 rounded-lg text-sm" value="100g">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Calories</label>
-                            <input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="0" required>
-                        </div>
+                        <input id="fd-unit" class="w-full border p-2.5 rounded-lg text-sm" value="100g">
+                        <input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Calo" required>
                     </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Protein</label><input id="fd-pro" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
-                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Carbs</label><input id="fd-carb" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
-                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Fat</label><input id="fd-fat" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
+                    <div class="grid grid-cols-3 gap-3 text-sm">
+                        <input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro">
+                        <input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb">
+                        <input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat">
                     </div>
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg">Lưu Món Ăn</button>
+                    <button class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Lưu Món Ăn</button>
                 </form>
             </div>
         </div>
 
     </div>
 
-    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
-        <div class="modal-overlay absolute w-full h-full bg-slate-900 opacity-50"></div>
-        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-y-auto">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">Thêm Học Viên Mới</h3>
-                    <button onclick="toggleModal('modal-add-student')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
-                </div>
-                <form id="form-register" class="space-y-3">
-                    <input id="reg-name" class="w-full border p-3 rounded-xl text-sm" placeholder="Họ và tên" required>
-                    <input id="reg-email" type="email" class="w-full border p-3 rounded-xl text-sm" placeholder="Email đăng nhập" required>
-                    <input id="reg-phone" class="w-full border p-3 rounded-xl text-sm" placeholder="Số điện thoại" required>
-                    <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 flex gap-2 items-start">
-                        <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
-                        <div>Mật khẩu mặc định là <b>123456</b>. Học viên có thể đổi sau.</div>
-                    </div>
-                    <button type="submit" id="btn-reg" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Tạo Tài Khoản</button>
-                </form>
-            </div>
+    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50">
+        <div class="absolute inset-0 bg-slate-900 opacity-50"></div>
+        <div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative">
+            <button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x"></i></button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Thêm Học Viên</h3>
+            <form id="form-register" class="space-y-3">
+                <input id="reg-name" class="w-full border p-3 rounded-xl text-sm" placeholder="Họ tên" required>
+                <input id="reg-email" type="email" class="w-full border p-3 rounded-xl text-sm" placeholder="Email" required>
+                <input id="reg-phone" class="w-full border p-3 rounded-xl text-sm" placeholder="SĐT" required>
+                <button type="submit" id="btn-reg" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Tạo Tài Khoản</button>
+            </form>
         </div>
     </div>
+
+    <datalist id="dl-exercises"></datalist>
 
     <script>
-        // 1. CẤU HÌNH API & AUTH
         const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
-        
         lucide.createIcons();
+        
         const userJson = localStorage.getItem('pt_user');
         if(!userJson) window.location.href = 'login.html';
         const USER = JSON.parse(userJson);
-
-        // Bảo mật: Chỉ PT mới được vào
-        if(USER.role !== 'PT') {
-            alert('Bạn không có quyền truy cập!');
-            window.location.href = 'index.html';
-        }
+        if(USER.role !== 'PT') { alert('Cấm truy cập!'); window.location.href = 'index.html'; }
         document.getElementById('ptName').innerText = USER.name;
 
-        // --- CORE API CALLER ---
+        let STUDENTS_MAP = {}, SCHEDULE_DATA = [], EXERCISES = [], CURRENT_DATE = new Date();
+
         async function callAPI(action, data={}) {
             try {
                 const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
                 return await res.json();
-            } catch(e) { alert("Lỗi kết nối: " + e); return {success:false}; }
+            } catch(e) { alert("Lỗi: " + e); return {success:false}; }
         }
 
-        // --- 2. KHỞI TẠO DỮ LIỆU ---
-        async function initDashboard() {
-            // Lấy thống kê
-            const statsRes = await callAPI('admin_get_dashboard');
-            if(statsRes.success) {
-                document.getElementById('stat-total').innerText = statsRes.data.totalStudent;
-                document.getElementById('stat-active').innerText = statsRes.data.activeStudent;
-                document.getElementById('stat-today').innerText = statsRes.data.todaySessions;
+        async function initApp() {
+            await loadStudents();
+            await initDashboard();
+            await loadSchedule();
+            await loadExercises(); // Tải bài tập để gợi ý
+            addPlanRow(); // Thêm 1 dòng mặc định cho Plan Builder
+        }
+
+        // --- 1. PLAN BUILDER LOGIC (MỚI) ---
+        async function loadExercises() {
+            const res = await callAPI('get_exercise_lib');
+            if(res.success) {
+                EXERCISES = res.data;
+                const dl = document.getElementById('dl-exercises');
+                dl.innerHTML = EXERCISES.map(ex => `<option value="${ex.name}">[${ex.group}]</option>`).join('');
             }
-            loadStudents();
         }
 
+        function addPlanRow() {
+            const tbody = document.getElementById('plan-rows');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option><option>CN</option></select></td>
+                <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..." onchange="fillVideo(this)"></td>
+                <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
+                <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
+                <td class="p-2"><input type="text" placeholder="..." class="w-full border p-1 rounded text-sm"></td>
+                <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                <input type="hidden" class="video-url">
+            `;
+            tbody.appendChild(row);
+            lucide.createIcons();
+        }
+
+        function fillVideo(input) {
+            const ex = EXERCISES.find(e => e.name === input.value);
+            if(ex) input.closest('tr').querySelector('.video-url').value = ex.video;
+        }
+
+        async function savePlan() {
+            const name = document.getElementById('plan-name').value;
+            const studentId = document.getElementById('plan-student').value;
+            if(!name || !studentId) return alert("Vui lòng nhập Tên giáo án và chọn Học viên!");
+
+            const rows = document.querySelectorAll('#plan-rows tr');
+            let details = [];
+            rows.forEach(r => {
+                const inputs = r.querySelectorAll('input, select');
+                if(inputs[1].value) {
+                    details.push({
+                        day: inputs[0].value,
+                        exercise: inputs[1].value,
+                        sets: inputs[2].value,
+                        reps: inputs[3].value,
+                        note: inputs[4].value,
+                        video: r.querySelector('.video-url').value
+                    });
+                }
+            });
+
+            if(details.length === 0) return alert("Chưa có bài tập nào!");
+
+            const btn = document.getElementById('btn-save-plan');
+            btn.innerText = "Đang lưu..."; btn.disabled = true;
+
+            const res = await callAPI('save_workout_plan', { planName: name, targetUser: studentId, details });
+            
+            if(res.success) {
+                alert("✅ Đã giao giáo án thành công!");
+                document.getElementById('plan-name').value = '';
+                document.getElementById('plan-rows').innerHTML = '';
+                addPlanRow();
+            } else {
+                alert(res.message);
+            }
+            btn.innerText = "Lưu & Gửi Giáo Án"; btn.disabled = false;
+        }
+
+        // --- 2. STUDENT MANAGEMENT ---
         async function loadStudents() {
             const res = await callAPI('get_all_students');
             const list = document.getElementById('student-list');
+            const select = document.getElementById('plan-student'); // Dropdown cho Plan Builder
+            
             if(res.success) {
-                if(res.data.length === 0) {
-                    list.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400">Chưa có học viên.</td></tr>';
-                    return;
-                }
+                res.data.forEach(s => { STUDENTS_MAP[s.id] = s.name; });
+                
+                // Fill Dropdown
+                select.innerHTML = '<option value="">-- Chọn học viên --</option>' + 
+                    res.data.map(s => `<option value="${s.id}">${s.name} (${s.sessionLeft} buổi)</option>`).join('');
+
+                // Fill List
                 list.innerHTML = res.data.map(st => `
-                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
-                        <td class="p-4">
-                            <div class="font-bold text-slate-800 text-sm">${st.name}</div>
-                            <div class="text-xs text-slate-400">${st.email}</div>
-                            <div class="mt-1"><span class="text-[10px] px-2 py-0.5 rounded-full ${st.status==='Active'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${st.status}</span></div>
-                        </td>
-                        <td class="p-4 text-center">
-                            <div class="font-black text-lg ${st.sessionLeft < 5 ? 'text-red-500' : 'text-blue-600'}">${st.sessionLeft || 0}</div>
-                            <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
-                        </td>
-                        <td class="p-4 text-right space-y-2">
-                            <button onclick="topUpSession('${st.id}', '${st.name}')" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center justify-center gap-1">
-                                <i data-lucide="plus-circle" class="w-3 h-3"></i> Nạp Buổi
-                            </button>
-                            <button onclick="toggleStatus('${st.id}', '${st.status}')" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs font-medium py-1.5 px-3 rounded-lg border border-slate-200 transition-colors">
-                                ${st.status === 'Active' ? 'Khóa TK' : 'Mở Khóa'}
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                    <tr class="hover:bg-slate-50 border-b border-slate-50">
+                        <td class="p-4"><div class="font-bold text-slate-800 text-sm">${st.name}</div><div class="text-xs text-slate-400">${st.email}</div><div class="mt-1"><span class="text-[10px] px-2 py-0.5 rounded-full ${st.status==='Active'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${st.status}</span></div></td>
+                        <td class="p-4 text-center"><div class="font-black text-lg ${st.sessionLeft<5?'text-red-500':'text-blue-600'}">${st.sessionLeft||0}</div></td>
+                        <td class="p-4 text-right space-y-2"><button onclick="topUpSession('${st.id}','${st.name}')" class="w-full bg-blue-50 text-blue-600 text-xs font-bold py-1 px-3 rounded border border-blue-200">Nạp Buổi</button><button onclick="toggleStatus('${st.id}','${st.status}')" class="w-full bg-slate-50 text-slate-500 text-xs font-medium py-1 px-3 rounded border border-slate-200">${st.status==='Active'?'Khóa':'Mở'}</button></td>
+                    </tr>`).join('');
                 lucide.createIcons();
             }
         }
 
-        // --- 3. CÁC HÀNH ĐỘNG (ACTIONS) ---
-
-        // Thêm học viên mới
         document.getElementById('form-register').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btn-reg');
-            btn.innerText = "Đang tạo..."; btn.disabled = true;
-
-            const data = {
-                name: document.getElementById('reg-name').value,
-                email: document.getElementById('reg-email').value,
-                phone: document.getElementById('reg-phone').value
-            };
-
-            const res = await callAPI('register', data);
-            if(res.success) {
-                alert("✅ " + res.message);
-                document.getElementById('form-register').reset();
-                toggleModal('modal-add-student');
-                loadStudents(); // Reload list
-                initDashboard(); // Reload stats
-            } else {
-                alert("❌ " + res.message);
-            }
-            btn.innerText = "Tạo Tài Khoản"; btn.disabled = false;
+            const btn = document.getElementById('btn-reg'); btn.innerText="Đang tạo..."; btn.disabled=true;
+            const res = await callAPI('register', { name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value, phone: document.getElementById('reg-phone').value });
+            if(res.success) { alert("✅ Thành công!"); toggleModal('modal-add-student'); loadStudents(); initDashboard(); }
+            else alert(res.message);
+            btn.innerText="Tạo Tài Khoản"; btn.disabled=false;
         });
 
-        // Nạp thêm buổi tập
         async function topUpSession(id, name) {
-            const amount = prompt(`Nạp thêm bao nhiêu buổi cho ${name}?`, "10");
-            if(amount && !isNaN(amount)) {
-                const res = await callAPI('admin_update_student', { studentId: id, addSession: amount });
-                if(res.success) { alert("✅ Đã cộng thêm buổi!"); loadStudents(); }
-                else alert("Lỗi: " + res.message);
-            }
+            const amt = prompt(`Nạp thêm bao nhiêu buổi cho ${name}?`, "10");
+            if(amt) { await callAPI('admin_update_student', { studentId: id, addSession: amt }); alert("✅ Đã nạp!"); loadStudents(); }
         }
 
-        // Khóa/Mở khóa tài khoản
-        async function toggleStatus(id, currentStatus) {
-            const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-            const actionName = newStatus === 'Active' ? 'Mở khóa' : 'Khóa';
-            if(confirm(`Bạn chắc chắn muốn ${actionName} tài khoản này?`)) {
-                const res = await callAPI('admin_update_student', { studentId: id, status: newStatus });
-                if(res.success) loadStudents();
-                else alert("Lỗi: " + res.message);
-            }
+        async function toggleStatus(id, st) {
+            if(confirm("Đổi trạng thái?")) { await callAPI('admin_update_student', { studentId: id, status: st==='Active'?'Inactive':'Active' }); loadStudents(); }
         }
 
-        // Thêm Bài Tập
-        document.getElementById('form-exercise').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('ex-name').value,
-                group: document.getElementById('ex-group').value,
-                video: document.getElementById('ex-video').value,
-                desc: document.getElementById('ex-desc').value
-            };
-            const res = await callAPI('admin_add_exercise', data);
-            if(res.success) { alert("✅ Đã thêm bài tập!"); document.getElementById('form-exercise').reset(); }
-        });
+        // --- 3. CALENDAR ---
+        async function loadSchedule() {
+            const res = await callAPI('get_schedule');
+            if(res.success) { SCHEDULE_DATA = res.data; renderCalendar(); }
+        }
 
-        // Thêm Món Ăn
-        document.getElementById('form-food').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('fd-name').value,
-                unit: document.getElementById('fd-unit').value,
-                cal: document.getElementById('fd-cal').value,
-                pro: document.getElementById('fd-pro').value,
-                carb: document.getElementById('fd-carb').value,
-                fat: document.getElementById('fd-fat').value
-            };
-            const res = await callAPI('admin_add_food', data);
-            if(res.success) { alert("✅ Đã thêm món ăn!"); document.getElementById('form-food').reset(); }
-        });
+        function renderCalendar() {
+            const y = CURRENT_DATE.getFullYear(), m = CURRENT_DATE.getMonth();
+            document.getElementById('cal-title').innerText = `Tháng ${m + 1} / ${y}`;
+            const firstDay = new Date(y, m, 1).getDay(), daysInMonth = new Date(y, m + 1, 0).getDate();
+            const body = document.getElementById('calendar-body'); body.innerHTML = '';
 
-        // --- 4. TIỆN ÍCH GIAO DIỆN ---
-        function switchTab(tabName, btn) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            for(let i=0; i<firstDay; i++) body.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
             
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const events = SCHEDULE_DATA.filter(e => e.date === dateStr);
+                const html = events.map(e => `<div class="event-tag" title="${STUDENTS_MAP[e.userId]}"><span class="font-bold">${e.time}</span> ${STUDENTS_MAP[e.userId]?.split(' ').pop()||'?'}</div>`).join('');
+                body.innerHTML += `<div class="calendar-cell"><div class="font-bold text-slate-400 mb-1">${d}</div><div class="space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">${html}</div></div>`;
+            }
+        }
+        function changeMonth(s) { CURRENT_DATE.setMonth(CURRENT_DATE.getMonth()+s); renderCalendar(); }
+
+        // --- 4. UTILS ---
+        async function initDashboard() {
+            const r = await callAPI('admin_get_dashboard');
+            if(r.success) {
+                document.getElementById('stat-total').innerText = r.data.totalStudent;
+                document.getElementById('stat-active').innerText = r.data.activeStudent;
+                document.getElementById('stat-today').innerText = r.data.todaySessions;
+            }
+        }
+        function switchTab(name, btn) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${name}`).classList.remove('hidden');
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
         }
+        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); }
+        
+        document.getElementById('form-exercise').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_exercise', {name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, video:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); alert("✅ OK"); });
+        document.getElementById('form-food').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_food', {name:document.getElementById('fd-name').value, unit:document.getElementById('fd-unit').value, cal:document.getElementById('fd-cal').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); alert("✅ OK"); });
 
-        function toggleModal(modalID) {
-            const modal = document.getElementById(modalID);
-            modal.classList.toggle('opacity-0');
-            modal.classList.toggle('pointer-events-none');
-            document.body.classList.toggle('modal-active');
-        }
-
-        function logout() {
-            if(confirm("Đăng xuất Admin?")) {
-                localStorage.removeItem('pt_user');
-                window.location.href = 'login.html';
-            }
-        }
-
-        // START APP
-        initDashboard();
+        function logout() { if(confirm("Đăng xuất Admin?")) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+        initApp();
     </script>
 </body>
 </html>
