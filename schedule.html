@@ -2,55 +2,53 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lịch Hẹn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/layout.js"></script>
 </head>
 <body class="bg-slate-50 pb-24">
     <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg px-4 pt-4">
         <h1 class="text-xl font-bold mb-4">Lịch Hẹn PT</h1>
-        <div id="schedule-list" class="space-y-3">Đang tải...</div>
+        <div id="list" class="space-y-3">Đang tải...</div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px]">Home</span></a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px]">Tập</span></a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px]">Ăn</span></a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-blue-600"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px] font-bold">Lịch</span></a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
+        </div>
     </div>
 
     <script>
-        renderLayout('schedule');
+        lucide.createIcons();
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
+        const user = JSON.parse(localStorage.getItem('pt_user'));
+        if(!user) window.location.href = 'login.html';
 
-        async function loadSchedule() {
-            const res = await callAPI('get_schedule', { userId: USER.id });
-            const list = document.getElementById('schedule-list');
+        async function loadData() {
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_schedule', data: { userId: user.id } }) });
+            const r = await res.json();
+            const list = document.getElementById('list');
             list.innerHTML = '';
-
-            if(res.success && res.data.length > 0) {
-                // Lọc lịch của user hiện tại
-                const myEvents = res.data.filter(e => e.userId === USER.id);
-                
-                if(myEvents.length === 0) {
-                    list.innerHTML = '<p class="text-center text-gray-400">Chưa có lịch hẹn nào.</p>';
-                    return;
-                }
-
-                myEvents.forEach(ev => {
-                    list.innerHTML += `
-                    <div class="border rounded-xl p-4 bg-white shadow-sm border-l-4 border-l-blue-500">
-                        <div class="font-bold text-lg">${ev.date}</div>
-                        <div class="flex items-center gap-2 text-slate-600 mt-1">
-                            <i data-lucide="clock" class="w-4 h-4"></i> ${ev.time}
-                        </div>
-                        <div class="mt-2 text-xs font-bold ${ev.status === 'Upcoming' ? 'text-green-600' : 'text-gray-400'}">
-                            ${ev.status === 'Upcoming' ? '● Sắp tới' : '● ' + ev.status}
-                        </div>
+            if(r.success && r.data.length > 0) {
+                const myEv = r.data.filter(e => e.userId === user.id);
+                if(myEv.length === 0) return list.innerHTML = '<p class="text-center text-gray-400">Không có lịch.</p>';
+                myEv.forEach(e => {
+                    list.innerHTML += `<div class="border rounded-xl p-4 bg-white shadow-sm border-l-4 border-l-blue-500">
+                        <div class="font-bold text-lg">${e.date}</div>
+                        <div class="flex items-center gap-2 text-slate-600 mt-1"><i data-lucide="clock" class="w-4 h-4"></i> ${e.time}</div>
+                        <div class="mt-2 text-xs font-bold ${e.status==='Upcoming'?'text-green-600':'text-gray-400'}">● ${e.status}</div>
                     </div>`;
                 });
                 lucide.createIcons();
-            } else {
-                list.innerHTML = '<p class="text-center text-gray-400">Chưa có lịch hẹn nào.</p>';
-            }
+            } else list.innerHTML = '<p class="text-center text-gray-400">Không có lịch.</p>';
         }
-        loadSchedule();
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+        loadData();
     </script>
 </body>
 </html>
