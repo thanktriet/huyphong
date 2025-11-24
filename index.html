@@ -3,110 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - PT Manager</title>
+    <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        /* Ẩn thanh cuộn cho đẹp */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
 </head>
 <body class="bg-slate-50 pb-24">
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg relative">
+        <div id="header-area" class="p-6 bg-white sticky top-0 z-10"></div>
 
-    <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-lg overflow-hidden relative">
-        
-        <div class="p-6 bg-white sticky top-0 z-10">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Hi, <span id="userName">User</span> 👋</h1>
-                    <p class="text-slate-500 text-sm">Chúc bạn một ngày đầy năng lượng!</p>
-                </div>
-                <div id="avatar" class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                    U
-                </div>
-            </div>
-        </div>
-
-        <div id="mainContent" class="px-6 space-y-6">
-            
-            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg shadow-blue-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-blue-100 text-sm font-medium mb-1">Gói tập còn lại</p>
-                        <h2 class="text-4xl font-bold"><span id="sessionLeft">0</span> <span class="text-lg font-normal opacity-80">buổi</span></h2>
-                    </div>
-                    <div class="bg-white/20 p-3 rounded-full">
-                        <i data-lucide="target" class="w-8 h-8 text-white"></i>
-                    </div>
-                </div>
+        <div class="px-6 space-y-6">
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg">
+                <p class="text-blue-100 text-sm font-medium">Gói tập còn lại</p>
+                <h2 class="text-4xl font-bold"><span id="sessionLeft">...</span> <span class="text-lg font-normal opacity-80">buổi</span></h2>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <a href="workout.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                    <span class="text-2xl">💪</span>
-                    <span class="font-semibold text-sm">Vào Tập</span>
+                <a href="workout.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-300">
+                    <span class="text-2xl">💪</span> <span class="font-semibold text-sm">Vào Tập</span>
                 </a>
-                <button onclick="alert('Chức năng đang phát triển')" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:border-green-500 hover:bg-green-50 transition-colors">
-                    <span class="text-2xl">🥗</span>
-                    <span class="font-semibold text-sm">Nhập Ăn</span>
-                </button>
+                <a href="nutrition.html" class="h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-300">
+                    <span class="text-2xl">🥗</span> <span class="font-semibold text-sm">Nhập Ăn</span>
+                </a>
             </div>
-
-        </div>
-    </div>
-
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600">
-                <i data-lucide="home" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Home</span>
-            </a>
-    
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
-                <i data-lucide="dumbbell" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Tập</span>
-            </a>
-    
-            <a href="#" onclick="alert('Tính năng đang phát triển')" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
-                <i data-lucide="utensils" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Ăn</span>
-            </a>
-            
-            <a href="#" onclick="alert('Tính năng đang phát triển')" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
-                <i data-lucide="calendar" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Lịch</span>
-            </a>
-    
-            <a href="#" onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-600">
-                <i data-lucide="log-out" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Thoát</span>
-            </a>
         </div>
     </div>
 
     <script>
-        lucide.createIcons();
-
-        // 1. Kiểm tra đăng nhập khi vào trang
-        const userJson = localStorage.getItem('pt_user');
-        if (!userJson) {
-            window.location.href = 'login.html';
-        } else {
-            // 2. Hiển thị dữ liệu user
-            const user = JSON.parse(userJson);
-            document.getElementById('userName').innerText = user.name;
-            document.getElementById('avatar').innerText = user.name.charAt(0);
-            document.getElementById('sessionLeft').innerText = user.sessionLeft || 0;
-        }
-
-        // Hàm đăng xuất
-        function logout() {
-            if(confirm('Bạn muốn đăng xuất?')) {
-                localStorage.removeItem('pt_user');
-                window.location.href = 'login.html';
-            }
-        }
+        renderLayout('home'); // Vẽ menu, active tab Home
+        document.getElementById('sessionLeft').innerText = USER.sessionLeft || 0;
     </script>
 </body>
 </html>
