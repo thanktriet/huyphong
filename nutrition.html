@@ -2,51 +2,54 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dinh Dưỡng</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/layout.js"></script>
 </head>
 <body class="bg-slate-50 pb-24">
     <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg px-4 pt-4">
-        <h1 class="text-xl font-bold mb-4">Dinh Dưỡng Hôm Nay</h1>
-
+        <h1 class="text-xl font-bold mb-4">Dinh Dưỡng</h1>
+        
         <div class="bg-slate-100 p-4 rounded-xl mb-6">
-            <div class="flex justify-between mb-2">
-                <span class="font-bold text-slate-700">Calories</span>
-                <span class="font-bold text-orange-500"><span id="val-cal">0</span> kcal</span>
-            </div>
-            <div class="w-full bg-slate-300 h-2 rounded-full overflow-hidden">
-                <div id="bar-cal" class="bg-orange-500 h-full" style="width: 0%"></div>
-            </div>
+            <div class="flex justify-between mb-2"><span class="font-bold">Calories</span><span class="text-orange-500 font-bold"><span id="val-cal">0</span> kcal</span></div>
+            <div class="w-full bg-slate-300 h-2 rounded-full overflow-hidden"><div id="bar-cal" class="bg-orange-500 h-full" style="width:0%"></div></div>
             <div class="flex justify-between mt-3 text-sm text-slate-500">
-                <div>Pro: <span id="val-pro" class="text-red-500 font-bold">0</span>g</div>
-                <div>Carb: <span id="val-carb" class="text-green-500 font-bold">0</span>g</div>
-                <div>Fat: <span id="val-fat" class="text-yellow-500 font-bold">0</span>g</div>
+                <div>Pro: <b class="text-red-500" id="val-pro">0</b>g</div>
+                <div>Carb: <b class="text-green-500" id="val-carb">0</b>g</div>
+                <div>Fat: <b class="text-yellow-500" id="val-fat">0</b>g</div>
             </div>
         </div>
 
         <div class="relative mb-4">
-            <input id="search" type="text" placeholder="Tìm món ăn (vd: phở, cơm...)" class="w-full border p-3 pl-10 rounded-xl focus:ring-2 ring-blue-500 outline-none">
+            <input id="search" type="text" placeholder="Tìm món (phở, cơm...)" class="w-full border p-3 pl-10 rounded-xl focus:ring-2 ring-blue-500 outline-none">
             <i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
             <button onclick="searchFood()" class="absolute right-2 top-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">Tìm</button>
         </div>
-
         <div id="results" class="space-y-2"></div>
     </div>
 
-    <script>
-        renderLayout('nutrition');
-        let TEMP_FOOD = null;
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px]">Home</span></a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px]">Tập</span></a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-blue-600"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px] font-bold">Ăn</span></a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px]">Lịch</span></a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
+        </div>
+    </div>
 
-        // Load Macro
+    <script>
+        lucide.createIcons();
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
+        const user = JSON.parse(localStorage.getItem('pt_user'));
+        if(!user) window.location.href = 'login.html';
+
         async function loadStats() {
-            const res = await callAPI('get_daily_macros', { userId: USER.id });
-            if(res.success) {
-                const s = res.data;
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_daily_macros', data: { userId: user.id } }) });
+            const r = await res.json();
+            if(r.success) {
+                const s = r.data;
                 document.getElementById('val-cal').innerText = Math.round(s.cal);
                 document.getElementById('val-pro').innerText = Math.round(s.pro);
                 document.getElementById('val-carb').innerText = Math.round(s.carb);
@@ -58,37 +61,27 @@
         async function searchFood() {
             const k = document.getElementById('search').value;
             document.getElementById('results').innerHTML = 'Đang tìm...';
-            const res = await callAPI('search_food', { keyword: k });
-            
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'search_food', data: { keyword: k } }) });
+            const r = await res.json();
             const list = document.getElementById('results');
             list.innerHTML = '';
-            res.data.forEach(f => {
+            r.data.forEach(f => {
                 const el = document.createElement('div');
                 el.className = 'p-3 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-slate-50';
-                el.innerHTML = `<div><div class="font-bold">${f.name}</div><div class="text-xs text-slate-500">${f.cal} cal / 100g</div></div> <i data-lucide="plus-circle" class="text-blue-500"></i>`;
+                el.innerHTML = `<div><div class="font-bold">${f.name}</div><div class="text-xs text-slate-500">${f.cal} cal</div></div> <i data-lucide="plus-circle" class="text-blue-500"></i>`;
                 el.onclick = () => addFood(f);
                 list.appendChild(el);
             });
             lucide.createIcons();
         }
 
-        async function addFood(food) {
-            const amount = prompt(`Nhập khối lượng cho món ${food.name} (g):`, "100");
-            if(!amount) return;
-            
-            await callAPI('log_meal', {
-                userId: USER.id,
-                name: food.name,
-                amount: Number(amount),
-                baseCal: food.cal, basePro: food.pro, baseCarb: food.carb, baseFat: food.fat,
-                type: "Ăn Thêm"
-            });
-            alert("Đã lưu!");
-            loadStats();
-            document.getElementById('results').innerHTML = '';
-            document.getElementById('search').value = '';
+        async function addFood(f) {
+            const amt = prompt(`Nhập số lượng (g) cho ${f.name}:`, "100");
+            if(!amt) return;
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_meal', data: { userId: user.id, name: f.name, amount: Number(amt), baseCal: f.cal, basePro: f.pro, baseCarb: f.carb, baseFat: f.fat, type: "Bữa phụ" } }) });
+            alert("Đã lưu!"); loadStats(); document.getElementById('results').innerHTML='';
         }
-
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
         loadStats();
     </script>
 </body>
