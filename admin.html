@@ -2,62 +2,342 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Tùy chỉnh thanh cuộn */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* Hiệu ứng chuyển tab */
+        .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        /* Modal */
+        .modal { transition: opacity 0.25s ease; }
+        body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
+    </style>
 </head>
-<body class="bg-slate-100 pb-10">
-    <div class="bg-slate-900 text-white p-6 shadow-lg flex justify-between items-center">
-        <h1 class="text-xl font-bold flex gap-2 items-center"><i data-lucide="shield-alert" class="text-yellow-400"></i> PT Control</h1>
-        <button onclick="logout()" class="bg-slate-800 p-2 rounded"><i data-lucide="log-out"></i></button>
+<body class="bg-slate-100 font-sans text-slate-800 pb-20">
+
+    <div class="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="w-6 h-6 text-white"></i></div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">PT Control Center</h1>
+                    <p class="text-slate-400 text-xs">Xin chào, <span id="ptName">Coach</span></p>
+                </div>
+            </div>
+            <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition-colors text-slate-300 hover:text-white">
+                <i data-lucide="log-out" class="w-5 h-5"></i>
+            </button>
+        </div>
     </div>
 
-    <div class="max-w-2xl mx-auto px-4 -mt-6">
-        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
-            <h3 class="font-bold mb-4 text-blue-600">Thêm Học Viên Mới</h3>
-            <form id="formReg" class="space-y-3">
-                <input id="newName" class="w-full border p-2 rounded" placeholder="Họ Tên" required>
-                <input id="newEmail" class="w-full border p-2 rounded" placeholder="Email" required>
-                <input id="newPhone" class="w-full border p-2 rounded" placeholder="SĐT" required>
-                <button class="w-full bg-blue-600 text-white font-bold py-2 rounded">Lưu</button>
-            </form>
+    <div class="max-w-4xl mx-auto px-4 mt-6 space-y-6">
+
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Tổng Học Viên</div>
+                <div class="text-3xl font-black text-slate-800" id="stat-total">...</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-green-500">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Đang Tập</div>
+                <div class="text-3xl font-black text-slate-800" id="stat-active">...</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-orange-500">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Lịch Hôm Nay</div>
+                <div class="text-3xl font-black text-slate-800" id="stat-today">...</div>
+            </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow border overflow-hidden">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 border-b"><tr><th class="p-4 text-left">Học Viên</th><th class="p-4">Buổi</th></tr></thead>
-                <tbody id="list"><tr><td colspan="2" class="p-4 text-center">Loading...</td></tr></tbody>
-            </table>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar bg-white p-2 rounded-xl shadow-sm">
+            <button onclick="switchTab('students', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4"></i> Học Viên
+            </button>
+            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
+                <i data-lucide="dumbbell" class="w-4 h-4"></i> Bài Tập
+            </button>
+            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border border-transparent flex justify-center items-center gap-2">
+                <i data-lucide="utensils" class="w-4 h-4"></i> Món Ăn
+            </button>
+        </div>
+
+        <div id="view-students" class="view-section space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-700">Danh sách lớp</h2>
+                <button onclick="toggleModal('modal-add-student')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-200">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Mới
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-50 text-slate-500 font-bold border-b">
+                        <tr>
+                            <th class="p-4">Học viên</th>
+                            <th class="p-4 text-center">Gói tập</th>
+                            <th class="p-4 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-list" class="divide-y divide-slate-100">
+                        <tr><td colspan="3" class="p-6 text-center text-slate-400">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-exercise" class="view-section hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="dumbbell" class="text-blue-600"></i> Thêm Bài Tập Mới</h2>
+                <form id="form-exercise" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Tên bài tập</label>
+                            <input id="ex-name" type="text" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Vd: Squat" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Nhóm cơ</label>
+                            <select id="ex-group" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none bg-white">
+                                <option>Ngực (Chest)</option><option>Lưng (Back)</option><option>Chân (Legs)</option>
+                                <option>Vai (Shoulder)</option><option>Tay (Arms)</option><option>Bụng (Abs)</option><option>Cardio</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Video YouTube (URL)</label>
+                        <input id="ex-video" type="url" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="https://...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Mô tả kỹ thuật</label>
+                        <textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Ghi chú kỹ thuật..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">Lưu Bài Tập</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-food" class="view-section hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600"></i> Thêm Món Ăn Mới</h2>
+                <form id="form-food" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Tên món ăn</label>
+                        <input id="fd-name" type="text" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 ring-green-500 outline-none" placeholder="Vd: Ức gà luộc" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Đơn vị</label>
+                            <input id="fd-unit" type="text" class="w-full border p-2.5 rounded-lg text-sm" value="100g">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Calories</label>
+                            <input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="0" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Protein</label><input id="fd-pro" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Carbs</label><input id="fd-carb" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Fat</label><input id="fd-fat" type="number" class="w-full border p-2 rounded-lg text-sm" placeholder="0"></div>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg">Lưu Món Ăn</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-slate-900 opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Thêm Học Viên Mới</h3>
+                    <button onclick="toggleModal('modal-add-student')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <form id="form-register" class="space-y-3">
+                    <input id="reg-name" class="w-full border p-3 rounded-xl text-sm" placeholder="Họ và tên" required>
+                    <input id="reg-email" type="email" class="w-full border p-3 rounded-xl text-sm" placeholder="Email đăng nhập" required>
+                    <input id="reg-phone" class="w-full border p-3 rounded-xl text-sm" placeholder="Số điện thoại" required>
+                    <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 flex gap-2 items-start">
+                        <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
+                        <div>Mật khẩu mặc định là <b>123456</b>. Học viên có thể đổi sau.</div>
+                    </div>
+                    <button type="submit" id="btn-reg" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Tạo Tài Khoản</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <script>
+        // 1. CẤU HÌNH API & AUTH
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
+        
         lucide.createIcons();
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
-        const user = JSON.parse(localStorage.getItem('pt_user'));
-        if(!user || user.role !== 'PT') { alert('Cấm truy cập!'); window.location.href='index.html'; }
+        const userJson = localStorage.getItem('pt_user');
+        if(!userJson) window.location.href = 'login.html';
+        const USER = JSON.parse(userJson);
 
-        async function load() {
-            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_all_students' }) });
-            const r = await res.json();
-            const list = document.getElementById('list');
-            list.innerHTML = r.data.map(s => `
-                <tr class="border-b hover:bg-slate-50">
-                    <td class="p-4"><b>${s.name}</b><br><span class="text-xs text-gray-500">${s.email}</span></td>
-                    <td class="p-4 text-center"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">${s.sessionLeft||0}</span></td>
-                </tr>`).join('');
+        // Bảo mật: Chỉ PT mới được vào
+        if(USER.role !== 'PT') {
+            alert('Bạn không có quyền truy cập!');
+            window.location.href = 'index.html';
+        }
+        document.getElementById('ptName').innerText = USER.name;
+
+        // --- CORE API CALLER ---
+        async function callAPI(action, data={}) {
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
+                return await res.json();
+            } catch(e) { alert("Lỗi kết nối: " + e); return {success:false}; }
         }
 
-        document.getElementById('formReg').addEventListener('submit', async (e) => {
+        // --- 2. KHỞI TẠO DỮ LIỆU ---
+        async function initDashboard() {
+            // Lấy thống kê
+            const statsRes = await callAPI('admin_get_dashboard');
+            if(statsRes.success) {
+                document.getElementById('stat-total').innerText = statsRes.data.totalStudent;
+                document.getElementById('stat-active').innerText = statsRes.data.activeStudent;
+                document.getElementById('stat-today').innerText = statsRes.data.todaySessions;
+            }
+            loadStudents();
+        }
+
+        async function loadStudents() {
+            const res = await callAPI('get_all_students');
+            const list = document.getElementById('student-list');
+            if(res.success) {
+                if(res.data.length === 0) {
+                    list.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400">Chưa có học viên.</td></tr>';
+                    return;
+                }
+                list.innerHTML = res.data.map(st => `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800 text-sm">${st.name}</div>
+                            <div class="text-xs text-slate-400">${st.email}</div>
+                            <div class="mt-1"><span class="text-[10px] px-2 py-0.5 rounded-full ${st.status==='Active'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${st.status}</span></div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="font-black text-lg ${st.sessionLeft < 5 ? 'text-red-500' : 'text-blue-600'}">${st.sessionLeft || 0}</div>
+                            <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
+                        </td>
+                        <td class="p-4 text-right space-y-2">
+                            <button onclick="topUpSession('${st.id}', '${st.name}')" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center justify-center gap-1">
+                                <i data-lucide="plus-circle" class="w-3 h-3"></i> Nạp Buổi
+                            </button>
+                            <button onclick="toggleStatus('${st.id}', '${st.status}')" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs font-medium py-1.5 px-3 rounded-lg border border-slate-200 transition-colors">
+                                ${st.status === 'Active' ? 'Khóa TK' : 'Mở Khóa'}
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        // --- 3. CÁC HÀNH ĐỘNG (ACTIONS) ---
+
+        // Thêm học viên mới
+        document.getElementById('form-register').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const data = { name: document.getElementById('newName').value, email: document.getElementById('newEmail').value, phone: document.getElementById('newPhone').value };
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', data }) });
-            alert('Thêm thành công!'); load(); document.getElementById('formReg').reset();
+            const btn = document.getElementById('btn-reg');
+            btn.innerText = "Đang tạo..."; btn.disabled = true;
+
+            const data = {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                phone: document.getElementById('reg-phone').value
+            };
+
+            const res = await callAPI('register', data);
+            if(res.success) {
+                alert("✅ " + res.message);
+                document.getElementById('form-register').reset();
+                toggleModal('modal-add-student');
+                loadStudents(); // Reload list
+                initDashboard(); // Reload stats
+            } else {
+                alert("❌ " + res.message);
+            }
+            btn.innerText = "Tạo Tài Khoản"; btn.disabled = false;
         });
 
-        function logout() { localStorage.removeItem('pt_user'); window.location.href='login.html'; }
-        load();
+        // Nạp thêm buổi tập
+        async function topUpSession(id, name) {
+            const amount = prompt(`Nạp thêm bao nhiêu buổi cho ${name}?`, "10");
+            if(amount && !isNaN(amount)) {
+                const res = await callAPI('admin_update_student', { studentId: id, addSession: amount });
+                if(res.success) { alert("✅ Đã cộng thêm buổi!"); loadStudents(); }
+                else alert("Lỗi: " + res.message);
+            }
+        }
+
+        // Khóa/Mở khóa tài khoản
+        async function toggleStatus(id, currentStatus) {
+            const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+            const actionName = newStatus === 'Active' ? 'Mở khóa' : 'Khóa';
+            if(confirm(`Bạn chắc chắn muốn ${actionName} tài khoản này?`)) {
+                const res = await callAPI('admin_update_student', { studentId: id, status: newStatus });
+                if(res.success) loadStudents();
+                else alert("Lỗi: " + res.message);
+            }
+        }
+
+        // Thêm Bài Tập
+        document.getElementById('form-exercise').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('ex-name').value,
+                group: document.getElementById('ex-group').value,
+                video: document.getElementById('ex-video').value,
+                desc: document.getElementById('ex-desc').value
+            };
+            const res = await callAPI('admin_add_exercise', data);
+            if(res.success) { alert("✅ Đã thêm bài tập!"); document.getElementById('form-exercise').reset(); }
+        });
+
+        // Thêm Món Ăn
+        document.getElementById('form-food').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('fd-name').value,
+                unit: document.getElementById('fd-unit').value,
+                cal: document.getElementById('fd-cal').value,
+                pro: document.getElementById('fd-pro').value,
+                carb: document.getElementById('fd-carb').value,
+                fat: document.getElementById('fd-fat').value
+            };
+            const res = await callAPI('admin_add_food', data);
+            if(res.success) { alert("✅ Đã thêm món ăn!"); document.getElementById('form-food').reset(); }
+        });
+
+        // --- 4. TIỆN ÍCH GIAO DIỆN ---
+        function switchTab(tabName, btn) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function toggleModal(modalID) {
+            const modal = document.getElementById(modalID);
+            modal.classList.toggle('opacity-0');
+            modal.classList.toggle('pointer-events-none');
+            document.body.classList.toggle('modal-active');
+        }
+
+        function logout() {
+            if(confirm("Đăng xuất Admin?")) {
+                localStorage.removeItem('pt_user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // START APP
+        initDashboard();
     </script>
 </body>
 </html>
