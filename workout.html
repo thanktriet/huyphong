@@ -14,10 +14,13 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
-        /* Hiệu ứng tick */
         .set-row { transition: all 0.2s; }
         .set-done { background-color: #eff6ff; border-color: #bfdbfe; }
         .set-done input { color: #2563eb; font-weight: bold; background-color: transparent; }
+        /* Animation cho lịch sử */
+        .history-content { transition: max-height 0.3s ease-out; max-height: 0; overflow: hidden; }
+        .history-open .history-content { max-height: 1000px; }
+        .history-open .chevron { transform: rotate(180deg); }
     </style>
 </head>
 <body class="bg-slate-50 pb-32">
@@ -48,7 +51,19 @@
             </div>
         </div>
 
-        <div id="history-view" class="hidden space-y-6 animate-in fade-in pb-20"></div>
+        <div id="history-view" class="hidden space-y-4 animate-in fade-in pb-20">
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3 sticky top-28 z-20">
+                <div class="flex-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Xem ngày</label>
+                    <input type="date" id="history-date-picker" onchange="filterHistoryByDate()" class="w-full text-sm font-bold text-slate-700 outline-none bg-transparent">
+                </div>
+                <button onclick="clearHistoryFilter()" class="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100">
+                    Tất cả
+                </button>
+            </div>
+
+            <div id="history-list" class="space-y-3"></div>
+        </div>
 
     </div>
 
@@ -89,8 +104,9 @@
         const STORAGE_KEY = `pt_progress_v3_${user.id}`; 
         let PLANS = {};
         let PROGRESS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        let SET_COUNTS = {}; // Lưu số lượng set của mỗi bài (để biết hiển thị bao nhiêu dòng)
+        let SET_COUNTS = {};
         let CURRENT_TAB = "";
+        let HISTORY_DATA = {}; // Biến lưu toàn bộ lịch sử
 
         async function init() {
             try {
@@ -127,6 +143,117 @@
             renderExercises(day);
         }
 
+        // --- LOGIC LỊCH SỬ & LỌC NGÀY ---
+        async function showHistory(btn) {
+            CURRENT_TAB = "HISTORY";
+            updateTabStyles(btn);
+            document.getElementById('workout-view').classList.add('hidden');
+            document.getElementById('floating-action').classList.add('hidden');
+            const histView = document.getElementById('history-view');
+            const list = document.getElementById('history-list');
+            
+            histView.classList.remove('hidden');
+            list.innerHTML = '<p class="text-center text-slate-400 py-10"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i> Đang tải lịch sử...</p>';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_workout_history', data: { userId: user.id } }) });
+                const result = await res.json();
+                
+                if(result.success && Object.keys(result.data).length > 0) {
+                    HISTORY_DATA = result.data; // Lưu vào biến toàn cục để lọc
+                    renderHistoryList(HISTORY_DATA);
+                } else {
+                    list.innerHTML = '<p class="text-center text-slate-400 mt-10">Bạn chưa có lịch sử tập luyện nào.</p>';
+                }
+            } catch(e) { list.innerHTML = '<p class="text-center text-red-400 mt-10">Lỗi tải lịch sử.</p>'; }
+        }
+
+        function renderHistoryList(data) {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            
+            const dates = Object.keys(data).sort((a,b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'))); // Sắp xếp ngày mới nhất
+
+            if(dates.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400 mt-10">Không tìm thấy dữ liệu cho ngày này.</p>';
+                return;
+            }
+
+            dates.forEach(date => {
+                const logs = data[date];
+                const html = `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden history-group">
+                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center cursor-pointer" onclick="toggleHistory(this)">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="calendar-days" class="w-4 h-4 text-slate-400"></i>
+                            <span class="font-bold text-slate-700 text-sm">${date}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 bg-white border px-2 py-0.5 rounded-full">${logs.length} sets</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform chevron"></i>
+                        </div>
+                    </div>
+                    <div class="history-content bg-white">
+                        <div class="divide-y divide-slate-50 p-1">
+                            ${logs.map(log => `
+                                <div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50 rounded-lg mx-2">
+                                    <span class="font-medium text-slate-800">${log.exercise}</span>
+                                    <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold text-xs border border-blue-100">${log.weight}kg x ${log.reps}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+                list.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // Mở mặc định ngày đầu tiên
+            const firstItem = document.querySelector('.history-group');
+            if(firstItem) firstItem.classList.add('history-open');
+            
+            lucide.createIcons();
+        }
+
+        // Xử lý lọc ngày
+        function filterHistoryByDate() {
+            const inputDate = document.getElementById('history-date-picker').value; // YYYY-MM-DD
+            if(!inputDate) return;
+
+            // Convert YYYY-MM-DD sang DD/MM/YYYY để so sánh với dữ liệu API
+            const [y, m, d] = inputDate.split('-');
+            const searchDate = `${parseInt(d)}/${parseInt(m)}/${y}`; // Chuẩn hóa số (vd 01 -> 1)
+
+            const filteredData = {};
+            
+            // Tìm trong HISTORY_DATA xem có ngày nào khớp không
+            // Lưu ý: Định dạng ngày trong Sheet có thể là d/m/yyyy hoặc dd/mm/yyyy tùy cài đặt
+            // Ta dùng includes để tìm cho linh hoạt
+            Object.keys(HISTORY_DATA).forEach(key => {
+                // So sánh tương đối
+                const keyParts = key.split('/');
+                const searchParts = searchDate.split('/');
+                
+                // So sánh ngày, tháng, năm
+                if (parseInt(keyParts[0]) === parseInt(searchParts[0]) && 
+                    parseInt(keyParts[1]) === parseInt(searchParts[1]) && 
+                    parseInt(keyParts[2]) === parseInt(searchParts[2])) {
+                    filteredData[key] = HISTORY_DATA[key];
+                }
+            });
+
+            renderHistoryList(filteredData);
+        }
+
+        function clearHistoryFilter() {
+            document.getElementById('history-date-picker').value = '';
+            renderHistoryList(HISTORY_DATA);
+        }
+
+        function toggleHistory(header) {
+            header.parentElement.classList.toggle('history-open');
+        }
+
         function updateTabStyles(activeBtn) {
             document.querySelectorAll('#tabs button').forEach(b => {
                 b.className = b.innerText.includes('Lịch sử') 
@@ -136,241 +263,95 @@
             activeBtn.className += ' tab-active transform scale-105 transition-transform';
         }
 
-        // --- RENDER BÀI TẬP (DYNAMIC SETS) ---
+        // --- CÁC HÀM RENDER BÀI TẬP (Giữ nguyên) ---
         function renderExercises(day) {
             const list = document.getElementById('todo-list');
             const exercises = PLANS[day] || [];
-            
             list.innerHTML = exercises.map((ex, i) => {
                 const exKey = `${day}_${ex.exercise}`;
-                
-                // 1. Xác định số lượng set cần hiển thị
-                // Mặc định lấy từ giáo án, nhưng nếu trong lịch sử (PROGRESS) có set cao hơn (ví dụ set 5) thì lấy số đó
                 let maxSavedSet = 0;
-                Object.keys(PROGRESS).forEach(k => {
-                    if(k.startsWith(exKey + '_set')) {
-                        const num = parseInt(k.split('_set')[1]);
-                        if(num > maxSavedSet) maxSavedSet = num;
-                    }
-                });
+                Object.keys(PROGRESS).forEach(k => { if(k.startsWith(exKey+'_set')) { const num=parseInt(k.split('_set')[1]); if(num>maxSavedSet) maxSavedSet=num; } });
+                if (!SET_COUNTS[exKey]) SET_COUNTS[exKey] = Math.max(ex.sets, maxSavedSet);
                 
-                // Nếu chưa có trong biến tạm thì khởi tạo
-                if (!SET_COUNTS[exKey]) {
-                    SET_COUNTS[exKey] = Math.max(ex.sets, maxSavedSet);
-                }
-                const currentSets = SET_COUNTS[exKey];
-
-                // 2. Tạo HTML cho từng set
                 let setsHtml = '';
-                for(let s=1; s <= currentSets; s++) {
-                    const key = `${exKey}_set${s}`;
-                    const saved = PROGRESS[key] || {};
-                    const isChecked = saved.checked ? 'checked' : '';
-                    const rowClass = saved.checked ? 'set-done' : '';
-                    const wVal = saved.weight || '';
-                    const rVal = saved.reps || ex.reps;
-
-                    setsHtml += `
-                    <div class="set-row flex items-center gap-2 p-2 rounded-lg border border-slate-100 ${rowClass}" id="row-${key}">
-                        <div class="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">
-                            ${s}
-                        </div>
+                for(let s=1; s<=SET_COUNTS[exKey]; s++) {
+                    const key=`${exKey}_set${s}`, saved=PROGRESS[key]||{}, isChecked=saved.checked?'checked':'', rowClass=saved.checked?'set-done':'', wVal=saved.weight||'', rVal=saved.reps||ex.reps;
+                    setsHtml += `<div class="set-row flex items-center gap-2 p-2 rounded-lg border border-slate-100 ${rowClass}" id="row-${key}">
+                        <div class="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">${s}</div>
                         <div class="flex-1 grid grid-cols-2 gap-2">
-                            <div class="relative">
-                                <input type="number" id="w-${key}" value="${wVal}" oninput="saveTemp('${key}')" 
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Kg">
-                            </div>
-                            <div class="relative">
-                                <input type="number" id="r-${key}" value="${rVal}" oninput="saveTemp('${key}')"
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Reps">
-                            </div>
+                            <input type="number" id="w-${key}" value="${wVal}" oninput="saveTemp('${key}')" class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Kg">
+                            <input type="number" id="r-${key}" value="${rVal}" oninput="saveTemp('${key}')" class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Reps">
                         </div>
-                        <div>
-                            <input type="checkbox" ${isChecked} onchange="toggleSet('${key}', '${ex.exercise}', ${s})" 
-                                class="w-6 h-6 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600 block">
-                        </div>
-                        <button onclick="removeSet('${day}', '${ex.exercise}', ${s})" class="text-slate-300 hover:text-red-500 p-1">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
+                        <input type="checkbox" ${isChecked} onchange="toggleSet('${key}', '${ex.exercise}', ${s})" class="w-6 h-6 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600 block">
+                        <button onclick="removeSet('${day}', '${ex.exercise}', ${s})" class="text-slate-300 hover:text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>`;
                 }
-
-                return `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                return `<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                        <div>
-                            <h3 class="font-bold text-slate-800">${ex.exercise}</h3>
-                            ${ex.note ? `<p class="text-xs text-slate-500 mt-0.5">💡 ${ex.note}</p>` : ''}
-                        </div>
-                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600 hover:bg-blue-100 p-1.5 rounded-full transition-colors"><i data-lucide="play-circle" class="w-5 h-5"></i></a>` : ''}
+                        <div><h3 class="font-bold text-slate-800">${ex.exercise}</h3>${ex.note?`<p class="text-xs text-slate-500 mt-0.5">💡 ${ex.note}</p>`:''}</div>
+                        ${ex.video?`<a href="${ex.video}" target="_blank" class="text-blue-600 hover:bg-blue-100 p-1.5 rounded-full transition-colors"><i data-lucide="play-circle" class="w-5 h-5"></i></a>`:''}
                     </div>
-                    <div class="p-3 space-y-2">
-                        ${setsHtml}
-                        <button onclick="addSet('${day}', '${ex.exercise}')" class="w-full py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 border border-dashed border-blue-200 flex items-center justify-center gap-1 transition-colors">
-                            <i data-lucide="plus" class="w-3 h-3"></i> Thêm Set
-                        </button>
-                    </div>
+                    <div class="p-3 space-y-2">${setsHtml}<button onclick="addSet('${day}', '${ex.exercise}')" class="w-full py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 border border-dashed border-blue-200 flex items-center justify-center gap-1 transition-colors"><i data-lucide="plus" class="w-3 h-3"></i> Thêm Set</button></div>
                 </div>`;
             }).join('');
-            
             lucide.createIcons();
             updateCounter();
         }
 
-        // --- LOGIC THÊM / XÓA SET ---
-
-        function addSet(day, exName) {
-            const exKey = `${day}_${exName}`;
-            SET_COUNTS[exKey]++;
-            renderExercises(day); // Render lại để hiện dòng mới
-        }
-
-        function removeSet(day, exName, setNumToRemove) {
-            const exKey = `${day}_${exName}`;
-            if (SET_COUNTS[exKey] <= 1) return alert("Phải có ít nhất 1 set!");
-            
-            if(confirm(`Xóa Set ${setNumToRemove}?`)) {
-                // 1. Xóa data của set bị xóa
-                const keyToRemove = `${exKey}_set${setNumToRemove}`;
-                delete PROGRESS[keyToRemove];
-
-                // 2. Dồn các set phía sau lên (Ví dụ xóa set 2, thì set 3 thành set 2)
-                for (let s = setNumToRemove + 1; s <= SET_COUNTS[exKey]; s++) {
-                    const oldKey = `${exKey}_set${s}`;
-                    const newKey = `${exKey}_set${s-1}`;
-                    if (PROGRESS[oldKey]) {
-                        PROGRESS[newKey] = PROGRESS[oldKey];
-                        PROGRESS[newKey].setNum = s - 1;
-                        delete PROGRESS[oldKey];
-                    }
+        function addSet(day, exName) { SET_COUNTS[`${day}_${exName}`]++; renderExercises(day); }
+        
+        function removeSet(day, exName, num) {
+            const exKey=`${day}_${exName}`;
+            if(SET_COUNTS[exKey]<=1) return alert("Giữ lại ít nhất 1 set!");
+            if(confirm("Xóa set này?")) {
+                delete PROGRESS[`${exKey}_set${num}`];
+                for(let s=num+1; s<=SET_COUNTS[exKey]; s++) {
+                    const oldK=`${exKey}_set${s}`, newK=`${exKey}_set${s-1}`;
+                    if(PROGRESS[oldK]) { PROGRESS[newK]=PROGRESS[oldK]; PROGRESS[newK].setNum=s-1; delete PROGRESS[oldK]; }
                 }
-
-                // 3. Giảm tổng số set
                 SET_COUNTS[exKey]--;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
                 renderExercises(day);
             }
         }
 
-        // --- LOGIC LƯU TRỮ & TICK ---
-        
         function saveTemp(key) {
-            const w = document.getElementById(`w-${key}`).value;
-            const r = document.getElementById(`r-${key}`).value;
-            if (!PROGRESS[key]) PROGRESS[key] = {};
-            PROGRESS[key].weight = w;
-            PROGRESS[key].reps = r;
+            const w=document.getElementById(`w-${key}`).value, r=document.getElementById(`r-${key}`).value;
+            if(!PROGRESS[key]) PROGRESS[key]={}; PROGRESS[key].weight=w; PROGRESS[key].reps=r;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
         }
 
         function toggleSet(key, exName, setNum) {
-            const wInput = document.getElementById(`w-${key}`);
-            const rInput = document.getElementById(`r-${key}`);
-            const row = document.getElementById(`row-${key}`);
-
-            if (!wInput.value || !rInput.value) {
-                alert("Nhập số Kg và Reps trước khi tick!");
-                event.target.checked = false;
-                wInput.focus();
-                return;
-            }
-
-            if (event.target.checked) {
-                row.classList.add('set-done');
-                PROGRESS[key] = { weight: wInput.value, reps: rInput.value, checked: true, exercise: exName, setNum: setNum };
-            } else {
-                row.classList.remove('set-done');
-                if(PROGRESS[key]) PROGRESS[key].checked = false;
-            }
+            const w=document.getElementById(`w-${key}`).value, r=document.getElementById(`r-${key}`).value, row=document.getElementById(`row-${key}`);
+            if(!w || !r) { alert("Nhập Kg/Reps trước!"); event.target.checked=false; return; }
+            if(event.target.checked) { row.classList.add('set-done'); PROGRESS[key]={weight:w, reps:r, checked:true, exercise:exName, setNum}; }
+            else { row.classList.remove('set-done'); if(PROGRESS[key]) PROGRESS[key].checked=false; }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
             updateCounter();
         }
 
         function updateCounter() {
-            const count = Object.values(PROGRESS).filter(i => i.checked).length;
-            document.getElementById('selectedCount').innerText = count;
-            document.getElementById('btnFinish').disabled = count === 0;
+            const c=Object.values(PROGRESS).filter(i=>i.checked).length;
+            document.getElementById('selectedCount').innerText=c;
+            document.getElementById('btnFinish').disabled=c===0;
         }
 
-        function resetProgress() {
-            if(confirm("Xóa toàn bộ dữ liệu nhập tạm thời?")) {
-                localStorage.removeItem(STORAGE_KEY);
-                PROGRESS = {}; SET_COUNTS = {}; // Reset cả số lượng set đã thêm
-                renderExercises(CURRENT_TAB);
-                updateCounter();
-            }
-        }
+        function resetProgress() { if(confirm("Xóa nhập liệu?")) { localStorage.removeItem(STORAGE_KEY); PROGRESS={}; SET_COUNTS={}; renderExercises(CURRENT_TAB); updateCounter(); } }
 
         async function finishWorkout() {
-            const logsToSend = Object.values(PROGRESS).filter(item => item.checked).map(item => ({
-                exercise: item.exercise,
-                weight: item.weight,
-                reps: item.reps
-            }));
-
-            if (logsToSend.length === 0) return alert("Chưa hoàn thành set nào!");
-            if (!confirm(`Gửi kết quả ${logsToSend.length} sets tập?`)) return;
-
-            const btn = document.getElementById('btnFinish');
-            btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Đang gửi...';
-            btn.disabled = true;
-
+            const logs=Object.values(PROGRESS).filter(i=>i.checked).map(i=>({exercise:i.exercise, weight:i.weight, reps:i.reps}));
+            if(logs.length===0) return alert("Chưa xong set nào!");
+            if(!confirm(`Gửi kết quả ${logs.length} sets?`)) return;
+            document.getElementById('btnFinish').innerText="Đang gửi...";
             try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs: logsToSend } }) });
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs } }) });
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } }) });
-
-                alert("✅ Đã lưu thành công!");
-                localStorage.removeItem(STORAGE_KEY); 
-                PROGRESS = {}; SET_COUNTS = {};
-                
-                const historyBtn = document.querySelector("button[onclick='showHistory(this)']");
-                if(historyBtn) showHistory(historyBtn);
-
-            } catch(e) { alert("Lỗi: " + e); }
-            finally {
-                btn.innerHTML = '<span>Lưu & Hoàn Thành</span> <i data-lucide="check-circle-2" class="w-5 h-5"></i>';
-                btn.disabled = false;
-                updateCounter();
-            }
-        }
-
-        async function showHistory(btn) {
-            CURRENT_TAB = "HISTORY";
-            updateTabStyles(btn);
-            document.getElementById('workout-view').classList.add('hidden');
-            document.getElementById('floating-action').classList.add('hidden');
-            const histView = document.getElementById('history-view');
-            histView.classList.remove('hidden');
-            histView.innerHTML = '<p class="text-center text-slate-400 py-10"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i> Đang tải lịch sử...</p>';
-            lucide.createIcons();
-
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_workout_history', data: { userId: user.id } }) });
-                const result = await res.json();
-                if(result.success && Object.keys(result.data).length > 0) renderHistoryList(result.data);
-                else histView.innerHTML = '<p class="text-center text-slate-400 mt-10">Bạn chưa có lịch sử tập luyện nào.</p>';
-            } catch(e) { histView.innerHTML = '<p class="text-center text-red-400 mt-10">Lỗi tải lịch sử.</p>'; }
-        }
-
-        function renderHistoryList(data) {
-            const container = document.getElementById('history-view');
-            let html = '';
-            Object.keys(data).forEach(date => {
-                const logs = data[date];
-                html += `<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 font-bold text-slate-700 text-sm flex justify-between">
-                        <span>${date}</span> <span>${logs.length} sets</span>
-                    </div>
-                    <div class="divide-y divide-slate-100">`;
-                logs.forEach(log => {
-                    html += `<div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50">
-                        <span class="font-medium text-slate-800">${log.exercise}</span>
-                        <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold text-xs">${log.weight}kg x ${log.reps}</span>
-                    </div>`;
-                });
-                html += `</div></div>`;
-            });
-            container.innerHTML = html;
+                alert("✅ Lưu thành công!");
+                localStorage.removeItem(STORAGE_KEY); PROGRESS={}; SET_COUNTS={};
+                const histBtn=document.querySelector("button[onclick='showHistory(this)']");
+                if(histBtn) showHistory(histBtn);
+            } catch(e) { alert("Lỗi: "+e); }
+            finally { document.getElementById('btnFinish').innerHTML=`<span>Lưu & Hoàn Thành</span> <i data-lucide="check-circle-2" class="w-5 h-5"></i>`; document.getElementById('btnFinish').disabled=false; updateCounter(); }
         }
 
         function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
