@@ -2,158 +2,91 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lịch Tập</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; }
-    </style>
+    <style>.no-scrollbar::-webkit-scrollbar{display:none}.tab-active{background:#2563eb;color:white;border-color:#2563eb}</style>
 </head>
 <body class="bg-slate-50 pb-24">
-
-    <div class="bg-white p-4 sticky top-0 z-10 shadow-sm">
-        <div class="flex justify-between items-center max-w-md mx-auto">
-            <h1 class="text-xl font-bold text-slate-900">Lịch Tập</h1>
-            <a href="index.html" class="text-slate-500 hover:text-slate-800"><i data-lucide="arrow-left"></i></a>
-        </div>
+    <div class="bg-white p-4 sticky top-0 z-10 shadow-sm flex justify-between items-center max-w-md mx-auto">
+        <h1 class="text-xl font-bold text-slate-900">Lịch Tập</h1>
+        <span id="planCount" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Loading...</span>
     </div>
 
     <div class="max-w-md mx-auto px-4 mt-4">
         <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2"></div>
-
-        <div id="list" class="space-y-3 pb-20">
-            <p class="text-center text-slate-400 py-10">Đang tải giáo án...</p>
-        </div>
-
+        <div id="list" class="space-y-3 pb-20"></div>
         <div class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto">
-            <button onclick="finishWorkout()" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all">
-                Hoàn Thành Buổi Tập
-            </button>
+            <button onclick="finish()" id="btnSave" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Hoàn Thành Buổi Tập</button>
         </div>
     </div>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
         <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
-                <i data-lucide="home" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Home</span>
-            </a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600">
-                <i data-lucide="dumbbell" class="w-6 h-6"></i>
-                <span class="text-[10px] font-bold mt-1">Tập</span>
-            </a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500">
-                <i data-lucide="log-out" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium mt-1">Thoát</span>
-            </button>
+            <a href="index.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px]">Home</span></a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-blue-600"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px] font-bold">Tập</span></a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px]">Ăn</span></a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px]">Lịch</span></a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
         </div>
     </div>
 
     <script>
         lucide.createIcons();
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; // ⚠️ THAY LINK VÀO ĐÂY
-
-        // LOGIC CHÍNH
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
         let PLANS = {}, LOGS = [];
-        const userJson = localStorage.getItem('pt_user');
-        if(!userJson) window.location.href = 'login.html';
-        const USER = JSON.parse(userJson);
+        const user = JSON.parse(localStorage.getItem('pt_user'));
+        if(!user) window.location.href = 'login.html';
 
         async function init() {
             try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'get_student_plan', data: { userId: USER.id } })
-                });
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } }) });
                 const result = await res.json();
                 if(result.success && result.data) {
-                    PLANS = result.data;
-                    renderTabs();
-                } else {
-                    document.getElementById('list').innerHTML = '<p class="text-center text-slate-400">Chưa có lịch tập.</p>';
-                }
-            } catch(e) { alert("Lỗi tải dữ liệu: " + e); }
+                    PLANS = result.data; renderTabs();
+                } else document.getElementById('list').innerHTML = '<p class="text-center text-slate-400 mt-10">Chưa có bài tập.</p>';
+            } catch(e) { alert("Lỗi tải dữ liệu"); }
         }
 
         function renderTabs() {
-            const container = document.getElementById('tabs');
             const days = Object.keys(PLANS);
-            container.innerHTML = days.map((day, i) => 
-                `<button onclick="switchTab('${day}', this)" class="px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap ${i===0 ? 'tab-active' : 'bg-white border-slate-200 text-slate-600'}">${day}</button>`
+            document.getElementById('planCount').innerText = `${days.length} Buổi`;
+            document.getElementById('tabs').innerHTML = days.map((d,i) => 
+                `<button onclick="renderList('${d}', this)" class="px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap ${i===0?'tab-active':'bg-white text-slate-600'}">${d}</button>`
             ).join('');
-            if(days.length > 0) switchTab(days[0], container.children[0]);
+            if(days.length>0) renderList(days[0], document.querySelector('#tabs button'));
         }
 
-        function switchTab(day, btn) {
-            document.querySelectorAll('#tabs button').forEach(b => b.className = 'px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap bg-white border-slate-200 text-slate-600');
+        function renderList(day, btn) {
+            document.querySelectorAll('#tabs button').forEach(b => b.className = 'px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap bg-white text-slate-600');
             btn.className = 'px-4 py-2 rounded-lg border text-sm font-bold whitespace-nowrap tab-active';
-            
-            const list = document.getElementById('list');
-            list.innerHTML = PLANS[day].map((ex, i) => `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100" id="card-${i}">
-                    <div class="flex justify-between mb-2">
-                        <h3 class="font-bold text-slate-800">${ex.exercise}</h3>
-                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600"><i data-lucide="play-circle" class="w-5 h-5"></i></a>` : ''}
+            document.getElementById('list').innerHTML = PLANS[day].map((ex, i) => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border" id="card-${i}">
+                    <div class="flex justify-between mb-2"><h3 class="font-bold">${ex.exercise}</h3>${ex.video?`<a href="${ex.video}" target="_blank" class="text-blue-500"><i data-lucide="play-circle"></i></a>`:''}</div>
+                    <div class="flex gap-2 items-center mt-3">
+                        <input id="w-${i}" type="number" placeholder="kg" class="border rounded p-2 w-20 text-center font-bold">
+                        <input id="r-${i}" type="number" placeholder="reps" value="${ex.reps}" class="border rounded p-2 w-16 text-center">
+                        <input type="checkbox" onchange="toggle(${i}, '${ex.exercise}')" class="w-6 h-6 ml-auto accent-blue-600">
                     </div>
-                    <div class="flex gap-2 items-center">
-                        <div class="flex-1 text-xs text-slate-500 bg-slate-100 p-1 rounded text-center">Sets: ${ex.sets}</div>
-                        <div class="flex-1 text-xs text-slate-500 bg-slate-100 p-1 rounded text-center">Reps: ${ex.reps}</div>
-                    </div>
-                    <div class="flex gap-2 mt-3 items-center">
-                        <input id="w-${i}" type="number" placeholder="kg" class="border rounded-lg p-2 w-20 text-center text-sm font-bold bg-slate-50">
-                        <input id="r-${i}" type="number" placeholder="reps" value="${ex.reps}" class="border rounded-lg p-2 w-16 text-center text-sm font-bold bg-slate-50">
-                        <input type="checkbox" onchange="toggleCheck(${i}, '${ex.exercise}')" class="w-6 h-6 ml-auto accent-blue-600">
-                    </div>
-                </div>
-            `).join('');
+                </div>`).join('');
             lucide.createIcons();
         }
 
-        function toggleCheck(i, name) {
-            const w = document.getElementById(`w-${i}`).value;
-            const r = document.getElementById(`r-${i}`).value;
-            const card = document.getElementById(`card-${i}`);
-            
-            if(event.target.checked) {
-                card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
-                LOGS.push({ exercise: name, weight: w, reps: r });
-            } else {
-                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50');
-                LOGS = LOGS.filter(l => l.exercise !== name);
-            }
+        function toggle(i, name) {
+            const w = document.getElementById(`w-${i}`).value, r = document.getElementById(`r-${i}`).value, c = document.getElementById(`card-${i}`);
+            if(event.target.checked) { c.classList.add('bg-green-50','border-green-500'); LOGS.push({exercise:name, weight:w, reps:r}); }
+            else { c.classList.remove('bg-green-50','border-green-500'); LOGS = LOGS.filter(l=>l.exercise!==name); }
         }
 
-        async function finishWorkout() {
-            if(LOGS.length === 0) return alert("Chưa chọn bài tập nào!");
-            const btn = document.getElementById('btnSave');
-            btn.innerText = "Đang lưu..."; btn.disabled = true;
-
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'log_workout', data: { userId: USER.id, logs: LOGS } })
-                });
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'deduct_session', data: { userId: USER.id } })
-                });
-                alert("🎉 Đã hoàn thành!");
-                window.location.href = 'index.html';
-            } catch(e) {
-                alert("Lỗi: " + e);
-                btn.innerText = "Thử lại"; btn.disabled = false;
-            }
+        async function finish() {
+            if(LOGS.length===0) return alert('Chưa tick bài nào!');
+            document.getElementById('btnSave').innerText = "Đang lưu...";
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs: LOGS } }) });
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } }) });
+            alert("Đã lưu thành công!"); window.location.href = 'index.html';
         }
-
-        function logout() {
-            if(confirm('Đăng xuất?')) {
-                localStorage.removeItem('pt_user');
-                window.location.href = 'login.html';
-            }
-        }
-
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
         init();
     </script>
 </body>
