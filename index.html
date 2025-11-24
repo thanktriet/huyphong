@@ -70,6 +70,19 @@
         } else {
             const user = JSON.parse(userJson);
             
+            // Logic hiển thị Gói tập
+            const sessionEl = document.getElementById('sessionLeft');
+            const today = new Date().toISOString().slice(0,10);
+            
+            if (user.expiryDate && user.expiryDate >= today) {
+                // Nếu có gói tháng và còn hạn
+                // Bạn có thể sửa ID 'sessionLeft' trong HTML thành hiển thị ngày cho đẹp
+                sessionEl.parentElement.innerHTML = `<span class="text-2xl">Gói Tháng</span><br><span class="text-sm opacity-80">Hạn: ${user.expiryDate}</span>`;
+            } else {
+                // Nếu dùng gói buổi
+                sessionEl.innerText = user.sessionLeft || 0;
+            }
+            
             // 2. Hiển thị thông tin cơ bản
             document.getElementById('userName').innerText = user.name;
             document.getElementById('userAvatar').innerText = user.name.charAt(0);
