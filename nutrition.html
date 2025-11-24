@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dinh Dưỡng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+</head>
+<body class="bg-slate-50 pb-24">
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg px-4 pt-4">
+        <h1 class="text-xl font-bold mb-4">Dinh Dưỡng Hôm Nay</h1>
+
+        <div class="bg-slate-100 p-4 rounded-xl mb-6">
+            <div class="flex justify-between mb-2">
+                <span class="font-bold text-slate-700">Calories</span>
+                <span class="font-bold text-orange-500"><span id="val-cal">0</span> kcal</span>
+            </div>
+            <div class="w-full bg-slate-300 h-2 rounded-full overflow-hidden">
+                <div id="bar-cal" class="bg-orange-500 h-full" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between mt-3 text-sm text-slate-500">
+                <div>Pro: <span id="val-pro" class="text-red-500 font-bold">0</span>g</div>
+                <div>Carb: <span id="val-carb" class="text-green-500 font-bold">0</span>g</div>
+                <div>Fat: <span id="val-fat" class="text-yellow-500 font-bold">0</span>g</div>
+            </div>
+        </div>
+
+        <div class="relative mb-4">
+            <input id="search" type="text" placeholder="Tìm món ăn (vd: phở, cơm...)" class="w-full border p-3 pl-10 rounded-xl focus:ring-2 ring-blue-500 outline-none">
+            <i data-lucide="search" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
+            <button onclick="searchFood()" class="absolute right-2 top-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">Tìm</button>
+        </div>
+
+        <div id="results" class="space-y-2"></div>
+    </div>
+
+    <script>
+        renderLayout('nutrition');
+        let TEMP_FOOD = null;
+
+        // Load Macro
+        async function loadStats() {
+            const res = await callAPI('get_daily_macros', { userId: USER.id });
+            if(res.success) {
+                const s = res.data;
+                document.getElementById('val-cal').innerText = Math.round(s.cal);
+                document.getElementById('val-pro').innerText = Math.round(s.pro);
+                document.getElementById('val-carb').innerText = Math.round(s.carb);
+                document.getElementById('val-fat').innerText = Math.round(s.fat);
+                document.getElementById('bar-cal').style.width = Math.min((s.cal/2000)*100, 100) + '%';
+            }
+        }
+
+        async function searchFood() {
+            const k = document.getElementById('search').value;
+            document.getElementById('results').innerHTML = 'Đang tìm...';
+            const res = await callAPI('search_food', { keyword: k });
+            
+            const list = document.getElementById('results');
+            list.innerHTML = '';
+            res.data.forEach(f => {
+                const el = document.createElement('div');
+                el.className = 'p-3 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-slate-50';
+                el.innerHTML = `<div><div class="font-bold">${f.name}</div><div class="text-xs text-slate-500">${f.cal} cal / 100g</div></div> <i data-lucide="plus-circle" class="text-blue-500"></i>`;
+                el.onclick = () => addFood(f);
+                list.appendChild(el);
+            });
+            lucide.createIcons();
+        }
+
+        async function addFood(food) {
+            const amount = prompt(`Nhập khối lượng cho món ${food.name} (g):`, "100");
+            if(!amount) return;
+            
+            await callAPI('log_meal', {
+                userId: USER.id,
+                name: food.name,
+                amount: Number(amount),
+                baseCal: food.cal, basePro: food.pro, baseCarb: food.carb, baseFat: food.fat,
+                type: "Ăn Thêm"
+            });
+            alert("Đã lưu!");
+            loadStats();
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('search').value = '';
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>
