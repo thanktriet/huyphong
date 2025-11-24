@@ -18,18 +18,32 @@
         </div>
 
         <div class="p-6 space-y-6">
-            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg">
+            
+            <a href="admin.html" id="btnAdmin" class="hidden w-full bg-slate-900 text-white p-4 rounded-xl shadow-lg flex items-center justify-between group transition-all hover:bg-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700 transition-colors">
+                        <i data-lucide="shield-alert" class="text-yellow-400 w-6 h-6"></i>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-sm">Khu Vực Quản Trị</h3>
+                        <p class="text-[10px] text-slate-400">Dành riêng cho PT</p>
+                    </div>
+                </div>
+                <i data-lucide="chevron-right" class="text-slate-500"></i>
+            </a>
+
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg shadow-blue-200">
                 <p class="text-blue-100 text-sm font-medium">Gói tập còn lại</p>
                 <h2 class="text-4xl font-bold"><span id="sessionLeft">0</span> <span class="text-lg font-normal opacity-80">buổi</span></h2>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <a href="workout.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-400 transition-all">
-                    <i data-lucide="dumbbell" class="w-8 h-8 text-blue-500"></i>
+                <a href="workout.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all">
+                    <div class="bg-blue-50 p-3 rounded-full"><i data-lucide="dumbbell" class="w-6 h-6 text-blue-500"></i></div>
                     <span class="font-bold text-sm">Vào Tập</span>
                 </a>
-                <a href="nutrition.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-400 transition-all">
-                    <i data-lucide="utensils" class="w-8 h-8 text-green-500"></i>
+                <a href="nutrition.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-400 hover:text-green-600 transition-all">
+                    <div class="bg-green-50 p-3 rounded-full"><i data-lucide="utensils" class="w-6 h-6 text-green-500"></i></div>
                     <span class="font-bold text-sm">Nhập Ăn</span>
                 </a>
             </div>
@@ -39,23 +53,41 @@
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
         <div class="max-w-md mx-auto flex justify-around items-center h-16">
             <a href="index.html" class="flex flex-col items-center justify-center w-full text-blue-600"><i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px] font-bold">Home</span></a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px]">Tập</span></a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px]">Ăn</span></a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px]">Lịch</span></a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600"><i data-lucide="dumbbell" class="w-6 h-6"></i><span class="text-[10px]">Tập</span></a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600"><i data-lucide="utensils" class="w-6 h-6"></i><span class="text-[10px]">Ăn</span></a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px]">Lịch</span></a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400 hover:text-red-600"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-[10px]">Thoát</span></button>
         </div>
     </div>
 
     <script>
         lucide.createIcons();
+        
+        // 1. Kiểm tra đăng nhập
         const userJson = localStorage.getItem('pt_user');
-        if (!userJson) window.location.href = 'login.html';
-        const user = JSON.parse(userJson);
-        document.getElementById('userName').innerText = user.name;
-        document.getElementById('userAvatar').innerText = user.name.charAt(0);
-        document.getElementById('sessionLeft').innerText = user.sessionLeft || 0;
+        if (!userJson) {
+            window.location.href = 'login.html';
+        } else {
+            const user = JSON.parse(userJson);
+            
+            // 2. Hiển thị thông tin cơ bản
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userAvatar').innerText = user.name.charAt(0);
+            document.getElementById('sessionLeft').innerText = user.sessionLeft || 0;
 
-        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+            // 3. LOGIC HIỆN NÚT ADMIN
+            // Chỉ hiện nếu role là 'PT' hoặc 'Admin'
+            if (user.role === 'PT' || user.role === 'Admin') {
+                document.getElementById('btnAdmin').classList.remove('hidden');
+            }
+        }
+
+        function logout() { 
+            if(confirm('Bạn muốn đăng xuất?')) { 
+                localStorage.removeItem('pt_user'); 
+                window.location.href='login.html'; 
+            } 
+        }
     </script>
 </body>
 </html>
