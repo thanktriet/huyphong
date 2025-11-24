@@ -85,6 +85,9 @@
             <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
                 <i data-lucide="dumbbell" class="w-4 h-4"></i> Bài Tập
             </button>
+            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
+                <i data-lucide="utensils" class="w-4 h-4"></i> Món Ăn
+            </button>
         </div>
 
         <div id="view-calendar" class="view-section space-y-4">
@@ -134,7 +137,7 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-50 text-slate-500 font-bold border-b"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói tập</th><th class="p-4 text-right">Thao tác</th></tr></thead>
+                    <thead class="bg-slate-50 text-slate-500 font-bold border-b"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Trạng thái</th><th class="p-4 text-right">Thao tác</th></tr></thead>
                     <tbody id="student-list" class="divide-y divide-slate-100"><tr><td colspan="3" class="p-6 text-center text-slate-400">Đang tải...</td></tr></tbody>
                 </table>
             </div>
@@ -159,7 +162,8 @@
                 <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600"></i> Thêm Món Ăn</h2>
                 <form id="form-food" class="space-y-4">
                     <input id="fd-name" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Tên món" required>
-                    <div class="grid grid-cols-2 gap-4"><input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Calo" required><input id="fd-pro" type="number" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Protein"></div>
+                    <div class="grid grid-cols-2 gap-4"><input id="fd-unit" class="w-full border p-2.5 rounded-lg text-sm" value="100g"><input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Calo" required></div>
+                    <div class="grid grid-cols-3 gap-3 text-sm"><input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro"><input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb"><input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat"></div>
                     <button class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Lưu</button>
                 </form>
             </div>
@@ -208,6 +212,7 @@
         document.getElementById('ptName').innerText = USER.name;
 
         let STUDENTS = [], SCHEDULE_DATA = [], EXERCISES = [], CURRENT_DATE = new Date();
+        let STUDENTS_MAP = {};
 
         async function callAPI(action, data={}) {
             try { const r=await fetch(API_URL, {method:'POST', body:JSON.stringify({action,data})}); return await r.json(); }
@@ -222,7 +227,7 @@
             addPlanRow();
         }
 
-        // --- 1. CALENDAR LOGIC ---
+        // --- 1. CALENDAR ---
         async function loadSchedule() {
             const res = await callAPI('get_schedule');
             if(res.success) { SCHEDULE_DATA = res.data; renderCalendar(); }
@@ -241,25 +246,21 @@
                 const events = SCHEDULE_DATA.filter(e => e.date === dateStr);
                 
                 let eventsHtml = events.map(e => {
-                    const st = STUDENTS.find(s=>s.id===e.userId);
-                    const name = st ? st.name.split(' ').pop() : '???';
+                    const stName = STUDENTS_MAP[e.userId] || "Unknown";
+                    const shortName = stName.split(' ').pop();
                     let cls = 'evt-upcoming';
                     if(e.status === 'Completed') cls = 'evt-completed';
                     if(e.status === 'Cancelled') cls = 'evt-cancelled';
                     
-                    return `<div class="event-tag ${cls}" onclick="event.stopPropagation(); cancelSession('${e.id}')" title="Bấm để hủy">
-                        <span>${e.time}</span> ${name}
+                    return `<div class="event-tag ${cls}" onclick="event.stopPropagation(); cancelSession('${e.id}')" title="${stName}">
+                        <span>${e.time}</span> ${shortName}
                     </div>`;
                 }).join('');
 
-                body.innerHTML += `
-                    <div class="calendar-cell group" onclick="openBookModal('${dateStr}')">
-                        <div class="flex justify-between items-start">
-                            <span class="font-bold text-slate-400 text-xs group-hover:text-blue-600 transition-colors">${d}</span>
-                        </div>
-                        <div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${eventsHtml}</div>
-                    </div>
-                `;
+                body.innerHTML += `<div class="calendar-cell group" onclick="openBookModal('${dateStr}')">
+                    <div class="flex justify-between items-start"><span class="font-bold text-slate-400 text-xs group-hover:text-blue-600 transition-colors">${d}</span></div>
+                    <div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${eventsHtml}</div>
+                </div>`;
             }
         }
 
@@ -285,10 +286,9 @@
         async function cancelSession(id) {
             if(confirm("Hủy buổi tập này?")) { await callAPI('cancel_session', {bookingId: id}); loadSchedule(); }
         }
-
         function changeMonth(s) { CURRENT_DATE.setMonth(CURRENT_DATE.getMonth()+s); renderCalendar(); }
 
-        // --- 2. STUDENT & UTILS ---
+        // --- 2. STUDENTS (HYBRID) ---
         async function loadStudents() {
             const res = await callAPI('get_all_students');
             if(res.success) {
@@ -298,62 +298,79 @@
                 const selBook = document.getElementById('bk-student');
                 
                 // Fill dropdowns
+                STUDENTS_MAP = {};
+                STUDENTS.forEach(s => STUDENTS_MAP[s.id] = s.name);
                 const opts = '<option value="">-- Chọn --</option>' + STUDENTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
                 selPlan.innerHTML = opts; selBook.innerHTML = opts;
 
                 // Fill list
-                list.innerHTML = STUDENTS.map(st => `
+                list.innerHTML = STUDENTS.map(st => {
+                    const expiryInfo = st.isExpired 
+                        ? `<span class="text-red-500 text-[10px] font-bold">Hết hạn</span>`
+                        : `<span class="text-green-600 text-[10px] font-bold">Hạn: ${st.expiryDate}</span>`;
+                    const sessionInfo = `<div class="font-black text-lg ${st.sessionLeft<5?'text-red-500':'text-blue-600'}">${st.sessionLeft||0}</div><div class="text-[10px] text-slate-400 uppercase">Buổi</div>`;
+
+                    return `
                     <tr class="hover:bg-slate-50 border-b border-slate-50">
-                        <td class="p-4"><div class="font-bold text-slate-800 text-sm">${st.name}</div><div class="text-xs text-slate-400">${st.email}</div></td>
-                        <td class="p-4 text-center"><div class="font-black text-lg text-blue-600">${st.sessionLeft||0}</div></td>
-                        <td class="p-4 text-right space-y-2"><button onclick="topUp('${st.id}')" class="bg-blue-50 text-blue-600 text-xs font-bold py-1 px-3 rounded border">Nạp</button></td>
-                    </tr>`).join('');
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800 text-sm">${st.name}</div>
+                            <div class="text-xs text-slate-400">${st.email}</div>
+                            <div class="mt-1 flex gap-2 items-center">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full ${st.status==='Active'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${st.status}</span>
+                                ${st.expiryDate !== '---' ? expiryInfo : ''}
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">${sessionInfo}</td>
+                        <td class="p-4 text-right space-y-2">
+                            <div class="flex gap-1 justify-end">
+                                <button onclick="topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 text-xs font-bold py-1 px-2 rounded border border-blue-200 hover:bg-blue-100">Nạp Buổi</button>
+                                <button onclick="topUpMonth('${st.id}','${st.name}')" class="bg-green-50 text-green-600 text-xs font-bold py-1 px-2 rounded border border-green-200 hover:bg-green-100">Gia Hạn</button>
+                            </div>
+                            <button onclick="toggleStatus('${st.id}','${st.status}')" class="w-full bg-slate-50 text-slate-500 text-xs font-medium py-1 px-3 rounded border border-slate-200 hover:bg-slate-100">${st.status==='Active'?'Khóa TK':'Mở Khóa'}</button>
+                        </td>
+                    </tr>`;
+                }).join('');
             }
         }
 
+        async function topUp(id, name) {
+            const amt = prompt(`Nạp thêm bao nhiêu buổi cho ${name}?`, "10");
+            if(amt && !isNaN(amt)) { await callAPI('admin_update_student', { studentId: id, addSession: amt }); alert("✅ Đã nạp!"); loadStudents(); }
+        }
+
+        async function topUpMonth(id, name) {
+            const month = prompt(`Gia hạn thêm mấy tháng cho ${name}?`, "1");
+            if(month && !isNaN(month)) { await callAPI('admin_update_student', { studentId: id, addMonth: month }); alert("✅ Đã gia hạn!"); loadStudents(); }
+        }
+
+        // --- 3. UTILS ---
         async function initDashboard() {
             const r = await callAPI('admin_get_dashboard');
-            if(r.success) { document.getElementById('stat-total').innerText=r.data.totalStudent; document.getElementById('stat-active').innerText=r.data.activeStudent; document.getElementById('stat-today').innerText=r.data.todaySessions; }
+            if(r.success) {
+                document.getElementById('stat-total').innerText = r.data.totalStudent;
+                document.getElementById('stat-active').innerText = r.data.activeStudent;
+                document.getElementById('stat-today').innerText = r.data.todaySessions;
+            }
         }
 
-        // --- 3. WORKOUT BUILDER ---
         async function loadExercises() { const r=await callAPI('get_exercise_lib'); if(r.success) { EXERCISES=r.data; document.getElementById('dl-exercises').innerHTML=EXERCISES.map(e=>`<option value="${e.name}">`).join(''); } }
-        
-        function addPlanRow() {
-            document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `
-                <tr>
-                    <td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td>
-                    <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td>
-                    <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
-                    <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
-                    <td class="p-2"><input type="text" class="w-full border p-1 rounded text-sm"></td>
-                    <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                </tr>`);
-            lucide.createIcons();
-        }
-
+        function addPlanRow() { document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td><td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td><td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td><td class="p-2"><input type="text" class="w-full border p-1 rounded text-sm"></td><td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`); lucide.createIcons(); }
         async function savePlan() {
             const name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value;
             if(!name||!uId) return alert("Nhập đủ thông tin!");
-            const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => {
-                const inp = r.querySelectorAll('input, select');
-                return { day:inp[0].value, exercise:inp[1].value, sets:inp[2].value, reps:inp[3].value, note:inp[4].value, video:'' };
-            }).filter(d=>d.exercise);
-            
-            document.getElementById('btn-save-plan').innerText="Lưu...";
+            const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => { const inp=r.querySelectorAll('input, select'); return { day:inp[0].value, exercise:inp[1].value, sets:inp[2].value, reps:inp[3].value, note:inp[4].value, video:'' }; }).filter(d=>d.exercise);
             const res = await callAPI('save_workout_plan', {planName:name, targetUser:uId, details});
-            alert(res.message); document.getElementById('btn-save-plan').innerText="Lưu & Gửi Giáo Án";
+            alert(res.message);
         }
 
-        // --- HELPER ---
-        async function topUp(id) { const a=prompt("Nạp bao nhiêu buổi?"); if(a) { await callAPI('admin_update_student',{studentId:id, addSession:a}); loadStudents(); }}
-        function switchTab(n, b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
-        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
-        function logout() { if(confirm("Đăng xuất?")) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
-
-        document.getElementById('form-register').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register', {name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); alert("OK"); toggleModal('modal-add-student'); loadStudents(); });
+        document.getElementById('form-register').addEventListener('submit', async (e) => { e.preventDefault(); await callAPI('register', {name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); alert("OK"); toggleModal('modal-add-student'); loadStudents(); });
         document.getElementById('form-exercise').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_exercise', {name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value}); alert("OK"); });
         document.getElementById('form-food').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_food', {name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value}); alert("OK"); });
+
+        function switchTab(n, b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
+        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
+        async function toggleStatus(id, st) { if(confirm("Đổi trạng thái?")) { await callAPI('admin_update_student', { studentId: id, status: st==='Active'?'Inactive':'Active' }); loadStudents(); } }
+        function logout() { if(confirm("Đăng xuất?")) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
 
         initApp();
     </script>
