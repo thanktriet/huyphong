@@ -6,93 +6,79 @@
     <title>Tập Luyện - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="layout.js"></script>
+
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes check-bounce { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .check-anim:checked { animation: check-bounce 0.3s ease-in-out; }
         .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
+        /* Hiệu ứng khi tick */
+        .set-row { transition: all 0.2s; }
+        .set-done { background-color: #eff6ff; border-color: #bfdbfe; }
+        .set-done input { color: #2563eb; font-weight: bold; background-color: white; }
     </style>
 </head>
 <body class="bg-slate-50 pb-32">
 
-    <div class="bg-white p-4 sticky top-0 z-20 shadow-sm border-b border-slate-100">
-        <div class="flex justify-between items-center max-w-md mx-auto">
-            <div>
-                <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="dumbbell" class="text-blue-600 w-6 h-6"></i> Lịch Tập
-                </h1>
-                <p class="text-xs text-slate-500" id="currentDate">Hôm nay: ...</p>
-            </div>
-            <button onclick="resetProgress()" class="text-xs text-red-400 hover:text-red-600 font-medium bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
-                Reset nhập liệu
-            </button>
+    <div class="bg-white p-4 sticky top-0 z-20 shadow-sm border-b border-slate-100 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="dumbbell" class="text-blue-600 w-6 h-6"></i> Lịch Tập
+            </h1>
+            <p class="text-xs text-slate-500" id="currentDate">...</p>
         </div>
+        <button onclick="resetProgress()" class="text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-lg font-medium hover:bg-red-100 transition-colors">
+            Xóa nhập liệu
+        </button>
     </div>
 
     <div class="max-w-md mx-auto px-4 mt-4">
         
-        <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4 sticky top-[73px] z-10 bg-slate-50/95 backdrop-blur pt-2">
-            <div class="w-full h-10 bg-slate-200 animate-pulse rounded-lg"></div>
+        <div class="sticky top-[73px] z-10 bg-slate-50/95 backdrop-blur pt-2 pb-2">
+            <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar">
+                <div class="w-full h-10 bg-slate-200 animate-pulse rounded-lg"></div>
+            </div>
         </div>
 
-        <div id="todo-list" class="space-y-4 min-h-[200px]">
-            <p class="text-center text-slate-400 py-10">Đang tải giáo án...</p>
+        <div id="workout-view">
+            <div id="todo-list" class="space-y-5 pb-20">
+                <p class="text-center text-slate-400 py-10">Đang tải...</p>
+            </div>
         </div>
 
-        <div id="history-section" class="mt-8 border-t pt-6 hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                <i data-lucide="history" class="w-4 h-4 text-slate-400"></i> Lịch sử vừa cập nhật
-            </h3>
-            <div id="done-list" class="space-y-3 opacity-75 hover:opacity-100 transition-opacity">
-                </div>
-        </div>
+        <div id="history-view" class="hidden space-y-6 animate-in fade-in pb-20"></div>
 
     </div>
 
-    <div class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto z-30">
+    <div id="floating-action" class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto z-30">
         <div class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl border border-slate-200 shadow-2xl">
             <div class="flex justify-between items-center mb-2 px-2">
-                <span class="text-xs font-bold text-slate-500">Đã tick: <span id="selectedCount" class="text-blue-600 text-lg font-black">0</span> bài</span>
-                <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Auto-save bật</span>
+                <span class="text-xs font-bold text-slate-500">Đã xong: <span id="selectedCount" class="text-blue-600 text-lg font-black">0</span> sets</span>
+                <span class="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold">Auto-save ON</span>
             </div>
-            <button onclick="finishWorkout()" id="btnFinish" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 active:scale-[0.98]">
-                <span>Gửi Kết Quả</span> <i data-lucide="send" class="w-4 h-4"></i>
+            <button onclick="finishWorkout()" id="btnFinish" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 active:scale-[0.98]">
+                <span>Lưu & Hoàn Thành</span> <i data-lucide="check-circle-2" class="w-5 h-5"></i>
             </button>
         </div>
     </div>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
         <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Home</span>
-            </a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors">
-                <i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-bold">Tập</span>
-            </a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="utensils" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Ăn</span>
-            </a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="calendar" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Lịch</span>
-            </a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors">
-                <i data-lucide="log-out" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Thoát</span>
-            </button>
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Home</span></a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600"><i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Tập</span></a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Ăn</span></a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span></a>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500"><i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span></button>
         </div>
     </div>
 
     <script>
         // --- CẤU HÌNH ---
-        // ⚠️ Dán link API của bạn vào đây
         const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
 
-        // --- AUTH & KHỞI TẠO ---
+        // --- KHỞI TẠO ---
         lucide.createIcons();
         document.getElementById('currentDate').innerText = `Hôm nay: ${new Date().toLocaleDateString('vi-VN')}`;
         
@@ -100,125 +86,147 @@
         if (!userJson) window.location.href = 'login.html';
         const user = JSON.parse(userJson);
 
-        // --- STATE ---
-        const STORAGE_KEY = `pt_progress_${user.id}`; // Key lưu bộ nhớ đệm
+        const STORAGE_KEY = `pt_progress_v2_${user.id}`; // Key mới cho version mới
         let PLANS = {};
         let PROGRESS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        let CURRENT_DAY = "";
+        let CURRENT_TAB = "";
 
-        // --- LOGIC CHÍNH ---
-        
         async function init() {
             try {
-                // Gọi API lấy giáo án
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } })
-                });
-                const result = await response.json();
-
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } }) });
+                const result = await res.json();
                 if(result.success && result.data) {
                     PLANS = result.data;
                     renderTabs();
                 } else {
-                    document.getElementById('todo-list').innerHTML = `
-                        <div class="text-center text-slate-400 mt-10">
-                            <i data-lucide="calendar-off" class="w-12 h-12 mx-auto mb-2 opacity-20"></i>
-                            <p>Chưa có lịch tập nào.</p>
-                        </div>`;
+                    document.getElementById('todo-list').innerHTML = '<div class="text-center text-slate-400 mt-10"><i data-lucide="calendar-off" class="w-12 h-12 mx-auto mb-2 opacity-20"></i><p>Chưa có lịch tập.</p></div>';
                     lucide.createIcons();
                 }
-                updateCounter(); // Cập nhật nút Gửi ngay khi vào
-            } catch(e) {
-                alert("Lỗi tải dữ liệu: " + e);
-            }
+                updateCounter();
+            } catch(e) { alert("Lỗi tải dữ liệu: " + e); }
         }
 
+        // --- RENDER TABS ---
         function renderTabs() {
             const days = Object.keys(PLANS);
             const container = document.getElementById('tabs');
             
-            container.innerHTML = days.map((day, i) => `
+            let html = days.map((day, i) => `
                 <button onclick="switchTab('${day}', this)" 
-                    class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border transition-all duration-200
-                    ${i===0 ? 'tab-active' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}">
+                    class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border transition-all ${i===0 ? 'tab-active' : 'bg-white text-slate-600 border-slate-200'}">
                     ${day}
                 </button>
             `).join('');
 
+            html += `<button onclick="showHistory(this)" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100 flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Lịch sử</button>`;
+
+            container.innerHTML = html;
+            lucide.createIcons();
             if(days.length > 0) switchTab(days[0], container.children[0]);
         }
 
-        function switchTab(day, btnElement) {
-            CURRENT_DAY = day;
-            
-            // Reset style tabs
-            document.querySelectorAll('#tabs button').forEach(b => 
-                b.className = 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200');
-            
-            if(btnElement) btnElement.className = 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border tab-active';
+        // --- CHUYỂN TAB ---
+        function switchTab(day, btn) {
+            CURRENT_TAB = day;
+            document.getElementById('history-view').classList.add('hidden');
+            document.getElementById('workout-view').classList.remove('hidden');
+            document.getElementById('floating-action').classList.remove('hidden');
 
+            updateTabStyles(btn);
             renderExercises(day);
         }
 
+        async function showHistory(btn) {
+            CURRENT_TAB = "HISTORY";
+            updateTabStyles(btn);
+            document.getElementById('workout-view').classList.add('hidden');
+            document.getElementById('floating-action').classList.add('hidden');
+            const histView = document.getElementById('history-view');
+            histView.classList.remove('hidden');
+            histView.innerHTML = '<p class="text-center text-slate-400 py-10"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i> Đang tải lịch sử...</p>';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_workout_history', data: { userId: user.id } }) });
+                const result = await res.json();
+                if(result.success && Object.keys(result.data).length > 0) renderHistoryList(result.data);
+                else histView.innerHTML = '<p class="text-center text-slate-400 mt-10">Bạn chưa có lịch sử tập luyện nào.</p>';
+            } catch(e) { histView.innerHTML = '<p class="text-center text-red-400 mt-10">Lỗi tải lịch sử.</p>'; }
+        }
+
+        function updateTabStyles(activeBtn) {
+            document.querySelectorAll('#tabs button').forEach(b => {
+                b.className = b.innerText.includes('Lịch sử') 
+                    ? 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200' 
+                    : 'px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200';
+            });
+            activeBtn.className += ' tab-active transform scale-105 transition-transform';
+        }
+
+        // --- RENDER BÀI TẬP (HỖ TRỢ NHIỀU SET) ---
         function renderExercises(day) {
             const list = document.getElementById('todo-list');
             const exercises = PLANS[day] || [];
             
             list.innerHTML = exercises.map((ex, i) => {
-                // Lấy dữ liệu từ bộ nhớ đệm
-                const key = `${day}_${ex.exercise}`;
-                const saved = PROGRESS[key] || {};
-                const isChecked = saved.checked ? 'checked' : '';
-                const wVal = saved.weight || '';
-                const rVal = saved.reps || ex.reps;
-                
-                // Style đổi màu khi tick
-                const cardClass = isChecked ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'bg-white border-slate-100';
+                let setsHtml = '';
+                // Vòng lặp tạo từng dòng Set
+                for(let s=1; s <= ex.sets; s++) {
+                    const key = `${day}_${ex.exercise}_set${s}`; // Key duy nhất cho từng set
+                    const saved = PROGRESS[key] || {};
+                    const isChecked = saved.checked ? 'checked' : '';
+                    const rowClass = saved.checked ? 'set-done' : '';
+                    const wVal = saved.weight || '';
+                    const rVal = saved.reps || ex.reps; // Mặc định lấy Reps mục tiêu nếu chưa nhập
+
+                    setsHtml += `
+                    <div class="set-row flex items-center gap-3 p-2 rounded-lg border border-slate-100 ${rowClass}" id="row-${key}">
+                        <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs font-bold text-slate-500 shadow-sm">
+                            ${s}
+                        </div>
+                        <div class="flex-1 grid grid-cols-2 gap-2">
+                            <div class="relative">
+                                <input type="number" id="w-${key}" value="${wVal}" oninput="saveTemp('${key}')" 
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Kg">
+                                <span class="absolute right-2 top-1.5 text-[10px] text-slate-400 pointer-events-none">kg</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="r-${key}" value="${rVal}" oninput="saveTemp('${key}')"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Reps">
+                                <span class="absolute right-2 top-1.5 text-[10px] text-slate-400 pointer-events-none">rep</span>
+                            </div>
+                        </div>
+                        <div>
+                            <input type="checkbox" ${isChecked} onchange="toggleSet('${key}', '${ex.exercise}', ${s})" 
+                                class="w-6 h-6 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600">
+                        </div>
+                    </div>`;
+                }
 
                 return `
-                <div class="p-4 rounded-xl shadow-sm border transition-all duration-200 ${cardClass}" id="card-${i}">
-                    <div class="flex justify-between items-start mb-3">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                         <div>
-                            <h3 class="font-bold text-lg text-slate-800 leading-tight">${ex.exercise}</h3>
-                            ${ex.note ? `<p class="text-xs text-slate-500 mt-1 bg-slate-100 inline-block px-2 py-1 rounded">💡 ${ex.note}</p>` : ''}
+                            <h3 class="font-bold text-slate-800">${ex.exercise}</h3>
+                            ${ex.note ? `<p class="text-xs text-slate-500 mt-0.5">💡 ${ex.note}</p>` : ''}
                         </div>
-                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-colors"><i data-lucide="play-circle" class="w-5 h-5"></i></a>` : ''}
+                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600 hover:bg-blue-100 p-1.5 rounded-full transition-colors"><i data-lucide="play-circle" class="w-5 h-5"></i></a>` : ''}
                     </div>
-
-                    <div class="flex items-end gap-3">
-                        <div class="flex-1 grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Kg</label>
-                                <input type="number" id="w-${i}" value="${wVal}" oninput="saveTemp('${day}', '${ex.exercise}', ${i})" 
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Kg">
-                            </div>
-                            <div>
-                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Reps</label>
-                                <input type="number" id="r-${i}" value="${rVal}" oninput="saveTemp('${day}', '${ex.exercise}', ${i})"
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Rep">
-                            </div>
-                        </div>
-                        
-                        <div class="h-[62px] flex items-end pb-1">
-                            <label class="cursor-pointer relative">
-                                <input type="checkbox" ${isChecked} onchange="toggleCheck(${i}, '${day}', '${ex.exercise}')" 
-                                    class="check-anim w-10 h-10 rounded-xl border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600 peer">
-                            </label>
-                        </div>
+                    <div class="p-3 space-y-2">
+                        ${setsHtml}
                     </div>
                 </div>`;
             }).join('');
             
             lucide.createIcons();
+            updateCounter();
         }
 
-        // --- HÀM XỬ LÝ LOGIC ---
-
-        function saveTemp(day, exName, idx) {
-            const w = document.getElementById(`w-${idx}`).value;
-            const r = document.getElementById(`r-${idx}`).value;
-            const key = `${day}_${exName}`;
+        // --- LOGIC LƯU TRỮ ---
+        
+        function saveTemp(key) {
+            const w = document.getElementById(`w-${key}`).value;
+            const r = document.getElementById(`r-${key}`).value;
             
             if (!PROGRESS[key]) PROGRESS[key] = {};
             PROGRESS[key].weight = w;
@@ -227,26 +235,30 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
         }
 
-        function toggleCheck(idx, day, exName) {
-            const wInput = document.getElementById(`w-${idx}`);
-            const rInput = document.getElementById(`r-${idx}`);
-            const card = document.getElementById(`card-${idx}`);
-            const key = `${day}_${exName}`;
+        function toggleSet(key, exName, setNum) {
+            const wInput = document.getElementById(`w-${key}`);
+            const rInput = document.getElementById(`r-${key}`);
+            const row = document.getElementById(`row-${key}`);
 
+            // Validate
             if (!wInput.value || !rInput.value) {
-                alert("Vui lòng nhập số Kg và Reps trước khi tick!");
+                alert("Nhập số Kg và Reps trước khi tick!");
                 event.target.checked = false;
                 wInput.focus();
                 return;
             }
 
             if (event.target.checked) {
-                card.classList.remove('bg-white', 'border-slate-100');
-                card.classList.add('bg-blue-50', 'border-blue-500', 'ring-1', 'ring-blue-500');
-                PROGRESS[key] = { weight: wInput.value, reps: rInput.value, checked: true, exercise: exName };
+                row.classList.add('set-done');
+                PROGRESS[key] = { 
+                    weight: wInput.value, 
+                    reps: rInput.value, 
+                    checked: true, 
+                    exercise: exName,
+                    setNum: setNum // Lưu số thứ tự set để biết
+                };
             } else {
-                card.classList.add('bg-white', 'border-slate-100');
-                card.classList.remove('bg-blue-50', 'border-blue-500', 'ring-1', 'ring-blue-500');
+                row.classList.remove('set-done');
                 if(PROGRESS[key]) PROGRESS[key].checked = false;
             }
 
@@ -261,10 +273,10 @@
         }
 
         function resetProgress() {
-            if(confirm("Xóa dữ liệu nhập tạm thời?")) {
+            if(confirm("Xóa toàn bộ dữ liệu đang nhập?")) {
                 localStorage.removeItem(STORAGE_KEY);
                 PROGRESS = {};
-                renderExercises(CURRENT_DAY);
+                renderExercises(CURRENT_TAB);
                 updateCounter();
             }
         }
@@ -276,65 +288,54 @@
                 reps: item.reps
             }));
 
-            if (logsToSend.length === 0) return alert("Chưa có bài nào được chọn!");
-            if (!confirm(`Gửi kết quả ${logsToSend.length} bài tập?`)) return;
+            if (logsToSend.length === 0) return alert("Chưa hoàn thành set nào!");
+            if (!confirm(`Gửi kết quả ${logsToSend.length} sets tập?`)) return;
 
             const btn = document.getElementById('btnFinish');
             btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Đang gửi...';
             btn.disabled = true;
 
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs: logsToSend } })
-                });
-                
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } })
-                });
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs: logsToSend } }) });
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } }) });
 
                 alert("✅ Đã lưu thành công!");
+                localStorage.removeItem(STORAGE_KEY); PROGRESS = {};
                 
-                // Render lịch sử
-                const historyList = document.getElementById('done-list');
-                document.getElementById('history-section').classList.remove('hidden');
-                
-                logsToSend.forEach(log => {
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-3 bg-white border border-green-200 rounded-lg text-sm shadow-sm";
-                    item.innerHTML = `
-                        <div class="font-bold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i> ${log.exercise}
-                        </div>
-                        <div class="text-slate-500 font-bold bg-slate-50 px-2 py-1 rounded">${log.weight}kg x ${log.reps}</div>
-                    `;
-                    historyList.prepend(item);
-                });
-                lucide.createIcons();
+                // Tự động chuyển sang tab Lịch sử
+                const historyBtn = document.querySelector("button[onclick='showHistory(this)']");
+                if(historyBtn) showHistory(historyBtn);
 
-                // Reset form
-                localStorage.removeItem(STORAGE_KEY);
-                PROGRESS = {};
-                renderExercises(CURRENT_DAY);
-
-            } catch(e) {
-                alert("Lỗi: " + e);
-            } finally {
-                btn.innerHTML = '<span>Gửi Kết Quả</span> <i data-lucide="send" class="w-4 h-4"></i>';
+            } catch(e) { alert("Lỗi: " + e); }
+            finally {
+                btn.innerHTML = '<span>Lưu & Hoàn Thành</span> <i data-lucide="check-circle-2" class="w-5 h-5"></i>';
                 btn.disabled = false;
                 updateCounter();
             }
         }
 
-        function logout() {
-            if(confirm('Đăng xuất?')) {
-                localStorage.removeItem('pt_user');
-                window.location.href='login.html';
-            }
+        function renderHistoryList(data) {
+            const container = document.getElementById('history-view');
+            let html = '';
+            Object.keys(data).forEach(date => {
+                const logs = data[date];
+                html += `<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 font-bold text-slate-700 text-sm flex justify-between">
+                        <span>${date}</span> <span>${logs.length} sets</span>
+                    </div>
+                    <div class="divide-y divide-slate-100">`;
+                logs.forEach(log => {
+                    html += `<div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50">
+                        <span class="font-medium text-slate-800">${log.exercise}</span>
+                        <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold text-xs">${log.weight}kg x ${log.reps}</span>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            });
+            container.innerHTML = html;
         }
 
-        // Chạy ngay khi mở trang
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
         init();
     </script>
 </body>
