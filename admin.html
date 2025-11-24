@@ -7,26 +7,41 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Tùy chỉnh */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
         
-        /* Calendar Styles */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #e2e8f0; border: 1px solid #e2e8f0; }
-        .calendar-cell { background-color: white; min-height: 100px; padding: 4px; font-size: 12px; transition: all 0.2s; }
-        .calendar-cell:hover { background-color: #f8fafc; }
-        .calendar-header { background-color: #f1f5f9; font-weight: bold; text-align: center; padding: 8px 0; font-size: 12px; color: #64748b; }
-        .event-tag { background-color: #eff6ff; border-left: 3px solid #3b82f6; padding: 2px 4px; margin-bottom: 2px; border-radius: 2px; font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+        /* CALENDAR STYLES */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
+        .calendar-cell { 
+            background-color: white; min-height: 110px; padding: 6px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; 
+            position: relative; transition: all 0.2s; cursor: pointer; 
+        }
+        .calendar-cell:hover { background-color: #f1f5f9; }
+        .calendar-cell:hover::after {
+            content: "+"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 24px; color: #cbd5e1; font-weight: bold;
+        }
+        .calendar-header { background-color: #f8fafc; font-weight: bold; text-align: center; padding: 10px 0; font-size: 12px; color: #64748b; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
         
-        /* Modal */
-        .modal { transition: opacity 0.25s ease; }
-        body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
+        /* EVENT TAG STYLES */
+        .event-tag { 
+            padding: 4px 6px; margin-bottom: 4px; border-radius: 4px; 
+            font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;
+            transition: transform 0.1s; position: relative; z-index: 10;
+        }
+        .event-tag:hover { transform: scale(1.02); z-index: 20; }
+        .evt-upcoming { background-color: #eff6ff; color: #1d4ed8; border-left: 3px solid #3b82f6; }
+        .evt-completed { background-color: #f1f5f9; color: #64748b; border-left: 3px solid #cbd5e1; text-decoration: line-through; }
+        .evt-cancelled { background-color: #fef2f2; color: #b91c1c; border-left: 3px solid #ef4444; }
+
+        .modal { transition: opacity 0.2s ease; }
+        body.modal-active { overflow: hidden; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 pb-20">
 
     <div class="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-lg">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="w-6 h-6 text-white"></i></div>
                 <div>
@@ -40,7 +55,7 @@
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto px-4 mt-6 space-y-6">
+    <div class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
         <div class="grid grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500">
@@ -48,11 +63,11 @@
                 <div class="text-3xl font-black text-slate-800" id="stat-total">...</div>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-green-500">
-                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Đang Tập</div>
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Active</div>
                 <div class="text-3xl font-black text-slate-800" id="stat-active">...</div>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-orange-500">
-                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Ca Dạy Hôm Nay</div>
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Lịch Hôm Nay</div>
                 <div class="text-3xl font-black text-slate-800" id="stat-today">...</div>
             </div>
         </div>
@@ -62,7 +77,7 @@
                 <i data-lucide="calendar-days" class="w-4 h-4"></i> Lịch Dạy
             </button>
             <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
-                <i data-lucide="pencil-ruler" class="w-4 h-4"></i> Soạn Giáo Án
+                <i data-lucide="pencil-ruler" class="w-4 h-4"></i> Giáo Án
             </button>
             <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center items-center gap-2 whitespace-nowrap">
                 <i data-lucide="users" class="w-4 h-4"></i> Học Viên
@@ -72,75 +87,54 @@
             </button>
         </div>
 
-        <div id="view-builder" class="view-section hidden space-y-4">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="pencil-ruler" class="text-blue-600"></i> Thiết Kế Giáo Án</h2>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Tên Giáo Án</label>
-                        <input id="plan-name" type="text" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Vd: Tăng cơ Phase 1">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Giao cho ai?</label>
-                        <select id="plan-student" class="w-full border p-2.5 rounded-lg text-sm bg-white">
-                            <option value="">-- Chọn học viên --</option>
-                            </select>
-                    </div>
+        <div id="view-calendar" class="view-section space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                    <h2 class="text-xl font-bold text-slate-800 uppercase tracking-wide" id="cal-title">Tháng...</h2>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-right"></i></button>
                 </div>
-
-                <div class="border rounded-xl overflow-hidden mb-4">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b">
-                            <tr>
-                                <th class="p-3 w-24">Ngày</th>
-                                <th class="p-3">Bài tập</th>
-                                <th class="p-3 w-16 text-center">Sets</th>
-                                <th class="p-3 w-16 text-center">Reps</th>
-                                <th class="p-3 w-32">Note</th>
-                                <th class="p-3 w-10"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="plan-rows" class="divide-y divide-slate-100">
-                            </tbody>
-                    </table>
-                    <button onclick="addPlanRow()" class="w-full py-2 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors border-t border-slate-100">
-                        + Thêm dòng
-                    </button>
+                <div class="flex gap-3 text-xs font-medium">
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 bg-blue-100 border-l-2 border-blue-500"></div> Sắp tới</div>
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 bg-slate-100 border-l-2 border-slate-400"></div> Xong</div>
                 </div>
+            </div>
 
-                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">
-                    Lưu & Gửi Giáo Án
-                </button>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="calendar-grid bg-slate-50 border-b">
+                    <div class="calendar-header text-red-500">CN</div>
+                    <div class="calendar-header">Thứ 2</div><div class="calendar-header">Thứ 3</div><div class="calendar-header">Thứ 4</div><div class="calendar-header">Thứ 5</div><div class="calendar-header">Thứ 6</div><div class="calendar-header">Thứ 7</div>
+                </div>
+                <div id="calendar-body" class="calendar-grid"></div>
             </div>
         </div>
 
-        <div id="view-calendar" class="view-section space-y-4">
-            <div class="bg-white p-3 rounded-xl shadow-sm flex justify-between items-center">
-                <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left"></i></button>
-                <h2 class="text-lg font-bold text-slate-800 uppercase" id="cal-title">Tháng...</h2>
-                <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-right"></i></button>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="calendar-grid" style="border:none; border-bottom:1px solid #e2e8f0">
-                    <div class="calendar-header">CN</div><div class="calendar-header">Thứ 2</div><div class="calendar-header">Thứ 3</div><div class="calendar-header">Thứ 4</div><div class="calendar-header">Thứ 5</div><div class="calendar-header">Thứ 6</div><div class="calendar-header">Thứ 7</div>
+        <div id="view-builder" class="view-section hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="pencil-ruler" class="text-blue-600"></i> Thiết Kế Giáo Án</h2>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">Tên Giáo Án</label><input id="plan-name" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Vd: Tăng cơ Phase 1"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">Học viên</label><select id="plan-student" class="w-full border p-2.5 rounded-lg text-sm bg-white"><option value="">-- Chọn --</option></select></div>
                 </div>
-                <div id="calendar-body" class="calendar-grid"></div>
+                <div class="border rounded-xl overflow-hidden mb-4">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b"><tr><th class="p-3 w-24">Ngày</th><th class="p-3">Bài tập</th><th class="p-3 w-16 text-center">Sets</th><th class="p-3 w-16 text-center">Reps</th><th class="p-3">Note</th><th class="p-3 w-10"></th></tr></thead>
+                        <tbody id="plan-rows" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                    <button onclick="addPlanRow()" class="w-full py-2 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 border-t">+ Thêm dòng</button>
+                </div>
+                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Lưu & Gửi Giáo Án</button>
             </div>
         </div>
 
         <div id="view-students" class="view-section hidden space-y-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-lg font-bold text-slate-700">Danh sách lớp</h2>
-                <button onclick="toggleModal('modal-add-student')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg">
-                    <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Mới
-                </button>
+                <button onclick="toggleModal('modal-add-student')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg"><i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Mới</button>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-50 text-slate-500 font-bold border-b">
-                        <tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói tập</th><th class="p-4 text-right">Thao tác</th></tr>
-                    </thead>
+                    <thead class="bg-slate-50 text-slate-500 font-bold border-b"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói tập</th><th class="p-4 text-right">Thao tác</th></tr></thead>
                     <tbody id="student-list" class="divide-y divide-slate-100"><tr><td colspan="3" class="p-6 text-center text-slate-400">Đang tải...</td></tr></tbody>
                 </table>
             </div>
@@ -154,9 +148,8 @@
                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Tên bài</label><input id="ex-name" class="w-full border p-2.5 rounded-lg text-sm" required></div>
                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Nhóm cơ</label><select id="ex-group" class="w-full border p-2.5 rounded-lg text-sm"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option></select></div>
                     </div>
-                    <input id="ex-video" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Link Video Youtube">
-                    <textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Mô tả kỹ thuật"></textarea>
-                    <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Lưu Bài Tập</button>
+                    <input id="ex-video" class="w-full border p-2.5 rounded-lg text-sm" placeholder="URL Youtube">
+                    <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Lưu</button>
                 </form>
             </div>
         </div>
@@ -166,20 +159,26 @@
                 <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600"></i> Thêm Món Ăn</h2>
                 <form id="form-food" class="space-y-4">
                     <input id="fd-name" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Tên món" required>
-                    <div class="grid grid-cols-2 gap-4">
-                        <input id="fd-unit" class="w-full border p-2.5 rounded-lg text-sm" value="100g">
-                        <input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Calo" required>
-                    </div>
-                    <div class="grid grid-cols-3 gap-3 text-sm">
-                        <input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro">
-                        <input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb">
-                        <input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat">
-                    </div>
-                    <button class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Lưu Món Ăn</button>
+                    <div class="grid grid-cols-2 gap-4"><input id="fd-cal" type="number" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Calo" required><input id="fd-pro" type="number" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Protein"></div>
+                    <button class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Lưu</button>
                 </form>
             </div>
         </div>
 
+    </div>
+
+    <div id="modal-book" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50">
+        <div class="absolute inset-0 bg-slate-900 opacity-50"></div>
+        <div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative">
+            <button onclick="toggleModal('modal-book')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x"></i></button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Đặt Lịch Tập</h3>
+            <form id="form-book" class="space-y-3">
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Ngày</label><input id="bk-date" type="date" class="w-full border p-2.5 rounded-lg text-sm bg-slate-50 font-bold" required readonly></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Giờ</label><input id="bk-time" type="time" class="w-full border p-2.5 rounded-lg text-sm font-bold" required></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Học viên</label><select id="bk-student" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="">-- Chọn --</option></select></div>
+                <button type="submit" id="btn-book" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-2">Lưu Lịch Hẹn</button>
+            </form>
+        </div>
     </div>
 
     <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50">
@@ -208,136 +207,22 @@
         if(USER.role !== 'PT') { alert('Cấm truy cập!'); window.location.href = 'index.html'; }
         document.getElementById('ptName').innerText = USER.name;
 
-        let STUDENTS_MAP = {}, SCHEDULE_DATA = [], EXERCISES = [], CURRENT_DATE = new Date();
+        let STUDENTS = [], SCHEDULE_DATA = [], EXERCISES = [], CURRENT_DATE = new Date();
 
         async function callAPI(action, data={}) {
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
-                return await res.json();
-            } catch(e) { alert("Lỗi: " + e); return {success:false}; }
+            try { const r=await fetch(API_URL, {method:'POST', body:JSON.stringify({action,data})}); return await r.json(); }
+            catch(e) { alert("Lỗi: "+e); return {success:false}; }
         }
 
         async function initApp() {
             await loadStudents();
             await initDashboard();
             await loadSchedule();
-            await loadExercises(); // Tải bài tập để gợi ý
-            addPlanRow(); // Thêm 1 dòng mặc định cho Plan Builder
+            loadExercises();
+            addPlanRow();
         }
 
-        // --- 1. PLAN BUILDER LOGIC (MỚI) ---
-        async function loadExercises() {
-            const res = await callAPI('get_exercise_lib');
-            if(res.success) {
-                EXERCISES = res.data;
-                const dl = document.getElementById('dl-exercises');
-                dl.innerHTML = EXERCISES.map(ex => `<option value="${ex.name}">[${ex.group}]</option>`).join('');
-            }
-        }
-
-        function addPlanRow() {
-            const tbody = document.getElementById('plan-rows');
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option><option>CN</option></select></td>
-                <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..." onchange="fillVideo(this)"></td>
-                <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
-                <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
-                <td class="p-2"><input type="text" placeholder="..." class="w-full border p-1 rounded text-sm"></td>
-                <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                <input type="hidden" class="video-url">
-            `;
-            tbody.appendChild(row);
-            lucide.createIcons();
-        }
-
-        function fillVideo(input) {
-            const ex = EXERCISES.find(e => e.name === input.value);
-            if(ex) input.closest('tr').querySelector('.video-url').value = ex.video;
-        }
-
-        async function savePlan() {
-            const name = document.getElementById('plan-name').value;
-            const studentId = document.getElementById('plan-student').value;
-            if(!name || !studentId) return alert("Vui lòng nhập Tên giáo án và chọn Học viên!");
-
-            const rows = document.querySelectorAll('#plan-rows tr');
-            let details = [];
-            rows.forEach(r => {
-                const inputs = r.querySelectorAll('input, select');
-                if(inputs[1].value) {
-                    details.push({
-                        day: inputs[0].value,
-                        exercise: inputs[1].value,
-                        sets: inputs[2].value,
-                        reps: inputs[3].value,
-                        note: inputs[4].value,
-                        video: r.querySelector('.video-url').value
-                    });
-                }
-            });
-
-            if(details.length === 0) return alert("Chưa có bài tập nào!");
-
-            const btn = document.getElementById('btn-save-plan');
-            btn.innerText = "Đang lưu..."; btn.disabled = true;
-
-            const res = await callAPI('save_workout_plan', { planName: name, targetUser: studentId, details });
-            
-            if(res.success) {
-                alert("✅ Đã giao giáo án thành công!");
-                document.getElementById('plan-name').value = '';
-                document.getElementById('plan-rows').innerHTML = '';
-                addPlanRow();
-            } else {
-                alert(res.message);
-            }
-            btn.innerText = "Lưu & Gửi Giáo Án"; btn.disabled = false;
-        }
-
-        // --- 2. STUDENT MANAGEMENT ---
-        async function loadStudents() {
-            const res = await callAPI('get_all_students');
-            const list = document.getElementById('student-list');
-            const select = document.getElementById('plan-student'); // Dropdown cho Plan Builder
-            
-            if(res.success) {
-                res.data.forEach(s => { STUDENTS_MAP[s.id] = s.name; });
-                
-                // Fill Dropdown
-                select.innerHTML = '<option value="">-- Chọn học viên --</option>' + 
-                    res.data.map(s => `<option value="${s.id}">${s.name} (${s.sessionLeft} buổi)</option>`).join('');
-
-                // Fill List
-                list.innerHTML = res.data.map(st => `
-                    <tr class="hover:bg-slate-50 border-b border-slate-50">
-                        <td class="p-4"><div class="font-bold text-slate-800 text-sm">${st.name}</div><div class="text-xs text-slate-400">${st.email}</div><div class="mt-1"><span class="text-[10px] px-2 py-0.5 rounded-full ${st.status==='Active'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${st.status}</span></div></td>
-                        <td class="p-4 text-center"><div class="font-black text-lg ${st.sessionLeft<5?'text-red-500':'text-blue-600'}">${st.sessionLeft||0}</div></td>
-                        <td class="p-4 text-right space-y-2"><button onclick="topUpSession('${st.id}','${st.name}')" class="w-full bg-blue-50 text-blue-600 text-xs font-bold py-1 px-3 rounded border border-blue-200">Nạp Buổi</button><button onclick="toggleStatus('${st.id}','${st.status}')" class="w-full bg-slate-50 text-slate-500 text-xs font-medium py-1 px-3 rounded border border-slate-200">${st.status==='Active'?'Khóa':'Mở'}</button></td>
-                    </tr>`).join('');
-                lucide.createIcons();
-            }
-        }
-
-        document.getElementById('form-register').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-reg'); btn.innerText="Đang tạo..."; btn.disabled=true;
-            const res = await callAPI('register', { name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value, phone: document.getElementById('reg-phone').value });
-            if(res.success) { alert("✅ Thành công!"); toggleModal('modal-add-student'); loadStudents(); initDashboard(); }
-            else alert(res.message);
-            btn.innerText="Tạo Tài Khoản"; btn.disabled=false;
-        });
-
-        async function topUpSession(id, name) {
-            const amt = prompt(`Nạp thêm bao nhiêu buổi cho ${name}?`, "10");
-            if(amt) { await callAPI('admin_update_student', { studentId: id, addSession: amt }); alert("✅ Đã nạp!"); loadStudents(); }
-        }
-
-        async function toggleStatus(id, st) {
-            if(confirm("Đổi trạng thái?")) { await callAPI('admin_update_student', { studentId: id, status: st==='Active'?'Inactive':'Active' }); loadStudents(); }
-        }
-
-        // --- 3. CALENDAR ---
+        // --- 1. CALENDAR LOGIC ---
         async function loadSchedule() {
             const res = await callAPI('get_schedule');
             if(res.success) { SCHEDULE_DATA = res.data; renderCalendar(); }
@@ -349,38 +234,127 @@
             const firstDay = new Date(y, m, 1).getDay(), daysInMonth = new Date(y, m + 1, 0).getDate();
             const body = document.getElementById('calendar-body'); body.innerHTML = '';
 
-            for(let i=0; i<firstDay; i++) body.innerHTML += `<div class="calendar-cell bg-slate-50"></div>`;
+            for(let i=0; i<firstDay; i++) body.innerHTML += `<div class="calendar-cell bg-slate-50 cursor-default"></div>`;
             
             for(let d=1; d<=daysInMonth; d++) {
                 const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const events = SCHEDULE_DATA.filter(e => e.date === dateStr);
-                const html = events.map(e => `<div class="event-tag" title="${STUDENTS_MAP[e.userId]}"><span class="font-bold">${e.time}</span> ${STUDENTS_MAP[e.userId]?.split(' ').pop()||'?'}</div>`).join('');
-                body.innerHTML += `<div class="calendar-cell"><div class="font-bold text-slate-400 mb-1">${d}</div><div class="space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">${html}</div></div>`;
+                
+                let eventsHtml = events.map(e => {
+                    const st = STUDENTS.find(s=>s.id===e.userId);
+                    const name = st ? st.name.split(' ').pop() : '???';
+                    let cls = 'evt-upcoming';
+                    if(e.status === 'Completed') cls = 'evt-completed';
+                    if(e.status === 'Cancelled') cls = 'evt-cancelled';
+                    
+                    return `<div class="event-tag ${cls}" onclick="event.stopPropagation(); cancelSession('${e.id}')" title="Bấm để hủy">
+                        <span>${e.time}</span> ${name}
+                    </div>`;
+                }).join('');
+
+                body.innerHTML += `
+                    <div class="calendar-cell group" onclick="openBookModal('${dateStr}')">
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-slate-400 text-xs group-hover:text-blue-600 transition-colors">${d}</span>
+                        </div>
+                        <div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${eventsHtml}</div>
+                    </div>
+                `;
             }
         }
+
+        function openBookModal(dateStr) {
+            document.getElementById('bk-date').value = dateStr;
+            document.getElementById('bk-time').value = "18:00";
+            toggleModal('modal-book');
+        }
+
+        document.getElementById('form-book').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-book'); btn.innerText="Đang lưu..."; btn.disabled=true;
+            const res = await callAPI('book_session', {
+                userId: document.getElementById('bk-student').value,
+                date: document.getElementById('bk-date').value,
+                time: document.getElementById('bk-time').value
+            });
+            if(res.success) { alert("✅ Đã đặt lịch!"); toggleModal('modal-book'); loadSchedule(); initDashboard(); }
+            else alert(res.message);
+            btn.innerText="Lưu Lịch Hẹn"; btn.disabled=false;
+        });
+
+        async function cancelSession(id) {
+            if(confirm("Hủy buổi tập này?")) { await callAPI('cancel_session', {bookingId: id}); loadSchedule(); }
+        }
+
         function changeMonth(s) { CURRENT_DATE.setMonth(CURRENT_DATE.getMonth()+s); renderCalendar(); }
 
-        // --- 4. UTILS ---
-        async function initDashboard() {
-            const r = await callAPI('admin_get_dashboard');
-            if(r.success) {
-                document.getElementById('stat-total').innerText = r.data.totalStudent;
-                document.getElementById('stat-active').innerText = r.data.activeStudent;
-                document.getElementById('stat-today').innerText = r.data.todaySessions;
+        // --- 2. STUDENT & UTILS ---
+        async function loadStudents() {
+            const res = await callAPI('get_all_students');
+            if(res.success) {
+                STUDENTS = res.data;
+                const list = document.getElementById('student-list');
+                const selPlan = document.getElementById('plan-student');
+                const selBook = document.getElementById('bk-student');
+                
+                // Fill dropdowns
+                const opts = '<option value="">-- Chọn --</option>' + STUDENTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+                selPlan.innerHTML = opts; selBook.innerHTML = opts;
+
+                // Fill list
+                list.innerHTML = STUDENTS.map(st => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-50">
+                        <td class="p-4"><div class="font-bold text-slate-800 text-sm">${st.name}</div><div class="text-xs text-slate-400">${st.email}</div></td>
+                        <td class="p-4 text-center"><div class="font-black text-lg text-blue-600">${st.sessionLeft||0}</div></td>
+                        <td class="p-4 text-right space-y-2"><button onclick="topUp('${st.id}')" class="bg-blue-50 text-blue-600 text-xs font-bold py-1 px-3 rounded border">Nạp</button></td>
+                    </tr>`).join('');
             }
         }
-        function switchTab(name, btn) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`view-${name}`).classList.remove('hidden');
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-        }
-        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); }
-        
-        document.getElementById('form-exercise').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_exercise', {name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, video:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); alert("✅ OK"); });
-        document.getElementById('form-food').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_food', {name:document.getElementById('fd-name').value, unit:document.getElementById('fd-unit').value, cal:document.getElementById('fd-cal').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); alert("✅ OK"); });
 
-        function logout() { if(confirm("Đăng xuất Admin?")) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+        async function initDashboard() {
+            const r = await callAPI('admin_get_dashboard');
+            if(r.success) { document.getElementById('stat-total').innerText=r.data.totalStudent; document.getElementById('stat-active').innerText=r.data.activeStudent; document.getElementById('stat-today').innerText=r.data.todaySessions; }
+        }
+
+        // --- 3. WORKOUT BUILDER ---
+        async function loadExercises() { const r=await callAPI('get_exercise_lib'); if(r.success) { EXERCISES=r.data; document.getElementById('dl-exercises').innerHTML=EXERCISES.map(e=>`<option value="${e.name}">`).join(''); } }
+        
+        function addPlanRow() {
+            document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td>
+                    <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td>
+                    <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="text" class="w-full border p-1 rounded text-sm"></td>
+                    <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>`);
+            lucide.createIcons();
+        }
+
+        async function savePlan() {
+            const name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value;
+            if(!name||!uId) return alert("Nhập đủ thông tin!");
+            const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => {
+                const inp = r.querySelectorAll('input, select');
+                return { day:inp[0].value, exercise:inp[1].value, sets:inp[2].value, reps:inp[3].value, note:inp[4].value, video:'' };
+            }).filter(d=>d.exercise);
+            
+            document.getElementById('btn-save-plan').innerText="Lưu...";
+            const res = await callAPI('save_workout_plan', {planName:name, targetUser:uId, details});
+            alert(res.message); document.getElementById('btn-save-plan').innerText="Lưu & Gửi Giáo Án";
+        }
+
+        // --- HELPER ---
+        async function topUp(id) { const a=prompt("Nạp bao nhiêu buổi?"); if(a) { await callAPI('admin_update_student',{studentId:id, addSession:a}); loadStudents(); }}
+        function switchTab(n, b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
+        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
+        function logout() { if(confirm("Đăng xuất?")) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+
+        document.getElementById('form-register').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register', {name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); alert("OK"); toggleModal('modal-add-student'); loadStudents(); });
+        document.getElementById('form-exercise').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_exercise', {name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value}); alert("OK"); });
+        document.getElementById('form-food').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('admin_add_food', {name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value}); alert("OK"); });
+
         initApp();
     </script>
 </body>
