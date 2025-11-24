@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tập Luyện - PT Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Ẩn thanh cuộn nhưng vẫn trượt được */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Hiệu ứng tab active */
+        .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; }
+    </style>
+</head>
+<body class="bg-slate-50 pb-24">
+
+    <div class="bg-white p-4 sticky top-0 z-10 shadow-sm">
+        <div class="flex justify-between items-center max-w-md mx-auto">
+            <h1 class="text-xl font-bold text-slate-900">Lịch Tập</h1>
+            <span id="planCount" class="text-xs font-medium px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full">Loading...</span>
+        </div>
+    </div>
+
+    <div id="app" class="max-w-md mx-auto px-4 mt-4">
+        
+        <div id="tabsContainer" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2">
+            </div>
+
+        <div id="exercisesList" class="space-y-3">
+            <div class="text-center py-10 text-slate-400">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                Đang tải giáo án...
+            </div>
+        </div>
+
+        <div class="fixed bottom-20 left-0 right-0 px-4 max-w-md mx-auto">
+            <button id="btnFinish" onclick="finishWorkout()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                <span>Hoàn Thành Buổi Tập</span>
+                <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
+                <i data-lucide="home" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Home</span>
+            </a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600">
+                <i data-lucide="dumbbell" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Tập</span>
+            </a>
+            <a href="#" onclick="alert('Sắp có')" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
+                <i data-lucide="utensils" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Ăn</span>
+            </a>
+            <a href="#" onclick="alert('Sắp có')" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600">
+                <i data-lucide="calendar" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Lịch</span>
+            </a>
+            <a href="login.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-600">
+                <i data-lucide="user" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium mt-1">Tôi</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // ⚠️ THAY URL WEB APP CỦA BẠN VÀO ĐÂY
+        const API_URL = "https://script.google.com/macros/s/AKfycbx.../exec"; 
+
+        let PLANS = {}; // Lưu dữ liệu tải về
+        let CURRENT_DAY = "";
+        let LOGS = []; // Lưu các bài đã tick
+
+        // 1. Khởi động & Tải dữ liệu
+        async function init() {
+            const userJson = localStorage.getItem('pt_user');
+            if (!userJson) return window.location.href = 'login.html';
+            const user = JSON.parse(userJson);
+
+            try {
+                // Gọi API lấy lịch tập của User
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } })
+                });
+                const result = await res.json();
+
+                if (result.success && result.data) {
+                    PLANS = result.data;
+                    renderTabs();
+                } else {
+                    document.getElementById('exercisesList').innerHTML = `<p class="text-center text-slate-500 mt-10">Chưa có giáo án nào.</p>`;
+                }
+            } catch (e) {
+                alert("Lỗi tải dữ liệu: " + e);
+            }
+        }
+
+        // 2. Vẽ Tabs (Day 1, Day 2...)
+        function renderTabs() {
+            const days = Object.keys(PLANS);
+            const container = document.getElementById('tabsContainer');
+            document.getElementById('planCount').innerText = `${days.length} Buổi`;
+            
+            container.innerHTML = '';
+            
+            days.forEach((day, index) => {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap transition-colors ${index === 0 ? 'tab-active' : 'bg-white text-slate-600 border-slate-200'}`;
+                btn.innerText = day;
+                btn.onclick = () => switchTab(day, btn);
+                container.appendChild(btn);
+                
+                if (index === 0) switchTab(day, btn); // Mở tab đầu tiên
+            });
+        }
+
+        // 3. Chuyển Tab
+        function switchTab(day, btnElement) {
+            CURRENT_DAY = day;
+            
+            // Update style active cho Tabs
+            document.querySelectorAll('#tabsContainer button').forEach(b => {
+                b.className = 'px-4 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap bg-white text-slate-600 border-slate-200';
+            });
+            btnElement.className = 'px-4 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap tab-active';
+
+            renderExercises(day);
+        }
+
+        // 4. Vẽ danh sách bài tập của Ngày đó
+        function renderExercises(day) {
+            const list = document.getElementById('exercisesList');
+            const exercises = PLANS[day] || [];
+            list.innerHTML = '';
+
+            exercises.forEach((ex, idx) => {
+                // Tạo Card bài tập
+                const html = `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 transition-all" id="card-${idx}">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">${ex.exercise}</h3>
+                            ${ex.note ? `<p class="text-xs text-slate-500 mt-1">💡 ${ex.note}</p>` : ''}
+                        </div>
+                        ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-blue-600 hover:bg-blue-50 p-2 rounded-full"><i data-lucide="play-circle" class="w-6 h-6"></i></a>` : ''}
+                    </div>
+
+                    <div class="flex items-end gap-3">
+                        <div class="flex-1 space-y-2">
+                            <div class="flex gap-2 text-xs text-slate-500">
+                                <span class="bg-slate-100 px-2 py-1 rounded">Target: ${ex.sets} Sets</span>
+                                <span class="bg-slate-100 px-2 py-1 rounded">Target: ${ex.reps} Reps</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="number" id="w-${idx}" placeholder="Kg" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <input type="number" id="r-${idx}" placeholder="Reps" value="${ex.reps}" class="w-20 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                        
+                        <div class="h-10 flex items-center">
+                            <input type="checkbox" onchange="toggleCheck(${idx}, '${ex.exercise}')" class="w-8 h-8 rounded-lg border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </div>
+                    </div>
+                </div>`;
+                list.insertAdjacentHTML('beforeend', html);
+            });
+            lucide.createIcons();
+        }
+
+        // 5. Xử lý Tick chọn
+        function toggleCheck(idx, exName) {
+            const weight = document.getElementById(`w-${idx}`).value;
+            const reps = document.getElementById(`r-${idx}`).value;
+            const card = document.getElementById(`card-${idx}`);
+
+            // Đổi màu card khi tick
+            if (event.target.checked) {
+                card.classList.add('bg-green-50', 'border-green-200');
+                // Thêm vào mảng Logs
+                LOGS.push({ exercise: exName, weight: weight || 0, reps: reps || 0 });
+            } else {
+                card.classList.remove('bg-green-50', 'border-green-200');
+                // Xóa khỏi mảng Logs
+                LOGS = LOGS.filter(l => l.exercise !== exName);
+            }
+        }
+
+        // 6. Gửi API lưu kết quả
+        async function finishWorkout() {
+            if (LOGS.length === 0) return alert("Bạn chưa tick bài tập nào!");
+            if (!confirm("Xác nhận hoàn thành buổi tập?")) return;
+
+            const btn = document.getElementById('btnFinish');
+            btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Đang lưu...';
+            btn.disabled = true;
+
+            const user = JSON.parse(localStorage.getItem('pt_user'));
+
+            try {
+                // Gọi API Log Workout
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'log_workout', 
+                        data: { userId: user.id, logs: LOGS } 
+                    })
+                });
+
+                // Gọi API Trừ buổi (Optional)
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'deduct_session', 
+                        data: { userId: user.id } 
+                    })
+                });
+
+                alert("🎉 Đã lưu buổi tập thành công!");
+                window.location.href = 'index.html'; // Quay về trang chủ
+
+            } catch (e) {
+                alert("Lỗi lưu dữ liệu: " + e);
+                btn.innerHTML = 'Thử lại';
+                btn.disabled = false;
+            }
+        }
+
+        // Chạy ngay khi vào trang
+        init();
+    </script>
+</body>
+</html>
