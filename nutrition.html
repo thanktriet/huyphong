@@ -8,13 +8,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* Animation */
         @keyframes fill-bar { from { width: 0%; } }
-        .animate-fill { animation: fill-bar 1s ease-out forwards; }
-        /* Macro Cards */
-        .macro-card { transition: transform 0.2s; }
-        .macro-card:active { transform: scale(0.95); }
-        /* Toast */
+        .macro-card { transition: transform 0.2s; } .macro-card:active { transform: scale(0.95); }
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
@@ -26,51 +21,26 @@
     <div id="toast-container"></div>
 
     <div class="bg-white p-4 sticky top-0 z-20 shadow-sm flex justify-between items-center">
-        <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <i data-lucide="utensils" class="text-green-600 w-6 h-6"></i> Dinh Dưỡng
-        </h1>
+        <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600 w-6 h-6"></i> Dinh Dưỡng</h1>
         <div class="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full" id="currentDate">...</div>
     </div>
 
     <div class="max-w-md mx-auto px-4 mt-6 space-y-6">
-
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
             <div class="flex justify-between items-end mb-2">
-                <div>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Đã nạp hôm nay</p>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-black text-slate-800" id="val-cal">0</span>
-                        <span class="text-sm text-slate-500 font-medium">/ 2000 kcal</span>
-                    </div>
-                </div>
-                <div class="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center text-green-600">
-                    <i data-lucide="flame" class="w-6 h-6"></i>
-                </div>
+                <div><p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Đã nạp hôm nay</p><div class="flex items-baseline gap-1"><span class="text-3xl font-black text-slate-800" id="val-cal">0</span><span class="text-sm text-slate-500 font-medium">/ 2000 kcal</span></div></div>
+                <div class="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center text-green-600"><i data-lucide="flame" class="w-6 h-6"></i></div>
             </div>
-            
-            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-4">
-                <div id="bar-cal" class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
-            </div>
-
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-4"><div id="bar-cal" class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div></div>
             <div class="grid grid-cols-3 gap-3">
-                <div class="macro-card bg-red-50 p-3 rounded-xl border border-red-100 text-center">
-                    <p class="text-[10px] text-red-400 font-bold uppercase">Protein</p>
-                    <p class="text-lg font-bold text-red-600"><span id="val-pro">0</span>g</p>
-                </div>
-                <div class="macro-card bg-orange-50 p-3 rounded-xl border border-orange-100 text-center">
-                    <p class="text-[10px] text-orange-400 font-bold uppercase">Carbs</p>
-                    <p class="text-lg font-bold text-orange-600"><span id="val-carb">0</span>g</p>
-                </div>
-                <div class="macro-card bg-yellow-50 p-3 rounded-xl border border-yellow-100 text-center">
-                    <p class="text-[10px] text-yellow-500 font-bold uppercase">Fat</p>
-                    <p class="text-lg font-bold text-yellow-600"><span id="val-fat">0</span>g</p>
-                </div>
+                <div class="macro-card bg-red-50 p-3 rounded-xl border border-red-100 text-center"><p class="text-[10px] text-red-400 font-bold uppercase">Protein</p><p class="text-lg font-bold text-red-600"><span id="val-pro">0</span>g</p></div>
+                <div class="macro-card bg-orange-50 p-3 rounded-xl border border-orange-100 text-center"><p class="text-[10px] text-orange-400 font-bold uppercase">Carbs</p><p class="text-lg font-bold text-orange-600"><span id="val-carb">0</span>g</p></div>
+                <div class="macro-card bg-yellow-50 p-3 rounded-xl border border-yellow-100 text-center"><p class="text-[10px] text-yellow-500 font-bold uppercase">Fat</p><p class="text-lg font-bold text-yellow-600"><span id="val-fat">0</span>g</p></div>
             </div>
         </div>
 
         <div class="space-y-3">
             <h2 class="font-bold text-slate-700 text-sm uppercase tracking-wider">Thêm Bữa Ăn</h2>
-            
             <div class="flex bg-white p-1 rounded-xl border shadow-sm">
                 <button onclick="switchInputMode('search')" id="tab-search" class="flex-1 py-2 text-xs font-bold rounded-lg bg-green-600 text-white shadow-md transition-all">Tìm Món</button>
                 <button onclick="switchInputMode('manual')" id="tab-manual" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">Nhập Nhanh (Tiệc)</button>
@@ -78,312 +48,119 @@
 
             <div id="mode-search" class="space-y-3">
                 <div class="relative">
-                    <input id="food-search" type="text" placeholder="Gõ tên món (phở, cơm, gà...)" class="w-full border-2 border-slate-200 p-3 pl-10 rounded-xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all font-medium" onkeyup="handleSearch(event)">
+                    <input id="food-search" type="text" placeholder="Gõ tên món (phở, cơm, gà...)" class="w-full border-2 border-slate-200 p-3 pl-10 rounded-xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all font-medium" onkeyup="if(event.key==='Enter') searchFood()">
                     <i data-lucide="search" class="absolute left-3 top-3.5 text-slate-400 w-5 h-5"></i>
                     <button onclick="searchFood()" class="absolute right-2 top-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">Tìm</button>
                 </div>
-                <div id="food-results" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
-                    <div class="text-center text-slate-400 py-4 text-xs">Nhập tên món ăn để tìm kiếm trong kho dữ liệu chuẩn.</div>
-                </div>
+                <div id="food-results" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar"><div class="text-center text-slate-400 py-4 text-xs">Kết quả tìm kiếm hiện ở đây.</div></div>
             </div>
 
             <div id="mode-manual" class="hidden bg-white p-4 rounded-xl border border-slate-200 space-y-3">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">Tên bữa ăn (Gợi nhớ)</label>
-                    <input id="man-name" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Vd: Ăn cưới, Sinh nhật bạn...">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">Tổng Calories ước lượng</label>
-                    <div class="relative">
-                        <input id="man-cal" type="number" class="w-full border p-2.5 rounded-lg text-lg font-bold text-green-600" placeholder="0">
-                        <span class="absolute right-3 top-3 text-xs text-slate-400 font-bold">kcal</span>
-                    </div>
-                </div>
-                <button onclick="addManualFood()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 transition-transform active:scale-95">
-                    Lưu Bữa Ăn Này
-                </button>
+                <div><label class="text-xs font-bold text-slate-500 mb-1 block">Tên bữa ăn</label><input id="man-name" class="w-full border p-2.5 rounded-lg text-sm font-bold" placeholder="Vd: Ăn cưới..."></div>
+                <div><label class="text-xs font-bold text-slate-500 mb-1 block">Calories ước lượng</label><div class="relative"><input id="man-cal" type="number" class="w-full border p-2.5 rounded-lg text-lg font-bold text-green-600" placeholder="0"><span class="absolute right-3 top-3 text-xs text-slate-400 font-bold">kcal</span></div></div>
+                <button onclick="addManualFood()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg">Lưu Bữa Ăn</button>
             </div>
         </div>
 
         <div class="pt-4 pb-20">
-            <h2 class="font-bold text-slate-700 text-sm uppercase tracking-wider mb-3 flex justify-between items-center">
-                Nhật Ký Hôm Nay
-                <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full" id="log-count">0 món</span>
-            </h2>
-            <div id="daily-log" class="space-y-3">
-                <div class="text-center py-8 text-slate-400">
-                    <i data-lucide="coffee" class="w-10 h-10 mx-auto mb-2 opacity-20"></i>
-                    <p class="text-sm">Chưa ăn gì cả? Nạp năng lượng đi nào!</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Home</span>
-            </a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Tập</span>
-            </a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-green-600 transition-colors">
-                <i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Ăn</span>
-            </a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span>
-            </a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors">
-                <i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span>
-            </button>
+            <h2 class="font-bold text-slate-700 text-sm uppercase tracking-wider mb-3 flex justify-between items-center">Nhật Ký Hôm Nay <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full" id="log-count">0 món</span></h2>
+            <div id="daily-log" class="space-y-3"><div class="text-center py-8 text-slate-400"><i data-lucide="coffee" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">Chưa ăn gì cả?</p></div></div>
         </div>
     </div>
 
-    <div id="modal-amount" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 animate-in fade-in duration-200">
-        <div class="bg-white w-10/12 max-w-sm rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
-            <h3 class="text-lg font-bold text-slate-800 mb-1" id="modal-food-name">Tên món ăn</h3>
-            <p class="text-xs text-slate-500 mb-4">100g chứa <span id="modal-food-cal">...</span> kcal</p>
-            
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Khối lượng (gam)</label>
-                <div class="flex items-center gap-2">
-                    <button onclick="adjAmount(-50)" class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">-</button>
-                    <input id="input-amount" type="number" value="100" class="flex-1 h-10 border-2 border-green-100 rounded-lg text-center font-bold text-green-700 text-lg focus:ring-2 ring-green-500 outline-none">
-                    <button onclick="adjAmount(50)" class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">+</button>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="closeModal()" class="py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200">Hủy</button>
-                <button onclick="confirmAddFood()" class="py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200">Thêm Vào</button>
-            </div>
-        </div>
-    </div>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb"><div class="max-w-md mx-auto flex justify-around items-center h-16"><a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Home</span></a><a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Tập</span></a><a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-green-600"><i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Ăn</span></a><a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span></a><button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500"><i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span></button></div></div>
+
+    <div id="modal-amount" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50"><div class="bg-white w-10/12 max-w-sm rounded-2xl shadow-2xl p-6"><h3 class="text-lg font-bold text-slate-800 mb-1" id="modal-food-name">...</h3><p class="text-xs text-slate-500 mb-4">100g chứa <span id="modal-food-cal">...</span> kcal</p><div class="mb-6"><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Khối lượng (gam)</label><div class="flex items-center gap-2"><button onclick="adjAmount(-50)" class="w-10 h-10 rounded-lg bg-slate-100 font-bold">-</button><input id="input-amount" type="number" value="100" class="flex-1 h-10 border-2 border-green-100 rounded-lg text-center font-bold text-green-700 text-lg outline-none"><button onclick="adjAmount(50)" class="w-10 h-10 rounded-lg bg-slate-100 font-bold">+</button></div></div><div class="grid grid-cols-2 gap-3"><button onclick="closeModal()" class="py-3 rounded-xl font-bold text-slate-500 bg-slate-100">Hủy</button><button onclick="confirmAddFood()" class="py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-lg">Thêm Vào</button></div></div></div>
 
     <script>
-        // 1. CẤU HÌNH
-        // ⚠️ Thay link API của bạn vào đây
         const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
-        
         lucide.createIcons();
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
-        
-        const userJson = localStorage.getItem('pt_user');
-        if (!userJson) window.location.href = 'login.html';
-        const user = JSON.parse(userJson);
+        const user = JSON.parse(localStorage.getItem('pt_user'));
+        if (!user) window.location.href = 'login.html';
 
         let SELECTED_FOOD = null;
 
-        // 2. CORE API
         async function callAPI(action, data={}) {
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
-                return await res.json();
-            } catch(e) { return { success: false, message: "Lỗi mạng" }; }
+            try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) }); return await res.json(); }
+            catch(e) { return { success: false }; }
         }
-
         function showToast(msg, type='success') {
-            const t = document.createElement('div'); t.className = `toast ${type}`;
-            t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
-            document.getElementById('toast-container').appendChild(t);
-            lucide.createIcons();
-            setTimeout(() => t.remove(), 3000);
+            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
+            document.getElementById('toast-container').appendChild(t); lucide.createIcons(); setTimeout(() => t.remove(), 3000);
         }
 
-        // 3. LOGIC CHÍNH
         async function loadStats() {
             const res = await callAPI('get_daily_macros', { userId: user.id });
             if(res.success) {
                 const s = res.data;
-                
-                // Animate numbers
-                animateValue("val-cal", parseInt(document.getElementById("val-cal").innerText), Math.round(s.cal), 500);
+                document.getElementById('val-cal').innerText = Math.round(s.cal);
                 document.getElementById('val-pro').innerText = Math.round(s.pro);
                 document.getElementById('val-carb').innerText = Math.round(s.carb);
                 document.getElementById('val-fat').innerText = Math.round(s.fat);
-                
-                // Update Bar
-                const percent = Math.min((s.cal / 2000) * 100, 100);
-                document.getElementById('bar-cal').style.width = percent + '%';
-                
-                // Update List
-                renderLogList(s.list);
+                document.getElementById('bar-cal').style.width = Math.min((s.cal / 2000) * 100, 100) + '%';
+                renderLogList(s.list || []); // S.list giờ đã có dữ liệu
             }
         }
 
         function renderLogList(list) {
             const container = document.getElementById('daily-log');
             document.getElementById('log-count').innerText = `${list.length} món`;
-            
-            if(list.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-400"><i data-lucide="coffee" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">Chưa ăn gì cả?</p></div>`;
-            } else {
+            if(list.length === 0) { container.innerHTML = `<div class="text-center py-8 text-slate-400"><i data-lucide="coffee" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">Chưa ăn gì cả?</p></div>`; }
+            else {
                 container.innerHTML = list.map(item => `
                     <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
                         <div class="flex items-center gap-3">
                             <div class="bg-green-50 p-2 rounded-lg text-green-600"><i data-lucide="utensils" class="w-4 h-4"></i></div>
-                            <div>
-                                <div class="font-bold text-slate-700 text-sm">${item.name}</div>
-                                <div class="text-xs text-slate-400">${item.type}</div>
-                            </div>
+                            <div><div class="font-bold text-slate-700 text-sm">${item.name}</div><div class="text-xs text-slate-400">${item.type}</div></div>
                         </div>
                         <div class="font-bold text-slate-800 text-sm">${Math.round(item.cal)} kcal</div>
                     </div>
-                `).reverse().join(''); // Món mới nhất lên đầu
+                `).reverse().join('');
             }
             lucide.createIcons();
         }
 
-        // Tìm kiếm món ăn
         async function searchFood() {
             const k = document.getElementById('food-search').value;
             if(!k) return;
-            
-            const container = document.getElementById('food-results');
-            container.innerHTML = '<div class="text-center text-slate-400 py-4"><i data-lucide="loader-2" class="animate-spin w-5 h-5 mx-auto"></i></div>';
-            lucide.createIcons();
-
+            document.getElementById('food-results').innerHTML = '<div class="text-center text-slate-400 py-4">Đang tìm...</div>';
             const res = await callAPI('search_food', { keyword: k });
-            container.innerHTML = '';
-
+            const container = document.getElementById('food-results'); container.innerHTML = '';
             if (res.success && res.data.length > 0) {
                 res.data.forEach(f => {
-                    const el = document.createElement('div');
-                    el.className = 'p-3 bg-white border rounded-xl flex justify-between items-center cursor-pointer hover:border-green-500 hover:shadow-md transition-all';
-                    el.innerHTML = `
-                        <div>
-                            <div class="font-bold text-slate-700">${f.name}</div>
-                            <div class="text-xs text-slate-500 mt-0.5 flex gap-2">
-                                <span class="text-orange-500 font-bold">${f.cal} kcal</span>
-                                <span>P:${f.pro} C:${f.carb} F:${f.fat}</span>
-                            </div>
-                        </div> 
-                        <i data-lucide="plus-circle" class="text-green-600 w-6 h-6"></i>
-                    `;
-                    el.onclick = () => openModal(f);
-                    container.appendChild(el);
+                    container.insertAdjacentHTML('beforeend', `<div class="p-3 bg-white border rounded-xl flex justify-between items-center cursor-pointer hover:border-green-500" onclick='openModal(${JSON.stringify(f)})'><div><div class="font-bold text-slate-700">${f.name}</div><div class="text-xs text-slate-500 mt-0.5 flex gap-2"><span class="text-orange-500 font-bold">${f.cal} kcal</span><span>P:${f.pro} C:${f.carb} F:${f.fat}</span></div></div><i data-lucide="plus-circle" class="text-green-600 w-6 h-6"></i></div>`);
                 });
                 lucide.createIcons();
-            } else {
-                container.innerHTML = '<div class="text-center text-slate-400 text-sm">Không tìm thấy món nào.</div>';
-            }
+            } else container.innerHTML = '<div class="text-center text-slate-400 text-sm">Không tìm thấy.</div>';
         }
 
-        function handleSearch(e) {
-            if(e.key === 'Enter') searchFood();
-        }
-
-        // Modal xử lý
-        function openModal(food) {
-            SELECTED_FOOD = food;
-            document.getElementById('modal-food-name').innerText = food.name;
-            document.getElementById('modal-food-cal').innerText = food.cal;
-            document.getElementById('input-amount').value = 100;
-            document.getElementById('modal-amount').classList.remove('hidden');
-            document.getElementById('modal-amount').classList.add('flex');
-        }
-
-        function closeModal() {
-            document.getElementById('modal-amount').classList.add('hidden');
-            document.getElementById('modal-amount').classList.remove('flex');
-        }
-
-        function adjAmount(val) {
-            const inp = document.getElementById('input-amount');
-            let current = parseInt(inp.value) || 0;
-            if(current + val > 0) inp.value = current + val;
-        }
-
+        function openModal(f) { SELECTED_FOOD=f; document.getElementById('modal-food-name').innerText=f.name; document.getElementById('modal-food-cal').innerText=f.cal; document.getElementById('input-amount').value=100; document.getElementById('modal-amount').classList.remove('hidden'); document.getElementById('modal-amount').classList.add('flex'); }
+        function closeModal() { document.getElementById('modal-amount').classList.add('hidden'); document.getElementById('modal-amount').classList.remove('flex'); }
+        function adjAmount(v) { const i=document.getElementById('input-amount'); let c=parseInt(i.value)||0; if(c+v>0) i.value=c+v; }
+        
         async function confirmAddFood() {
             const amt = document.getElementById('input-amount').value;
-            if(!amt || amt <= 0) return alert("Số lượng không hợp lệ");
-
-            const btn = document.querySelector('#modal-amount button:last-child');
-            btn.innerText = "Đang lưu..."; btn.disabled = true;
-
-            await callAPI('log_meal', {
-                userId: user.id,
-                name: SELECTED_FOOD.name,
-                amount: Number(amt),
-                baseCal: SELECTED_FOOD.cal, 
-                basePro: SELECTED_FOOD.pro, 
-                baseCarb: SELECTED_FOOD.carb, 
-                baseFat: SELECTED_FOOD.fat,
-                type: "Ăn Chính" // Có thể làm thêm select box bữa sáng/trưa/tối
-            });
-
-            showToast("Đã thêm món ăn!", "success");
-            closeModal();
-            loadStats();
-            
-            // Reset UI
-            document.getElementById('food-results').innerHTML = '';
-            document.getElementById('food-search').value = '';
-            btn.innerText = "Thêm Vào"; btn.disabled = false;
+            if(!amt || amt<=0) return alert("Lỗi số lượng");
+            await callAPI('log_meal', { userId:user.id, name:SELECTED_FOOD.name, amount:Number(amt), baseCal:SELECTED_FOOD.cal, basePro:SELECTED_FOOD.pro, baseCarb:SELECTED_FOOD.carb, baseFat:SELECTED_FOOD.fat, type:"Ăn Chính" });
+            showToast("Đã thêm!"); closeModal(); loadStats(); document.getElementById('food-results').innerHTML=''; document.getElementById('food-search').value='';
         }
-
-        // Nhập thủ công (Đi tiệc)
+        
         async function addManualFood() {
-            const name = document.getElementById('man-name').value;
-            const cal = document.getElementById('man-cal').value;
-            
-            if(!name || !cal) return alert("Vui lòng nhập đủ thông tin");
-
-            await callAPI('log_meal', {
-                userId: user.id,
-                name: name,
-                cal: Number(cal),
-                isManual: true,
-                type: "Tiệc/Ngoài lề"
-            });
-
-            showToast("Đã lưu bữa tiệc!", "success");
-            loadStats();
-            
-            // Reset form
-            document.getElementById('man-name').value = '';
-            document.getElementById('man-cal').value = '';
-            switchInputMode('search'); // Quay về tab tìm kiếm
+            const name = document.getElementById('man-name').value, cal = document.getElementById('man-cal').value;
+            if(!name || !cal) return alert("Nhập đủ thông tin");
+            await callAPI('log_meal', { userId:user.id, name, cal:Number(cal), isManual:true, type:"Tiệc" });
+            showToast("Đã lưu!"); loadStats(); document.getElementById('man-name').value=''; document.getElementById('man-cal').value=''; switchInputMode('search');
         }
 
-        // 4. UTILS UI
-        function switchInputMode(mode) {
-            if (mode === 'search') {
-                document.getElementById('mode-search').classList.remove('hidden');
-                document.getElementById('mode-manual').classList.add('hidden');
-                document.getElementById('tab-search').className = "flex-1 py-2 text-xs font-bold rounded-lg bg-green-600 text-white shadow-md transition-all";
-                document.getElementById('tab-manual').className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all";
-            } else {
-                document.getElementById('mode-search').classList.add('hidden');
-                document.getElementById('mode-manual').classList.remove('hidden');
-                document.getElementById('tab-search').className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all";
-                document.getElementById('tab-manual').className = "flex-1 py-2 text-xs font-bold rounded-lg bg-green-600 text-white shadow-md transition-all";
-            }
+        function switchInputMode(m) {
+            document.getElementById('mode-search').className = m==='search'?'space-y-3':'hidden';
+            document.getElementById('mode-manual').className = m==='manual'?'bg-white p-4 rounded-xl border border-slate-200 space-y-3':'hidden';
+            document.getElementById('tab-search').className = `flex-1 py-2 text-xs font-bold rounded-lg transition-all ${m==='search'?'bg-green-600 text-white shadow-md':'text-slate-500 hover:bg-slate-50'}`;
+            document.getElementById('tab-manual').className = `flex-1 py-2 text-xs font-bold rounded-lg transition-all ${m==='manual'?'bg-green-600 text-white shadow-md':'text-slate-500 hover:bg-slate-50'}`;
         }
-
-        function animateValue(id, start, end, duration) {
-            if (start === end) return;
-            const range = end - start;
-            let current = start;
-            const increment = end > start ? 1 : -1;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            const obj = document.getElementById(id);
-            const timer = setInterval(function() {
-                current += increment;
-                obj.innerText = current;
-                if (current == end) clearInterval(timer);
-            }, stepTime > 10 ? stepTime : 10);
-        }
-
-        function logout() { 
-            if(confirm('Đăng xuất?')) { 
-                localStorage.removeItem('pt_user'); 
-                window.location.href='login.html'; 
-            } 
-        }
-
-        // Chạy ngay
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+        
         loadStats();
     </script>
 </body>
