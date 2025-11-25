@@ -179,14 +179,191 @@
         function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; }
         document.getElementById('form-food').addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); loadFd(); resetFdForm(); });
 
-        // 4. PLANS
-        async function loadPl() { const r=await callAPI('get_all_plans'); if(r.success){ PLANS=r.data; document.getElementById('plan-list').innerHTML=PLANS.map(p=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold text-blue-600">${p.name}</td><td class="p-3 text-xs">${STUDENTS_MAP[p.userId]||(p.userId==='TEMPLATE'?'★ MẪU':p.userId)}</td><td class="p-3 text-right space-x-1"><button onclick="editPlan('${p.id}')" class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('plan','${p.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
-        async function loadTemplates() { const r=await callAPI('get_templates'); if(r.success) { document.getElementById('assign-template').innerHTML='<option value="">-- Chọn Mẫu --</option>'+r.data.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); document.getElementById('template-list-display').innerHTML=r.data.map(t=>`<div class="flex justify-between p-2 bg-slate-50 border rounded mb-2"><span class="text-sm font-bold">${t.name}</span><div class="flex gap-1"><button onclick="editPlan('${t.id}')" class="text-blue-500 p-1"><i data-lucide="edit-2" class="w-3 h-3"></i></button><button onclick="delItem('plan','${t.id}')" class="text-red-400 p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div>`).join(''); lucide.createIcons(); } }
-        async function editPlan(id) { const r=await callAPI('get_plan_details',{planId:id}); if(r.success){ const p=r.data; document.getElementById('plan-id-edit').value=id; document.getElementById('plan-name').value=p.name; document.getElementById('plan-student').value=p.userId; document.getElementById('plan-form-title').innerText="Sửa: "+p.name; document.getElementById('btn-save-plan').innerText="Cập Nhật"; const b=document.getElementById('plan-rows'); b.innerHTML=''; p.details.forEach(d=>b.insertAdjacentHTML('beforeend',`<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option ${d.day=='Thứ 2'?'selected':''}>Thứ 2</option><option ${d.day=='Thứ 3'?'selected':''}>Thứ 3</option><option ${d.day=='Thứ 4'?'selected':''}>Thứ 4</option><option ${d.day=='Thứ 5'?'selected':''}>Thứ 5</option><option ${d.day=='Thứ 6'?'selected':''}>Thứ 6</option><option ${d.day=='Thứ 7'?'selected':''}>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td><td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`)); lucide.createIcons(); switchTab('builder',document.querySelectorAll('.tab-btn')[1]); }}
-        function resetPlanForm() { document.getElementById('plan-id-edit').value=""; document.getElementById('plan-name').value=""; document.getElementById('plan-rows').innerHTML=""; document.getElementById('plan-form-title').innerText="Tạo Giáo Án Mới"; document.getElementById('btn-save-plan').innerText="Lưu & Gửi"; addPlanRow(); }
-        async function savePlan() { const id=document.getElementById('plan-id-edit').value, name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value; if(!name||!uId) return alert("Thiếu thông tin"); const details=Array.from(document.querySelectorAll('#plan-rows tr')).map(r=>{const i=r.querySelectorAll('input,select');return{day:i[0].value,exercise:i[1].value,sets:i[2].value,reps:i[3].value,note:i[4].value,video:''}}).filter(d=>d.exercise); const res=await callAPI('save_workout_plan',{planId:id,planName:name,targetUser:uId,details}); if(res.success){showToast("Đã lưu"); loadPl(); loadTemplates(); resetPlanForm();} }
-        function addPlanRow() { document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded font-bold"></td><td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input class="w-full border p-1 rounded"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`); lucide.createIcons(); }
-        async function assignTemplate() { const tId=document.getElementById('assign-template').value, sIds=Array.from(document.getElementById('assign-students').selectedOptions).map(o=>o.value); if(!tId||sIds.length==0) return alert("Chọn đủ thông tin"); const res=await callAPI('assign_template',{templateId:tId,studentIds:sIds,newName:document.getElementById('assign-new-name').value}); if(res.success){showToast(res.message); loadPl();} }
+        // ==================== 3. QUẢN LÝ GIÁO ÁN (CORE) ====================
+
+    // 3.1. Tải danh sách Giáo Án đã giao (Cho học viên cụ thể)
+    async function loadPl() { 
+        const r = await callAPI('get_all_plans'); 
+        if (r.success) { 
+            PLANS = r.data; 
+            // Lọc: Chỉ hiện các giáo án ĐÃ GIAO (Không phải Template)
+            const assignedPlans = PLANS.filter(p => p.userId !== 'TEMPLATE');
+            
+            document.getElementById('plan-list').innerHTML = assignedPlans.map(p => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 font-bold text-blue-600">${p.name}</td>
+                    <td class="p-3 text-xs text-slate-600">${STUDENTS_MAP[p.userId] || p.userId}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editPlan('${p.id}')" class="text-blue-500 hover:text-blue-700" title="Sửa"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                        <button onclick="delItem('plan','${p.id}')" class="text-red-400 hover:text-red-600" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).join(''); 
+            lucide.createIcons(); 
+        } 
+    }
+
+    // 3.2. Tải danh sách Giáo Án Mẫu (Templates)
+    async function loadTemplates() {
+        const res = await callAPI('get_templates');
+        if (res.success) {
+            const list = document.getElementById('template-list-display');
+            const select = document.getElementById('assign-template');
+            
+            // A. Điền vào Dropdown "Giao Nhanh"
+            select.innerHTML = '<option value="">-- Chọn Mẫu --</option>' + 
+                res.data.map(t => `<option value="${t.id}">${t.name} (${t.count} bài)</option>`).join('');
+
+            // B. Hiển thị danh sách Mẫu ở cột bên phải (để Sửa/Xóa)
+            if (res.data.length === 0) {
+                list.innerHTML = '<p class="text-xs text-center text-slate-400 py-4">Chưa có mẫu nào.</p>';
+            } else {
+                list.innerHTML = res.data.map(t => `
+                    <div class="flex justify-between items-center p-2 bg-slate-50 border border-slate-100 rounded mb-2 group hover:border-blue-300 transition-colors">
+                        <div>
+                            <div class="text-sm font-bold text-slate-700 group-hover:text-blue-600 cursor-pointer" onclick="editPlan('${t.id}')">${t.name}</div>
+                            <div class="text-[10px] text-slate-400">${t.count} bài tập</div>
+                        </div>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editPlan('${t.id}')" class="p-1.5 bg-white border rounded hover:text-blue-600 hover:border-blue-600" title="Sửa mẫu"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                            <button onclick="delItem('plan','${t.id}')" class="p-1.5 bg-white border rounded hover:text-red-600 hover:border-red-600" title="Xóa mẫu"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+    }
+
+    // 3.3. Hàm Sửa Giáo Án (Chung cho cả Mẫu & Đã giao)
+    async function editPlan(id) {
+        const r = await callAPI('get_plan_details', {planId: id});
+        if (r.success) {
+            const p = r.data;
+            // Điền dữ liệu cũ vào form
+            document.getElementById('plan-id-edit').value = id;
+            document.getElementById('plan-name').value = p.name;
+            
+            // Nếu userId là TEMPLATE thì chọn option Template, không thì chọn Student ID
+            document.getElementById('plan-student').value = p.userId; 
+            
+            // Đổi trạng thái nút bấm
+            document.getElementById('plan-form-title').innerText = "Sửa: " + p.name;
+            const btn = document.getElementById('btn-save-plan');
+            btn.innerText = "Cập Nhật Giáo Án";
+            btn.className = "w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow hover:bg-orange-600 transition-colors";
+
+            // Render lại các dòng bài tập
+            const tbody = document.getElementById('plan-rows'); 
+            tbody.innerHTML = '';
+            p.details.forEach(d => {
+                tbody.insertAdjacentHTML('beforeend', `<tr>
+                    <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50">${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => `<option ${d.day==day?'selected':''}>${day}</option>`).join('')}</select></td>
+                    <td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td>
+                    <td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td>
+                    <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>`);
+            });
+            lucide.createIcons();
+            
+            // Tự động cuộn lên form sửa
+            document.getElementById('plan-editor').scrollIntoView({behavior: 'smooth'});
+        }
+    }
+
+    // 3.4. Reset Form về trạng thái "Tạo Mới"
+    function resetPlanForm() {
+        document.getElementById('plan-id-edit').value = "";
+        document.getElementById('plan-name').value = "";
+        document.getElementById('plan-student').value = ""; // Reset về mặc định
+        document.getElementById('plan-rows').innerHTML = "";
+        
+        document.getElementById('plan-form-title').innerText = "Soạn Giáo Án Mới";
+        const btn = document.getElementById('btn-save-plan');
+        btn.innerText = "Lưu & Gửi";
+        btn.className = "w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700 transition-colors";
+        
+        addPlanRow(); // Thêm sẵn 1 dòng
+    }
+
+    // 3.5. Lưu Giáo Án (Quan trọng)
+    async function savePlan() {
+        const id = document.getElementById('plan-id-edit').value;
+        const name = document.getElementById('plan-name').value;
+        const uId = document.getElementById('plan-student').value;
+        
+        if (!name) return alert("Vui lòng nhập Tên Giáo Án!");
+        if (!uId) return alert("Vui lòng chọn Đối tượng (Học viên hoặc Mẫu)!");
+        
+        // Quét dữ liệu từ bảng
+        const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => {
+            const inp = r.querySelectorAll('input, select');
+            return { 
+                day: inp[0].value, 
+                exercise: inp[1].value, 
+                sets: inp[2].value, 
+                reps: inp[3].value, 
+                note: inp[4].value, 
+                video: '' 
+            };
+        }).filter(d => d.exercise.trim() !== ""); // Loại bỏ dòng trống
+        
+        if(details.length === 0) return alert("Chưa nhập bài tập nào!");
+
+        const btn = document.getElementById('btn-save-plan');
+        const oldText = btn.innerText;
+        btn.innerText = "Đang lưu..."; btn.disabled = true;
+
+        const res = await callAPI('save_workout_plan', { planId: id, planName: name, targetUser: uId, details });
+        
+        if (res.success) { 
+            showToast("✅ Đã lưu thành công!"); 
+            loadPl();        // Cập nhật list giáo án đã giao
+            loadTemplates(); // Cập nhật list mẫu
+            resetPlanForm(); // Xóa form để nhập mới
+        } else {
+            alert(res.message);
+        }
+        btn.innerText = oldText; btn.disabled = false;
+    }
+
+    // 3.6. Thêm dòng bài tập
+    function addPlanRow() {
+        document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr>
+            <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td>
+            <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td>
+            <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
+            <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
+            <td class="p-2"><input class="w-full border p-1 rounded text-sm"></td>
+            <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+        </tr>`);
+        lucide.createIcons();
+    }
+
+    // 3.7. Giao Nhanh (Copy từ Mẫu)
+    async function assignTemplate() {
+        const tId = document.getElementById('assign-template').value;
+        const sSelect = document.getElementById('assign-students');
+        const sIds = Array.from(sSelect.selectedOptions).map(o => o.value);
+        const newName = document.getElementById('assign-new-name').value;
+
+        if (!tId) return alert("Chưa chọn Giáo Án Mẫu!");
+        if (sIds.length === 0) return alert("Chưa chọn Học viên!");
+        
+        if (!confirm(`Giao giáo án này cho ${sIds.length} người?`)) return;
+
+        const res = await callAPI('assign_template', { templateId: tId, studentIds: sIds, newName: newName });
+        
+        if (res.success) { 
+            showToast(res.message); 
+            loadPl(); // Load lại danh sách đã giao để thấy kết quả
+            document.getElementById('assign-new-name').value = ''; // Reset tên
+            sSelect.selectedIndex = -1; // Bỏ chọn user
+        } else {
+            alert(res.message);
+        }
+    }
 
         // OTHER UTILS
         document.getElementById('form-book').addEventListener('submit', async (e) => { e.preventDefault(); await callAPI('book_session', { userId: document.getElementById('bk-student').value, date: document.getElementById('bk-date').value, time: document.getElementById('bk-time').value }); showToast("Đã đặt lịch"); toggleModal('modal-book'); loadSchedule(); });
