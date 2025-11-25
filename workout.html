@@ -136,22 +136,30 @@
         }
 
         // 3. KHỞI ĐỘNG
+        const CACHE_KEY_PLANS = `pt_plans_${user.id}`;
+
         async function init() {
+            // 1. Load từ Cache trước (Hiện ngay lập tức)
+            const cachedPlans = localStorage.getItem(CACHE_KEY_PLANS);
+            if (cachedPlans) {
+                PLANS = JSON.parse(cachedPlans);
+                renderTabs(); // Render ngay lập tức
+            } else {
+                 // Nếu chưa có cache thì hiện loading
+                document.getElementById('todo-list').innerHTML = '<div class="text-center text-slate-400 mt-10"><i data-lucide="loader-2" class="animate-spin mx-auto mb-2"></i><p>Đang tải...</p></div>';
+                 lucide.createIcons();
+            }
+
+            // 2. Gọi API cập nhật ngầm (Sau đó lưu đè vào cache)
             try {
                 const res = await callAPI('get_student_plan', { userId: user.id });
-                if(res.success && res.data && Object.keys(res.data).length > 0) {
+                if(res.success && res.data) {
                     PLANS = res.data;
-                    renderTabs();
-                } else {
-                    document.getElementById('todo-list').innerHTML = `
-                        <div class="text-center text-slate-400 mt-10 flex flex-col items-center">
-                            <i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>
-                            <p>Chưa có lịch tập nào được giao.</p>
-                        </div>`;
-                    lucide.createIcons();
+                    localStorage.setItem(CACHE_KEY_PLANS, JSON.stringify(PLANS)); // Lưu cache mới
+                    renderTabs(); // Render lại với dữ liệu mới
                 }
                 updateCounter();
-            } catch(e) { alert("Lỗi tải dữ liệu: " + e); }
+            } catch(e) { console.log("Dùng dữ liệu offline"); }
         }
 
         // 4. RENDER GIAO DIỆN
