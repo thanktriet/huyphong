@@ -100,20 +100,27 @@
         }
 
         // 3. LOGIC CHÍNH
+        // ...
+        const CACHE_KEY_SCH = `pt_schedule_${user.id}`;
+
         async function loadSchedule() {
-            const res = await callAPI('get_schedule'); // Lấy toàn bộ lịch (Server nên lọc, nhưng ở đây Client lọc tạm)
-            
-            if (res.success) {
-                // Lọc lịch của User hiện tại
-                const myEvents = res.data.filter(e => e.userId === USER.id);
-                
-                // Sắp xếp tăng dần theo thời gian
-                ALL_EVENTS = myEvents.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-                
+             // 1. Cache
+            const cached = localStorage.getItem(CACHE_KEY_SCH);
+            if (cached) {
+                ALL_EVENTS = JSON.parse(cached);
                 renderHeroCard();
                 renderList();
-            } else {
-                document.getElementById('schedule-list').innerHTML = '<p class="text-center text-slate-400 py-10">Không thể tải lịch.</p>';
+            }
+
+            // 2. API
+            const res = await callAPI('get_schedule');
+            if (res.success) {
+                const myEvents = res.data.filter(e => e.userId === USER.id);
+                ALL_EVENTS = myEvents.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
+                
+                localStorage.setItem(CACHE_KEY_SCH, JSON.stringify(ALL_EVENTS));
+                renderHeroCard();
+                renderList();
             }
         }
 
