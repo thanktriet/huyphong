@@ -163,34 +163,203 @@
         function showToast(m,t='success'){const d=document.createElement('div');d.className=`toast ${t}`;d.innerHTML=`<i data-lucide="${t==='success'?'check-circle':'alert-circle'}" class="w-5 ${t==='success'?'text-green-600':'text-red-600'}"></i><span>${m}</span>`;document.getElementById('toast-container').appendChild(d);lucide.createIcons();setTimeout(()=>d.remove(),3000);}
         async function initApp() { await Promise.all([loadSt(),loadSch(),loadEx(),loadFd(),loadPl(),initDb()]); addPlanRow(); }
 
-        // 1. AGENDA
-        async function loadSch() { const r=await callAPI('get_schedule'); if(r.success) { SCHEDULE_DATA=r.data; renderAgenda(); } }
-        function renderAgenda() {
-            const list = document.getElementById('agenda-container'); list.innerHTML = '';
-            const sorted = SCHEDULE_DATA.filter(e => e.status !== 'Cancelled').sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-            if(sorted.length === 0) { list.innerHTML = '<div class="p-10 text-center text-slate-400 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>Chưa có lịch hẹn nào.</div>'; lucide.createIcons(); return; }
-            const groups = {}; sorted.forEach(e => { if(!groups[e.date]) groups[e.date]=[]; groups[e.date].push(e); });
-            const formatTime = (t) => t.length > 10 ? t.substring(11, 16) : t;
+// ==================== 2. QUẢN LÝ LỊCH DẠY (VISUAL CALENDAR) ====================
 
-            Object.keys(groups).forEach(date => {
-                const d = new Date(date); const displayDate = d.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit'});
-                const isToday = new Date().toISOString().slice(0,10) === date;
-                let html = `<div class="agenda-date ${isToday ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}"><span>${displayDate}</span> ${isToday ? '<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Hôm nay</span>' : ''}</div>`;
-                groups[date].forEach(e => {
-                    const stName = STUDENTS_MAP[e.userId] || 'Unknown';
-                    let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
-                    if(e.status === 'Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
-                    html += `<div class="agenda-item group hover:bg-slate-50"><div class="flex items-center gap-4"><span class="time-badge">${formatTime(e.time)}</span><div><div class="font-bold text-slate-800 text-sm">${stName}</div></div></div><div class="flex items-center gap-2">${statusBadge}${e.status === 'Upcoming' ? `<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button><button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200" title="Dời"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="cancelSession('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>` : ''}</div></div>`;
-                });
-                list.innerHTML += `<div>${html}</div>`;
-            });
-            lucide.createIcons();
+    // Biến lưu trữ lịch
+    let CALENDAR_VIEW_MODE = 'month'; // Mặc định xem theo tháng
+
+    async function loadSchedule() {
+        const container = document.getElementById('agenda-container'); // Hoặc ID của khung lịch trong HTML của bạn
+        if(container) container.innerHTML = '<div class="p-10 text-center text-slate-400"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mx-auto mb-2"></i>Đang tải dữ liệu...</div>';
+        lucide.createIcons();
+
+        const res = await callAPI('get_schedule');
+        if (res.success) {
+            SCHEDULE_DATA = res.data;
+            renderCalendarVisual();
         }
-        document.getElementById('form-book').addEventListener('submit', async (e) => { e.preventDefault(); await callAPI('book_session', { userId: document.getElementById('bk-student').value, date: document.getElementById('bk-date').value, time: document.getElementById('bk-time').value }); showToast("Đã đặt lịch"); toggleModal('modal-book'); loadSch(); initDashboard(); });
-        async function checkIn(bid, uid){ if(confirm("Check-in?")) { const r=await callAPI('deduct_session',{userId:uid}); if(r.success){ await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast(r.message); loadSch(); loadSt(); } else alert(r.message); }}
-        async function cancelSession(id){ if(confirm("Hủy?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy", "error"); loadSch(); }}
-        function openEdit(id,d,t) { document.getElementById('edit-id').value=id; document.getElementById('edit-date').value=d; document.getElementById('edit-time').value=t.length>10?t.substring(11,16):t; toggleModal('modal-edit-session'); }
-        async function submitEditSession() { await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value}); showToast("Đã dời lịch"); toggleModal('modal-edit-session'); loadSch(); }
+    }
+
+    function renderCalendarVisual() {
+        const container = document.getElementById('agenda-container') || document.getElementById('view-calendar').querySelector('.bg-white.rounded-xl.shadow-sm.border');
+        
+        const y = DATE.getFullYear();
+        const m = DATE.getMonth();
+        const today = new Date();
+        
+        // Cập nhật tiêu đề tháng (Nếu có element hiển thị tiêu đề)
+        const titleEl = document.getElementById('cal-title');
+        if(titleEl) titleEl.innerText = `THÁNG ${m + 1} / ${y}`;
+
+        const firstDayIndex = new Date(y, m, 1).getDay(); // 0 = CN, 1 = T2...
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        
+        // Điều chỉnh để Thứ 2 là cột đầu tiên (Tùy chọn, ở đây để CN đầu tiên cho chuẩn lịch tây)
+        // Nếu muốn T2 đầu: const startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+        let html = `
+        <div class="flex flex-col h-full">
+            <div class="grid grid-cols-7 text-center bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 py-2">
+                <div class="text-red-500">CN</div><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div>
+            </div>
+            
+            <div class="grid grid-cols-7 bg-slate-200 gap-px border-b border-slate-200">`;
+
+        // Ô trống đầu tháng
+        for (let i = 0; i < firstDayIndex; i++) {
+            html += `<div class="bg-slate-50/50 min-h-[100px]"></div>`;
+        }
+
+        // Các ngày trong tháng
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isToday = (today.getFullYear() === y && today.getMonth() === m && today.getDate() === d);
+            
+            // Lọc sự kiện ngày này
+            const events = SCHEDULE_DATA
+                .filter(e => e.date === dateStr && e.status !== 'Cancelled')
+                .sort((a,b) => a.time.localeCompare(b.time));
+
+            let eventHTML = '';
+            // Chỉ hiện tối đa 3 sự kiện, còn lại hiện "+X"
+            const maxShow = 3;
+            events.slice(0, maxShow).forEach(e => {
+                const stName = STUDENTS_MAP[e.userId] ? STUDENTS_MAP[e.userId].split(' ').pop() : 'Guest';
+                const timeShort = e.time.length > 5 ? e.time.substring(0,5) : e.time;
+                
+                let colorClass = 'bg-blue-100 text-blue-700 border-l-2 border-blue-500'; // Upcoming
+                if (e.status === 'Completed') colorClass = 'bg-slate-100 text-slate-500 border-l-2 border-slate-400 line-through opacity-60';
+                
+                eventHTML += `
+                <div class="text-[10px] px-1.5 py-0.5 mb-1 rounded truncate font-medium ${colorClass} cursor-pointer hover:opacity-80"
+                     title="${e.time} - ${STUDENTS_MAP[e.userId]}"
+                     onclick="event.stopPropagation(); openDetail('${dateStr}')">
+                    <span class="font-bold">${timeShort}</span> ${stName}
+                </div>`;
+            });
+
+            if (events.length > maxShow) {
+                eventHTML += `<div class="text-[10px] text-slate-400 text-center font-bold">+${events.length - maxShow} nữa</div>`;
+            }
+
+            html += `
+            <div class="bg-white min-h-[100px] p-1 relative group transition-colors hover:bg-blue-50/30 cursor-pointer flex flex-col" onclick="openDetail('${dateStr}')">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-700 group-hover:text-blue-600'}">
+                        ${d}
+                    </span>
+                    ${events.length > 0 ? `<span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1 rounded">${events.length}</span>` : ''}
+                </div>
+                <div class="flex-1 flex flex-col justify-start gap-0.5 overflow-hidden">
+                    ${eventHTML}
+                </div>
+                <div class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="bg-blue-100 text-blue-600 p-1 rounded-full hover:bg-blue-600 hover:text-white shadow-sm" title="Thêm lịch">
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        html += `</div></div>`;
+        
+        // Render vào container
+        container.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    // --- LOGIC CHI TIẾT NGÀY (MODAL) ---
+    
+    function openDetail(ds) {
+        SEL_DATE = ds;
+        document.getElementById('detail-date-title').innerText = `Ngày ${ds.split('-').reverse().join('/')}`;
+        
+        const evs = SCHEDULE_DATA.filter(e => e.date === ds).sort((a,b) => a.time.localeCompare(b.time));
+        const list = document.getElementById('day-session-list');
+
+        if (evs.length === 0) {
+            list.innerHTML = `
+                <div class="text-center py-10 text-slate-400 flex flex-col items-center">
+                    <div class="bg-slate-100 p-4 rounded-full mb-3"><i data-lucide="calendar-plus" class="w-8 h-8 text-slate-300"></i></div>
+                    <p>Chưa có lịch tập nào.</p>
+                    <button onclick="openBookFromDetail()" class="mt-3 text-blue-600 text-sm font-bold hover:underline">Tạo lịch ngay</button>
+                </div>`;
+        } else {
+            list.innerHTML = evs.map(e => {
+                const stName = STUDENTS_MAP[e.userId] || "Unknown User";
+                const st = STUDENTS.find(s => s.id === e.userId);
+                const sessionLeft = st ? st.sessionLeft : 0;
+                
+                // Fix hiển thị giờ
+                let timeShow = e.time.length > 8 ? e.time.substring(11, 16) : e.time;
+
+                let statusHTML = `<span class="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Sắp tới</span>`;
+                
+                // Các nút thao tác
+                let actions = `
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="checkIn('${e.id}', '${e.userId}')" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg text-xs font-bold hover:bg-green-100 flex items-center justify-center gap-1">
+                            <i data-lucide="check-circle-2" class="w-3 h-3"></i> Check-in
+                        </button>
+                        <button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 flex items-center justify-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> Dời
+                        </button>
+                        <button onclick="cancelSession('${e.id}')" class="w-8 bg-red-50 text-red-500 py-2 rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-600" title="Hủy">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+
+                if (e.status === 'Completed') {
+                    statusHTML = `<span class="text-slate-500 bg-slate-100 px-2 py-1 rounded text-xs font-medium">✅ Đã xong</span>`;
+                    actions = ''; // Ẩn nút nếu đã xong
+                }
+                if (e.status === 'Cancelled') {
+                    statusHTML = `<span class="text-red-500 bg-red-50 px-2 py-1 rounded text-xs font-medium line-through">Đã hủy</span>`;
+                    actions = '';
+                }
+
+                return `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow mb-3">
+                    <div class="flex justify-between items-start">
+                        <div class="flex gap-3 items-center">
+                            <div class="bg-slate-100 text-slate-700 font-black text-lg px-3 py-2 rounded-lg font-mono">${timeShow}</div>
+                            <div>
+                                <div class="font-bold text-slate-800 text-sm">${stName}</div>
+                                <div class="text-xs text-slate-500 mt-0.5">Gói còn: <b class="${sessionLeft<5?'text-red-500':'text-blue-600'}">${sessionLeft}</b> buổi</div>
+                            </div>
+                        </div>
+                        ${statusHTML}
+                    </div>
+                    ${actions}
+                </div>`;
+            }).join('');
+        }
+        
+        lucide.createIcons();
+        toggleModal('modal-day-detail');
+    }
+
+    // --- CÁC HÀM HỖ TRỢ GIỮ NGUYÊN ---
+    function changeMonth(step) {
+        DATE.setMonth(DATE.getMonth() + step);
+        renderCalendarVisual();
+    }
+    
+    function openBookFromDetail() {
+        toggleModal('modal-day-detail');
+        document.getElementById('bk-date').value = SEL_DATE;
+        document.getElementById('bk-time').value = "09:00"; // Giờ mặc định
+        toggleModal('modal-book');
+    }
+    
+    async function checkIn(bid, uid){ if(confirm("Xác nhận học viên đã tập (Trừ 1 buổi)?")) { const r=await callAPI('deduct_session',{userId:uid}); if(r.success){ await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast("Đã Check-in thành công!"); loadSchedule(); loadStudents(); openDetail(SEL_DATE); } else alert(r.message); }}
+    
+    async function cancelSession(id){ if(confirm("Hủy buổi tập này?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy lịch", "error"); loadSchedule(); openDetail(SEL_DATE); }}
+    
+    function openEdit(id,d,t) { document.getElementById('edit-id').value=id; document.getElementById('edit-date').value=d; document.getElementById('edit-time').value=t.length>8?t.substring(11,16):t; toggleModal('modal-edit-session'); }
+    
+    async function submitEditSession() { await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value}); showToast("Lịch đã được dời!"); toggleModal('modal-edit-session'); loadSchedule(); openDetail(SEL_DATE); }
 
         // 2. STUDENTS (HYBRID)
         async function loadSt() {
