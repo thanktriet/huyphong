@@ -6,25 +6,31 @@
     <title>Admin - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
+        .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
         
         /* TOAST */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; }
+        .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
+        /* CALENDAR */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
+        .calendar-cell { background-color: white; min-height: 110px; padding: 6px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; position: relative; transition: all 0.2s; cursor: pointer; }
+        .calendar-cell:hover { background-color: #f1f5f9; } 
+        .calendar-cell:hover::after { content: "+"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #cbd5e1; opacity: 0; transition: opacity 0.2s; } 
+        .calendar-cell:hover::after { opacity: 1; }
+        .event-tag { padding: 2px 4px; margin-bottom: 2px; border-radius: 2px; font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; gap: 4px; }
+        .evt-upcoming { background-color: #eff6ff; color: #1d4ed8; border-left: 2px solid #3b82f6; }
+        .evt-completed { background-color: #f1f5f9; color: #64748b; border-left: 2px solid #cbd5e1; text-decoration: line-through; }
+        .evt-cancelled { background-color: #fef2f2; color: #b91c1c; border-left: 2px solid #ef4444; }
+        
         /* UTILS */
         .modal { transition: opacity 0.2s ease; } body.modal-active { overflow: hidden; }
-        .table-container { max-height: 500px; overflow-y: auto; }
-        
-        /* AGENDA VIEW (LỊCH RÚT GỌN) */
-        .agenda-date { position: sticky; top: 0; background: #f8fafc; padding: 10px 16px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; z-index: 10; display: flex; justify-content: space-between; }
-        .agenda-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: bg 0.2s; }
-        .agenda-item:hover { background-color: #f8fafc; }
-        .time-badge { font-family: monospace; font-weight: bold; background: #e0f2fe; color: #0369a1; padding: 4px 8px; rounded: 6px; }
+        .table-container { max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 pb-20">
@@ -34,231 +40,186 @@
     <div class="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-lg">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-check" class="w-6 h-6 text-white"></i></div>
-                <div><h1 class="text-lg font-bold leading-tight">PT Control</h1><p class="text-slate-400 text-xs">Hi, <span id="ptName">Coach</span></p></div>
+                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="w-6 h-6 text-white"></i></div>
+                <div><h1 class="text-lg font-bold leading-tight">PT Control Center</h1><p class="text-slate-400 text-xs">Xin chào, <span id="ptName">Coach</span></p></div>
             </div>
-            <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+            <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 hover:text-white"><i data-lucide="log-out" class="w-5 h-5"></i></button>
         </div>
     </div>
 
     <div class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
-        
+
         <div class="grid grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded-xl shadow border-b-4 border-blue-500"><div class="text-slate-400 text-xs font-bold uppercase">Học Viên</div><div class="text-3xl font-black" id="stat-total">...</div></div>
             <div class="bg-white p-4 rounded-xl shadow border-b-4 border-green-500"><div class="text-slate-400 text-xs font-bold uppercase">Active</div><div class="text-3xl font-black" id="stat-active">...</div></div>
-            <div class="bg-white p-4 rounded-xl shadow border-b-4 border-orange-500"><div class="text-slate-400 text-xs font-bold uppercase">Hôm Nay</div><div class="text-3xl font-black" id="stat-today">...</div></div>
+            <div class="bg-white p-4 rounded-xl shadow border-b-4 border-orange-500"><div class="text-slate-400 text-xs font-bold uppercase">Lịch Hôm Nay</div><div class="text-3xl font-black" id="stat-today">...</div></div>
         </div>
 
         <div class="flex gap-2 overflow-x-auto no-scrollbar bg-white p-2 rounded-xl shadow-sm">
-            <button onclick="switchTab('calendar', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-all"><i data-lucide="calendar-clock" class="w-4"></i> Lịch Trình</button>
-            <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-all"><i data-lucide="pencil-ruler" class="w-4"></i> Giáo Án</button>
-            <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-all"><i data-lucide="users" class="w-4"></i> Học Viên</button>
-            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-all"><i data-lucide="dumbbell" class="w-4"></i> Bài Tập</button>
-            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-all"><i data-lucide="utensils" class="w-4"></i> Món Ăn</button>
+            <button onclick="switchTab('calendar', this)" class="tab-btn active flex-1 py-2 px-4 rounded text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap"><i data-lucide="calendar-days" class="w-4"></i> Lịch Dạy</button>
+            <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap"><i data-lucide="pencil-ruler" class="w-4"></i> Giáo Án</button>
+            <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap"><i data-lucide="users" class="w-4"></i> Học Viên</button>
+            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap"><i data-lucide="dumbbell" class="w-4"></i> Bài Tập</button>
+            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap"><i data-lucide="utensils" class="w-4"></i> Món Ăn</button>
         </div>
 
         <div id="view-calendar" class="view-section space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="text-lg font-bold text-slate-700">Lịch Dạy Sắp Tới</h2>
-                <button onclick="toggleModal('modal-book')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex gap-2 shadow hover:bg-blue-700 transition-colors">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Đặt Lịch
-                </button>
+            <div class="bg-white p-4 rounded-xl shadow flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                    <h2 class="text-xl font-bold uppercase" id="cal-title">...</h2>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-right"></i></button>
+                </div>
+                <div class="flex gap-3 text-xs font-medium">
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 bg-blue-100 border-l-2 border-blue-500"></div> Sắp tới</div>
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 bg-slate-100 border-l-2 border-slate-400"></div> Xong</div>
+                </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]" id="agenda-container">
-                <div class="p-10 text-center text-slate-400">Đang tải lịch...</div>
+            <div class="bg-white rounded-xl shadow border overflow-hidden">
+                <div class="calendar-grid bg-slate-50 border-b"><div class="calendar-header text-red-500">CN</div><div class="calendar-header">T2</div><div class="calendar-header">T3</div><div class="calendar-header">T4</div><div class="calendar-header">T5</div><div class="calendar-header">T6</div><div class="calendar-header">T7</div></div>
+                <div id="calendar-body" class="calendar-grid"></div>
             </div>
         </div>
 
         <div id="view-builder" class="view-section hidden space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow border border-slate-200" id="plan-editor">
+            <div class="bg-white p-6 rounded-xl shadow border border-slate-200">
                 <h2 class="text-lg font-bold text-blue-600 mb-4 flex items-center gap-2">
-                    <i data-lucide="edit" class="w-5 h-5"></i> <span id="plan-form-title">Soạn Giáo Án Mới</span>
-                    <button onclick="resetPlanForm()" class="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full hover:bg-slate-200 ml-auto flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3"></i> Reset</button>
+                    <i data-lucide="pencil-ruler"></i> <span id="plan-form-title">Tạo Giáo Án Mới</span>
+                    <button onclick="resetPlanForm()" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 ml-auto">Reset</button>
                 </h2>
                 <input type="hidden" id="plan-id-edit"> 
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="space-y-1"><label class="text-xs font-bold text-slate-400">Tên Giáo Án</label><input id="plan-name" class="w-full border p-2.5 rounded-lg font-bold" placeholder="Vd: Tăng cơ Phase 1"></div>
-                    <div class="space-y-1"><label class="text-xs font-bold text-slate-400">Học Viên</label><select id="plan-student" class="w-full border p-2.5 rounded-lg bg-white"><option value="">-- Chọn --</option></select></div>
+                    <input id="plan-name" class="border p-2.5 rounded font-bold" placeholder="Tên Giáo Án">
+                    <select id="plan-student" class="border p-2.5 rounded bg-white"><option value="">-- Chọn HV --</option></select>
                 </div>
                 <div class="border rounded-xl overflow-hidden mb-4">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b">
-                            <tr><th class="p-3 w-24">Ngày</th><th class="p-3">Bài tập</th><th class="p-3 w-16 text-center">Sets</th><th class="p-3 w-16 text-center">Reps</th><th class="p-3">Ghi chú</th><th class="p-3 w-10"></th></tr>
-                        </thead>
-                        <tbody id="plan-rows" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                    <button onclick="addPlanRow()" class="w-full py-2.5 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 border-t transition-colors flex justify-center items-center gap-2"><i data-lucide="plus" class="w-3"></i> Thêm bài tập</button>
+                    <table class="w-full text-sm text-left"><tbody id="plan-rows" class="divide-y divide-slate-100"></tbody></table>
+                    <button onclick="addPlanRow()" class="w-full py-2 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 border-t">+ Thêm bài</button>
                 </div>
-                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700 transition-colors">Lưu & Gửi Giáo Án</button>
+                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700">Lưu & Gửi</button>
             </div>
-            
-            <div class="bg-white p-6 rounded-xl shadow border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-700 mb-4">Danh Sách Đã Giao</h2>
-                <div class="table-container">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50 sticky top-0"><tr><th class="p-3">Tên Plan</th><th class="p-3">Học Viên</th><th class="p-3 text-right">Thao tác</th></tr></thead>
-                        <tbody id="plan-list" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
+            <div class="bg-white p-6 rounded-xl shadow border">
+                <h2 class="text-lg font-bold mb-4">Đã Giao</h2>
+                <div class="max-h-60 overflow-y-auto"><table class="w-full text-sm"><thead class="bg-slate-50 sticky top-0"><tr><th>Tên</th><th>HV</th><th class="text-right">Action</th></tr></thead><tbody id="plan-list" class="divide-y"></tbody></table></div>
             </div>
         </div>
 
         <div id="view-students" class="view-section hidden space-y-4">
-            <div class="flex justify-between items-center"><h2 class="text-lg font-bold text-slate-700">Danh sách lớp</h2><button onclick="toggleModal('modal-add-student')" class="bg-blue-600 text-white px-4 py-2 rounded font-bold flex gap-2 shadow hover:bg-blue-700"><i data-lucide="user-plus" class="w-4 h-4"></i> Thêm</button></div>
-            <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
-                <table class="w-full text-sm text-left"><thead class="bg-slate-50 font-bold"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Trạng thái</th><th class="p-4 text-right">Thao tác</th></tr></thead><tbody id="student-list" class="divide-y divide-slate-100"></tbody></table>
-            </div>
+            <div class="flex justify-between items-center"><h2 class="text-lg font-bold">Danh sách</h2><button onclick="toggleModal('modal-add-student')" class="bg-blue-600 text-white px-4 py-2 rounded font-bold flex gap-2 shadow"><i data-lucide="user-plus" class="w-4"></i> Thêm</button></div>
+            <div class="bg-white rounded-xl shadow border overflow-hidden"><table class="w-full text-sm"><thead class="bg-slate-50 font-bold"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Trạng thái</th><th class="p-4 text-right">Thao tác</th></tr></thead><tbody id="student-list" class="divide-y"></tbody></table></div>
         </div>
 
         <div id="view-exercise" class="view-section hidden grid grid-cols-3 gap-6">
             <div class="col-span-1 bg-white p-6 rounded-xl shadow border h-fit sticky top-24">
-                <h2 class="font-bold mb-4 flex justify-between items-center"><span id="ex-form-title">Thêm Bài Tập</span> <button onclick="resetExForm()" class="text-xs text-slate-400 hover:text-red-500">Hủy</button></h2>
-                <form id="form-exercise" class="space-y-3">
+                <h2 class="font-bold mb-4 flex justify-between"><span id="ex-form-title">Thêm Bài</span> <button onclick="resetExForm()" class="text-xs text-slate-400">Hủy</button></h2>
+                <form id="form-exercise" class="space-y-4">
                     <input type="hidden" id="ex-id-edit">
                     <input id="ex-name" class="w-full border p-2.5 rounded" placeholder="Tên bài" required>
-                    <select id="ex-group" class="w-full border p-2.5 rounded"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option><option>Cardio</option></select>
-                    <input id="ex-video" class="w-full border p-2.5 rounded" placeholder="Youtube URL">
+                    <select id="ex-group" class="w-full border p-2.5 rounded"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option></select>
+                    <input id="ex-video" class="w-full border p-2.5 rounded" placeholder="URL Youtube">
                     <textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded" placeholder="Mô tả"></textarea>
-                    <button id="btn-ex-save" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700">Thêm Mới</button>
+                    <button id="btn-ex-save" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Thêm Mới</button>
                 </form>
             </div>
-            <div class="col-span-2 bg-white p-6 rounded-xl shadow border">
-                <div class="flex justify-between mb-4"><h2 class="font-bold">Kho Bài Tập</h2><input onkeyup="filterTable('ex-list',this.value)" class="border p-2 rounded text-sm pl-8" placeholder="Tìm kiếm..."><i data-lucide="search" class="absolute ml-2 mt-2.5 w-4 text-slate-400"></i></div>
-                <div class="table-container"><table class="w-full text-sm"><tbody id="ex-list" class="divide-y divide-slate-100"></tbody></table></div>
-            </div>
+            <div class="col-span-2 bg-white p-6 rounded-xl shadow border"><div class="flex justify-between mb-4"><h2 class="font-bold">Kho Bài</h2><input onkeyup="filterTable('ex-list',this.value)" class="border p-2 rounded" placeholder="Tìm..."></div><div class="max-h-96 overflow-y-auto"><table class="w-full text-sm"><tbody id="ex-list"></tbody></table></div></div>
         </div>
 
         <div id="view-food" class="view-section hidden grid grid-cols-3 gap-6">
             <div class="col-span-1 bg-white p-6 rounded-xl shadow border h-fit sticky top-24">
-                <h2 class="font-bold mb-4 flex justify-between items-center"><span id="fd-form-title">Thêm Món Ăn</span> <button onclick="resetFdForm()" class="text-xs text-slate-400 hover:text-red-500">Hủy</button></h2>
-                <form id="form-food" class="space-y-3">
+                <h2 class="font-bold mb-4 flex justify-between"><span id="fd-form-title">Thêm Món</span> <button onclick="resetFdForm()" class="text-xs text-slate-400">Hủy</button></h2>
+                <form id="form-food" class="space-y-4">
                     <input type="hidden" id="fd-id-edit">
                     <input id="fd-name" class="w-full border p-2.5 rounded" placeholder="Tên món" required>
                     <div class="grid grid-cols-2 gap-2"><input id="fd-cal" type="number" class="border p-2 rounded" placeholder="Calo" required><input id="fd-unit" class="border p-2 rounded" value="100g"></div>
                     <div class="grid grid-cols-3 gap-2"><input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro"><input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb"><input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat"></div>
-                    <button id="btn-fd-save" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow hover:bg-green-700">Thêm Mới</button>
+                    <button id="btn-fd-save" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Thêm Mới</button>
                 </form>
             </div>
-            <div class="col-span-2 bg-white p-6 rounded-xl shadow border">
-                <div class="flex justify-between mb-4"><h2 class="font-bold">Kho Dinh Dưỡng</h2><input onkeyup="filterTable('fd-list',this.value)" class="border p-2 rounded text-sm" placeholder="Tìm..."></div>
-                <div class="table-container"><table class="w-full text-sm"><tbody id="fd-list" class="divide-y divide-slate-100"></tbody></table></div>
-            </div>
+            <div class="col-span-2 bg-white p-6 rounded-xl shadow border"><div class="flex justify-between mb-4"><h2 class="font-bold">Kho Món</h2><input onkeyup="filterTable('fd-list',this.value)" class="border p-2 rounded" placeholder="Tìm..."></div><div class="max-h-96 overflow-y-auto"><table class="w-full text-sm"><tbody id="fd-list"></tbody></table></div></div>
         </div>
     </div>
 
-    <div id="modal-book" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-book')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-4">Đặt Lịch</h3><form id="form-book" class="space-y-3"><input id="bk-date" type="date" class="w-full border p-2 rounded font-bold"><input id="bk-time" type="time" class="w-full border p-2 rounded" required><select id="bk-student" class="w-full border p-2 rounded" required></select><button class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl">Lưu</button></form></div></div>
-    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Thêm Học Viên</h3><form id="form-reg" class="space-y-3"><input id="reg-name" class="w-full border p-3 rounded" placeholder="Họ tên" required><input id="reg-email" class="w-full border p-3 rounded" placeholder="Email" required><input id="reg-phone" class="w-full border p-3 rounded" placeholder="SĐT"><button class="w-full bg-blue-600 text-white font-bold py-3 rounded">Tạo</button></form></div></div>
+    <div id="modal-day-detail" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50">
+        <div class="absolute inset-0 bg-slate-900 opacity-60 backdrop-blur-sm" onclick="toggleModal('modal-day-detail')"></div>
+        <div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b bg-slate-50 flex justify-between items-center"><h3 class="font-bold" id="detail-date-title">...</h3><button onclick="toggleModal('modal-day-detail')"><i data-lucide="x"></i></button></div>
+            <div class="p-4 overflow-y-auto flex-1" id="day-session-list"></div>
+            <div class="p-4 border-t"><button onclick="openBookFromDetail()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow">Đặt Lịch Mới</button></div>
+        </div>
+    </div>
+
+    <div id="modal-edit-session" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6"><h3 class="font-bold mb-4">Dời Lịch</h3><input type="hidden" id="edit-id"><div class="space-y-3"><input id="edit-date" type="date" class="w-full border p-2 rounded"><input id="edit-time" type="time" class="w-full border p-2 rounded"><div class="flex gap-2 pt-2"><button onclick="toggleModal('modal-edit-session')" class="flex-1 bg-slate-100 py-2 rounded">Hủy</button><button onclick="submitEditSession()" class="flex-1 bg-blue-600 text-white py-2 rounded">Lưu</button></div></div></div></div>
     
+    <div id="modal-book" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-book')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-4">Đặt Lịch</h3><form id="form-book" class="space-y-3"><input id="bk-date" type="date" class="w-full border p-2 rounded font-bold" readonly><input id="bk-time" type="time" class="w-full border p-2 rounded" required><select id="bk-student" class="w-full border p-2 rounded" required></select><button class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl">Lưu</button></form></div></div>
+    
+    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Thêm Học Viên</h3><form id="form-register" class="space-y-3"><input id="reg-name" class="w-full border p-3 rounded" placeholder="Họ tên" required><input id="reg-email" class="w-full border p-3 rounded" placeholder="Email" required><input id="reg-phone" class="w-full border p-3 rounded" placeholder="SĐT" required><button class="w-full bg-blue-600 text-white font-bold py-3 rounded">Tạo</button></form></div></div>
+
     <datalist id="dl-exercises"></datalist>
 
     <script>
+        // API & CONFIG
         const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
         lucide.createIcons();
         const USER = JSON.parse(localStorage.getItem('pt_user'));
         if(!USER || USER.role !== 'PT') window.location.href = 'login.html';
         document.getElementById('ptName').innerText = USER.name;
 
-        let STUDENTS=[], STUDENTS_MAP={}, SCHEDULE=[], EXERCISES=[], FOODS=[], PLANS=[];
+        let STUDENTS=[], STUDENTS_MAP={}, SCHEDULE_DATA=[], EXERCISES=[], FOODS=[], PLANS=[], DATE=new Date(), SEL_DATE="";
 
-        // CORE API
+        // CORE
         async function callAPI(a,d={}) { try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:a,data:d})}); return await r.json();}catch(e){alert("Lỗi: "+e);return{success:false};} }
-        async function initApp() { await Promise.all([loadSt(),loadSch(),loadEx(),loadFd(),loadPl(),initDb()]); addPlanRow(); }
+        async function initApp() { await Promise.all([loadStudents(),loadSchedule(),loadEx(),loadFd(),loadPl(),initDashboard()]); addPlanRow(); }
         function showToast(msg, type='success') { const t=document.createElement('div'); t.className=`toast ${type}`; t.innerHTML=`<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`; document.getElementById('toast-container').appendChild(t); lucide.createIcons(); setTimeout(()=>t.remove(),3000); }
 
-        // 1. AGENDA VIEW (LỊCH RÚT GỌN)
-        async function loadSch() { const r=await callAPI('get_schedule'); if(r.success) { SCHEDULE=r.data; renderAgenda(); } }
-        function renderAgenda() {
-            const list = document.getElementById('agenda-container');
-            list.innerHTML = '';
-            
-            // Sắp xếp lịch theo ngày & giờ
-            const sorted = SCHEDULE.filter(e=>e.status!=='Cancelled').sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-            if(sorted.length === 0) { list.innerHTML = '<div class="p-10 text-center text-slate-400 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>Chưa có lịch hẹn nào.</div>'; lucide.createIcons(); return; }
-
-            // Group by Date
-            const groups = {};
-            sorted.forEach(e => { if(!groups[e.date]) groups[e.date]=[]; groups[e.date].push(e); });
-
-            Object.keys(groups).forEach(date => {
-                const displayDate = new Date(date).toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit'});
-                const isToday = new Date().toISOString().slice(0,10) === date;
-                
-                let html = `<div class="agenda-date ${isToday?'text-blue-600 bg-blue-50 border-blue-200':''}">${displayDate} ${isToday?'(Hôm nay)':''}</div>`;
-                
-                groups[date].forEach(e => {
-                    const st = STUDENTS.find(s=>s.id===e.userId);
-                    const stName = st ? st.name : '???';
-                    let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
-                    if(e.status==='Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
-
-                    html += `
-                    <div class="agenda-item group">
-                        <div class="flex items-center gap-4">
-                            <span class="time-badge">${e.time}</span>
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">${stName}</div>
-                                <div class="text-xs text-slate-400">Gói: ${st?.sessionLeft||0} buổi</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${statusBadge}
-                            ${e.status==='Upcoming' ? `
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button>
-                                <button onclick="cancel('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>` : ''}
-                        </div>
-                    </div>`;
-                });
-                list.innerHTML += `<div>${html}</div>`;
-            });
-            lucide.createIcons();
-        }
-
-        document.getElementById('form-book').addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            const d = {userId:document.getElementById('bk-student').value, date:document.getElementById('bk-date').value, time:document.getElementById('bk-time').value};
-            if(new Date(d.date) < new Date().setHours(0,0,0,0)) return alert("Không thể đặt lịch quá khứ!");
-            await callAPI('book_session', d); showToast("Đã đặt lịch"); toggleModal('modal-book'); loadSch(); initDashboard();
-        });
-
-        async function checkIn(bid,uid){ if(confirm("Xác nhận học viên đã tập (Trừ 1 buổi)?")) { await callAPI('deduct_session',{userId:uid}); await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast("Đã Check-in"); loadSch(); loadSt(); }}
-        async function cancel(id){ if(confirm("Hủy buổi này?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy", "error"); loadSch(); }}
-
-        // 2. EXERCISE & FOOD (EDIT FULL)
-        async function loadEx() { const r=await callAPI('get_all_exercises'); if(r.success){ EXERCISES=r.data; document.getElementById('dl-exercises').innerHTML=EXERCISES.map(e=>`<option value="${e.name}">`).join(''); document.getElementById('ex-list').innerHTML=EXERCISES.map(e=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">${e.name}</td><td class="p-3 text-slate-500">${e.group}</td><td class="p-3 text-right space-x-2"><button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500 hover:text-blue-700"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
-        function editEx(e) { document.getElementById('ex-id-edit').value=e.id; document.getElementById('ex-name').value=e.name; document.getElementById('ex-group').value=e.group; document.getElementById('ex-video').value=e.video; document.getElementById('ex-desc').value=e.desc||""; document.getElementById('ex-form-title').innerText="Sửa Bài Tập"; document.getElementById('btn-ex-save').innerText="Cập Nhật"; document.getElementById('btn-ex-save').className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow hover:bg-orange-600"; }
-        function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value=""; document.getElementById('ex-form-title').innerText="Thêm Bài Mới"; document.getElementById('btn-ex-save').innerText="Thêm Mới"; document.getElementById('btn-ex-save').className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700"; }
-        
-        async function loadFd() { const r=await callAPI('get_all_foods'); if(r.success){ FOODS=r.data; document.getElementById('fd-list').innerHTML=FOODS.map(f=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">${f.name}</td><td class="p-3 font-bold">${f.cal}</td><td class="p-3 text-right space-x-2"><button onclick='editFd(${JSON.stringify(f)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('food','${f.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
-        function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món Ăn"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; document.getElementById('btn-fd-save').className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow hover:bg-orange-600"; }
-        function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món Mới"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; document.getElementById('btn-fd-save').className="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow hover:bg-green-700"; }
-
-        // 3. PLANS (EDIT)
-        async function loadPl() { const r=await callAPI('get_all_plans'); if(r.success){ PLANS=r.data; document.getElementById('plan-list').innerHTML=PLANS.map(p=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold text-blue-600">${p.name}</td><td class="p-3 text-xs text-slate-500">${STUDENTS_MAP[p.userId]||'Unknown'}</td><td class="p-3 text-right space-x-2"><button onclick="editPlan('${p.id}')" class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('plan','${p.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
-        async function editPlan(id) {
-            const r = await callAPI('get_plan_details', {planId: id});
-            if(r.success) {
-                const p = r.data;
-                document.getElementById('plan-id-edit').value = id;
-                document.getElementById('plan-name').value = p.name;
-                document.getElementById('plan-student').value = p.userId;
-                document.getElementById('plan-form-title').innerText = "Sửa Giáo Án: " + p.name;
-                document.getElementById('btn-save-plan').innerText = "Cập Nhật";
-                document.getElementById('btn-save-plan').className = "w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow";
-                
-                const tbody = document.getElementById('plan-rows'); tbody.innerHTML = '';
-                p.details.forEach(d => {
-                    tbody.insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option ${d.day=='Thứ 2'?'selected':''}>Thứ 2</option><option ${d.day=='Thứ 3'?'selected':''}>Thứ 3</option><option ${d.day=='Thứ 4'?'selected':''}>Thứ 4</option><option ${d.day=='Thứ 5'?'selected':''}>Thứ 5</option><option ${d.day=='Thứ 6'?'selected':''}>Thứ 6</option><option ${d.day=='Thứ 7'?'selected':''}>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td><td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-sm text-center"></td><td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-sm text-center"></td><td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i></button></td></tr>`);
-                });
-                lucide.createIcons();
-                // Scroll to editor
-                document.getElementById('plan-editor').scrollIntoView({behavior: 'smooth'});
+        // 1. CALENDAR
+        async function loadSchedule() { const r=await callAPI('get_schedule'); if(r.success) { SCHEDULE_DATA=r.data; renderCalendar(); } }
+        function renderCalendar() {
+            const y=DATE.getFullYear(), m=DATE.getMonth(), fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+            document.getElementById('cal-title').innerText=`Tháng ${m+1}/${y}`;
+            const b=document.getElementById('calendar-body'); b.innerHTML='';
+            for(let i=0;i<fd;i++) b.innerHTML+=`<div class="calendar-cell bg-slate-50"></div>`;
+            for(let d=1;d<=dim;d++) {
+                const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const evs=SCHEDULE_DATA.filter(e=>e.date===ds);
+                const html=evs.map(e=>`<div class="event-tag ${e.status==='Completed'?'evt-completed':e.status==='Cancelled'?'evt-cancelled':'evt-upcoming'}"><span>${e.time}</span> ${STUDENTS_MAP[e.userId]?.split(' ').pop()||'?'}</div>`).join('');
+                b.innerHTML+=`<div class="calendar-cell group" onclick="openDetail('${ds}')"><div class="flex justify-between"><span class="font-bold text-slate-400 text-xs group-hover:text-blue-600">${d}</span>${evs.length?`<span class="text-[10px] bg-slate-100 px-1 rounded font-bold">${evs.length}</span>`:''}</div><div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${html}</div></div>`;
             }
         }
-        function resetPlanForm() { document.getElementById('plan-id-edit').value=""; document.getElementById('plan-name').value=""; document.getElementById('plan-rows').innerHTML=""; document.getElementById('plan-form-title').innerText="Tạo Giáo Án"; document.getElementById('btn-save-plan').innerText="Lưu & Gửi"; document.getElementById('btn-save-plan').className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow"; addPlanRow(); }
+        function openDetail(ds) {
+            SEL_DATE=ds; document.getElementById('detail-date-title').innerText=ds.split('-').reverse().join('/');
+            const evs=SCHEDULE_DATA.filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+            document.getElementById('day-session-list').innerHTML = evs.length===0?'<div class="text-center text-slate-400 py-8">Trống.</div>':
+                evs.map(e=>`<div class="bg-white p-3 rounded border shadow-sm mb-3 flex justify-between items-center"><div><div class="flex items-center gap-2"><span class="font-black text-lg">${e.time}</span><span class="text-xs ${e.status==='Completed'?'text-slate-400':e.status==='Cancelled'?'text-red-500':'text-blue-600 font-bold'}">${e.status}</span></div><div class="font-bold text-sm">${STUDENTS_MAP[e.userId]}</div></div><div class="flex gap-1"><button onclick="checkIn('${e.id}','${e.userId}')" class="p-2 bg-green-50 text-green-600 rounded"><i data-lucide="check-circle-2"></i></button><button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-2 bg-slate-100 text-slate-600 rounded"><i data-lucide="edit-3"></i></button><button onclick="cancel('${e.id}')" class="p-2 bg-red-50 text-red-500 rounded"><i data-lucide="trash-2"></i></button></div></div>`).join('');
+            lucide.createIcons(); toggleModal('modal-day-detail');
+        }
+        
+        async function checkIn(bid,uid){ if(confirm("Check-in (Trừ 1 buổi)?")) { await callAPI('deduct_session',{userId:uid}); await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast("Đã Check-in"); loadSchedule(); loadStudents(); openDetail(SEL_DATE); }}
+        async function cancel(id){ if(confirm("Hủy lịch?")) { await callAPI('cancel_session',{bookingId:id}); loadSchedule(); openDetail(SEL_DATE); }}
+        function openEdit(id,d,t) { document.getElementById('edit-id').value=id; document.getElementById('edit-date').value=d; document.getElementById('edit-time').value=t; toggleModal('modal-edit-session'); }
+        async function submitEditSession() { await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value}); showToast("Đã dời lịch"); toggleModal('modal-edit-session'); loadSchedule(); openDetail(SEL_DATE); }
+        function openBookFromDetail() { toggleModal('modal-day-detail'); document.getElementById('bk-date').value=SEL_DATE; document.getElementById('bk-time').value="18:00"; toggleModal('modal-book'); }
+        function changeMonth(s) { CURRENT_DATE.setMonth(CURRENT_DATE.getMonth()+s); renderCalendar(); }
+        document.getElementById('form-book').addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('book_session',{userId:document.getElementById('bk-student').value, date:document.getElementById('bk-date').value, time:document.getElementById('bk-time').value}); showToast("Đã đặt lịch"); toggleModal('modal-book'); loadSchedule(); if(document.getElementById('bk-date').value===SEL_DATE) openDetail(SEL_DATE); });
 
-        // 4. HELPER
+        // 2. EXERCISE & FOOD
+        async function loadEx() { const r=await callAPI('get_all_exercises'); if(r.success){ EXERCISES=r.data; document.getElementById('dl-exercises').innerHTML=EXERCISES.map(e=>`<option value="${e.name}">`).join(''); document.getElementById('ex-list').innerHTML=EXERCISES.map(e=>`<tr class="border-b hover:bg-slate-50"><td class="p-3">${e.name}</td><td class="p-3 text-slate-500">${e.group}</td><td class="p-3 text-right space-x-2"><button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
+        function editEx(e) { document.getElementById('ex-id-edit').value=e.id; document.getElementById('ex-name').value=e.name; document.getElementById('ex-group').value=e.group; document.getElementById('ex-video').value=e.video; document.getElementById('ex-desc').value=e.desc||""; document.getElementById('ex-form-title').innerText="Sửa Bài"; document.getElementById('btn-ex-save').innerText="Cập Nhật"; document.getElementById('btn-ex-save').className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl"; }
+        function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value=""; document.getElementById('ex-form-title').innerText="Thêm Bài"; document.getElementById('btn-ex-save').innerText="Thêm Mới"; document.getElementById('btn-ex-save').className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl"; }
+        const formEx = document.getElementById('form-exercise'); if(formEx) formEx.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('ex-id-edit').value; await callAPI(id?'admin_update_exercise':'admin_add_exercise', {id, name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, video:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); showToast("Thành công"); loadEx(); resetExForm(); });
+
+        async function loadFd() { const r=await callAPI('get_all_foods'); if(r.success){ FOODS=r.data; document.getElementById('fd-list').innerHTML=FOODS.map(f=>`<tr class="border-b hover:bg-slate-50"><td class="p-3">${f.name}</td><td class="p-3">${f.cal}</td><td class="p-3 text-right space-x-2"><button onclick='editFd(${JSON.stringify(f)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('food','${f.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
+        function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; document.getElementById('btn-fd-save').className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl"; }
+        function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; document.getElementById('btn-fd-save').className="w-full bg-green-600 text-white font-bold py-3 rounded-xl"; }
+        const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); loadFd(); resetFdForm(); });
+
+        // 3. PLANS
+        async function loadPl() { const r=await callAPI('get_all_plans'); if(r.success){ PLANS=r.data; document.getElementById('plan-list').innerHTML=PLANS.map(p=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold text-blue-600">${p.name}</td><td class="p-3">${STUDENTS_MAP[p.userId]||p.userId}</td><td class="p-3 text-right space-x-2"><button onclick="editPlan('${p.id}')" class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('plan','${p.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }}
+        async function editPlan(id) { const r=await callAPI('get_plan_details',{planId:id}); if(r.success){ const p=r.data; document.getElementById('plan-id-edit').value=id; document.getElementById('plan-name').value=p.name; document.getElementById('plan-student').value=p.userId; document.getElementById('plan-form-title').innerText="Sửa: "+p.name; document.getElementById('btn-save-plan').innerText="Cập Nhật"; document.getElementById('btn-save-plan').className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow"; const b=document.getElementById('plan-rows'); b.innerHTML=''; p.details.forEach(d=>b.insertAdjacentHTML('beforeend',`<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option ${d.day=='Thứ 2'?'selected':''}>Thứ 2</option><option ${d.day=='Thứ 3'?'selected':''}>Thứ 3</option><option ${d.day=='Thứ 4'?'selected':''}>Thứ 4</option><option ${d.day=='Thứ 5'?'selected':''}>Thứ 5</option><option ${d.day=='Thứ 6'?'selected':''}>Thứ 6</option><option ${d.day=='Thứ 7'?'selected':''}>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded font-bold"></td><td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`)); lucide.createIcons(); switchTab('builder',document.querySelectorAll('.tab-btn')[1]); }}
+        function resetPlanForm() { document.getElementById('plan-id-edit').value=""; document.getElementById('plan-name').value=""; document.getElementById('plan-rows').innerHTML=""; document.getElementById('plan-form-title').innerText="Tạo Giáo Án"; document.getElementById('btn-save-plan').innerText="Lưu & Gửi"; document.getElementById('btn-save-plan').className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow"; addPlanRow(); }
+        async function savePlan() { const id=document.getElementById('plan-id-edit').value, name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value; if(!name||!uId) return alert("Thiếu thông tin"); const details=Array.from(document.querySelectorAll('#plan-rows tr')).map(r=>{const i=r.querySelectorAll('input,select');return{day:i[0].value,exercise:i[1].value,sets:i[2].value,reps:i[3].value,note:i[4].value,video:''}}).filter(d=>d.exercise); await callAPI('save_workout_plan',{planId:id,planName:name,targetUser:uId,details}); showToast("Đã lưu giáo án"); loadPl(); resetPlanForm(); }
+        function addPlanRow() { document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded font-bold"></td><td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input class="w-full border p-1 rounded"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`); lucide.createIcons(); }
+
+        // 4. STUDENTS & UTILS
         async function loadStudents() {
             const r=await callAPI('get_all_students');
             if(r.success){ STUDENTS=r.data; STUDENTS_MAP={}; STUDENTS.forEach(s=>STUDENTS_MAP[s.id]=s.name); 
@@ -266,22 +227,15 @@
             document.getElementById('plan-student').innerHTML=o; document.getElementById('bk-student').innerHTML=o;
             document.getElementById('student-list').innerHTML=STUDENTS.map(s=>`<tr class="hover:bg-slate-50 border-b"><td class="p-4"><b>${s.name}</b><br><span class="text-xs text-slate-400">${s.email}</span><br><span class="text-[10px] ${s.isExpired?'text-red-500':'text-green-600'} font-bold">${s.isExpired?'Hết hạn':'Hạn: '+s.expiryDate}</span></td><td class="p-4 text-center font-bold text-blue-600">${s.sessionLeft}</td><td class="p-4 text-right space-x-1"><button onclick="topUp('${s.id}','${s.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs">Buổi</button><button onclick="topUpMonth('${s.id}','${s.name}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs">Tháng</button></td></tr>`).join(''); }
         }
-        
-        // EVENT LISTENERS
-        const formEx = document.getElementById('form-exercise'); if(formEx) formEx.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('ex-id-edit').value; await callAPI(id?'admin_update_exercise':'admin_add_exercise', {id, name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, video:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); showToast("Thành công"); loadEx(); resetExForm(); });
-        const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); loadFd(); resetFdForm(); });
-        const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm"); toggleModal('modal-add-student'); loadStudents(); });
-        
-        async function savePlan() { const id=document.getElementById('plan-id-edit').value, name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value; if(!name||!uId) return alert("Thiếu thông tin"); const details=Array.from(document.querySelectorAll('#plan-rows tr')).map(r=>{const i=r.querySelectorAll('input,select');return{day:i[0].value,exercise:i[1].value,sets:i[2].value,reps:i[3].value,note:i[4].value,video:''}}).filter(d=>d.exercise); await callAPI('save_workout_plan',{planId:id,planName:name,targetUser:uId,details}); showToast("Đã lưu giáo án"); loadPl(); resetPlanForm(); }
-        function addPlanRow() { document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold"></td><td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input class="w-full border p-1 rounded"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`); lucide.createIcons(); }
-        async function delItem(t,id) { if(confirm("Xóa?")) { const r=await callAPI(`admin_delete_${t}`,{id}); if(r.success){ showToast("Đã xóa"); if(t=='exercise')loadEx(); if(t=='food')loadFd(); if(t=='plan')loadPl(); }}}
         async function topUp(id,n) { const a=prompt(`Nạp buổi cho ${n}?`,"10"); if(a) { await callAPI('admin_update_student',{studentId:id,addSession:a}); showToast("Đã nạp"); loadStudents(); }}
         async function topUpMonth(id,n) { const m=prompt(`Gia hạn tháng cho ${n}?`,"1"); if(m) { await callAPI('admin_update_student',{studentId:id,addMonth:m}); showToast("Đã gia hạn"); loadStudents(); }}
+        const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm HV"); toggleModal('modal-add-student'); loadStudents(); });
+        
         async function initDashboard() { const r=await callAPI('admin_get_dashboard'); if(r.success){ document.getElementById('stat-total').innerText=r.data.totalStudent; document.getElementById('stat-active').innerText=r.data.activeStudent; document.getElementById('stat-today').innerText=r.data.todaySessions; }}
-        async function initDb() { await initDashboard(); }
-
+        async function delItem(t,id) { if(confirm("Xóa?")) { const r=await callAPI(`admin_delete_${t}`,{id}); if(r.success){ showToast("Đã xóa"); if(t=='exercise')loadEx(); if(t=='food')loadFd(); if(t=='plan')loadPl(); }}}
+        
         function switchTab(n,b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
-        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
+        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); }
         function filterTable(id,k) { document.querySelectorAll(`#${id} tr`).forEach(r=>r.style.display=r.innerText.toLowerCase().includes(k.toLowerCase())?'':'none'); }
         function logout() { localStorage.removeItem('pt_user'); window.location.href='login.html'; }
 
