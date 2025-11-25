@@ -174,23 +174,92 @@
         // 1. CALENDAR
         async function loadSchedule() { const r=await callAPI('get_schedule'); if(r.success) { SCHEDULE_DATA=r.data; renderCalendar(); } }
         function renderCalendar() {
-            const y=DATE.getFullYear(), m=DATE.getMonth(), fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
-            document.getElementById('cal-title').innerText=`Tháng ${m+1}/${y}`;
-            const b=document.getElementById('calendar-body'); b.innerHTML='';
-            for(let i=0;i<fd;i++) b.innerHTML+=`<div class="calendar-cell bg-slate-50"></div>`;
-            for(let d=1;d<=dim;d++) {
-                const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const evs=SCHEDULE_DATA.filter(e=>e.date===ds);
-                const html=evs.map(e=>`<div class="event-tag ${e.status==='Completed'?'evt-completed':e.status==='Cancelled'?'evt-cancelled':'evt-upcoming'}"><span>${e.time}</span> ${STUDENTS_MAP[e.userId]?.split(' ').pop()||'?'}</div>`).join('');
-                b.innerHTML+=`<div class="calendar-cell group" onclick="openDetail('${ds}')"><div class="flex justify-between"><span class="font-bold text-slate-400 text-xs group-hover:text-blue-600">${d}</span>${evs.length?`<span class="text-[10px] bg-slate-100 px-1 rounded font-bold">${evs.length}</span>`:''}</div><div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${html}</div></div>`;
+            const y = CURRENT_DATE.getFullYear(), m = CURRENT_DATE.getMonth();
+            document.getElementById('cal-title').innerText = `Tháng ${m + 1} / ${y}`;
+            const firstDay = new Date(y, m, 1).getDay(), daysInMonth = new Date(y, m + 1, 0).getDate();
+            const body = document.getElementById('calendar-body'); 
+            body.innerHTML = '';
+        
+            for(let i=0; i<firstDay; i++) body.innerHTML += `<div class="calendar-cell bg-slate-50 cursor-default"></div>`;
+            
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const events = SCHEDULE_DATA.filter(e => e.date === dateStr);
+                
+                let eventsHtml = events.map(e => {
+                    const stName = STUDENTS_MAP[e.userId] || "Unknown";
+                    const shortName = stName.split(' ').pop();
+                    let cls = 'evt-upcoming';
+                    if(e.status === 'Completed') cls = 'evt-completed';
+                    if(e.status === 'Cancelled') cls = 'evt-cancelled';
+                    
+                    // --- FIX HIỂN THỊ GIỜ ---
+                    // Nếu giờ dài > 10 ký tự (dạng ISO), cắt lấy 11-16 (HH:mm)
+                    let showTime = e.time.length > 10 ? e.time.substring(11, 16) : e.time;
+        
+                    return `<div class="event-tag ${cls}" onclick="event.stopPropagation(); cancelSession('${e.id}')" title="${stName}">
+                        <span>${showTime}</span> ${shortName}
+                    </div>`;
+                }).join('');
+        
+                body.innerHTML += `
+                    <div class="calendar-cell group" onclick="openDetail('${dateStr}')">
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-slate-400 text-xs group-hover:text-blue-600 transition-colors">${d}</span>
+                            ${events.length > 0 ? `<span class="text-[10px] bg-slate-100 px-1 rounded text-slate-500 font-bold">${events.length}</span>` : ''}
+                        </div>
+                        <div class="space-y-1 mt-1 overflow-y-auto max-h-[80px] no-scrollbar">${eventsHtml}</div>
+                    </div>
+                `;
             }
         }
+        }
         function openDetail(ds) {
-            SEL_DATE=ds; document.getElementById('detail-date-title').innerText=ds.split('-').reverse().join('/');
-            const evs=SCHEDULE_DATA.filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
-            document.getElementById('day-session-list').innerHTML = evs.length===0?'<div class="text-center text-slate-400 py-8">Trống.</div>':
-                evs.map(e=>`<div class="bg-white p-3 rounded border shadow-sm mb-3 flex justify-between items-center"><div><div class="flex items-center gap-2"><span class="font-black text-lg">${e.time}</span><span class="text-xs ${e.status==='Completed'?'text-slate-400':e.status==='Cancelled'?'text-red-500':'text-blue-600 font-bold'}">${e.status}</span></div><div class="font-bold text-sm">${STUDENTS_MAP[e.userId]}</div></div><div class="flex gap-1"><button onclick="checkIn('${e.id}','${e.userId}')" class="p-2 bg-green-50 text-green-600 rounded"><i data-lucide="check-circle-2"></i></button><button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-2 bg-slate-100 text-slate-600 rounded"><i data-lucide="edit-3"></i></button><button onclick="cancel('${e.id}')" class="p-2 bg-red-50 text-red-500 rounded"><i data-lucide="trash-2"></i></button></div></div>`).join('');
-            lucide.createIcons(); toggleModal('modal-day-detail');
+            SEL_DATE = ds; 
+            document.getElementById('detail-date-title').innerText = ds.split('-').reverse().join('/');
+            const evs = SCHEDULE_DATA.filter(e => e.date === ds).sort((a,b) => a.time.localeCompare(b.time));
+            const list = document.getElementById('day-session-list');
+            
+            if(evs.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-400 py-8 flex flex-col items-center"><i data-lucide="calendar-clock" class="w-12 h-12 mb-2 opacity-20"></i>Trống lịch.</div>';
+            } else {
+                list.innerHTML = evs.map(e => {
+                    const stName = STUDENTS_MAP[e.userId] || "Unknown";
+                    const st = STUDENTS.find(s => s.id === e.userId);
+                    const sessionLeft = st ? st.sessionLeft : 0;
+        
+                    let statusColor = "text-blue-600 bg-blue-50";
+                    let statusText = "Sắp tới";
+                    let actions = `
+                        <button onclick="checkIn('${e.id}', '${e.userId}')" class="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg" title="Check-in"><i data-lucide="check-circle-2" class="w-4 h-4"></i></button>
+                        <button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg" title="Dời lịch"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="cancel('${e.id}')" class="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    `;
+        
+                    if(e.status === 'Completed') { statusColor = "text-slate-500 bg-slate-100 line-through"; statusText = "Đã xong"; actions = ''; }
+                    if(e.status === 'Cancelled') { statusColor = "text-red-500 bg-red-50"; statusText = "Đã hủy"; actions = ''; }
+        
+                    // --- FIX HIỂN THỊ GIỜ ---
+                    let showTime = e.time.length > 10 ? e.time.substring(11, 16) : e.time;
+        
+                    return `
+                    <div class="bg-white p-3 rounded-xl border shadow-sm mb-3 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-black text-lg text-slate-700 w-14">${showTime}</span>
+                                <div class="font-bold text-slate-800 text-sm">${stName}</div>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                 <div class="text-xs ${statusColor} inline-block px-2 py-0.5 rounded font-medium">${statusText}</div>
+                                 <div class="text-xs text-slate-400">Còn: <b class="text-blue-600">${sessionLeft}</b> buổi</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">${actions}</div>
+                    </div>`;
+                }).join('');
+            }
+            lucide.createIcons();
+            toggleModal('modal-day-detail');
         }
         
         async function checkIn(bid,uid){ if(confirm("Check-in (Trừ 1 buổi)?")) { await callAPI('deduct_session',{userId:uid}); await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast("Đã Check-in"); loadSchedule(); loadStudents(); openDetail(SEL_DATE); }}
