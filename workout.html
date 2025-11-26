@@ -7,9 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
-    </script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="layout.js"></script>
 
     <style>
         /* Tiện ích */
@@ -21,17 +21,17 @@
         .set-done { background-color: #f0f9ff; border-left-color: #3b82f6; opacity: 0.8; }
         .set-done input { color: #2563eb; font-weight: bold; background: transparent; }
         
-        /* Input số */
+        /* Input số (ẩn mũi tên mặc định) */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        /* Modal Ảnh */
-        #modal-image { backdrop-filter: blur(5px); transition: opacity 0.3s; }
-        .img-zoom { max-height: 80vh; max-width: 90vw; object-fit: contain; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         
         /* Timer Animation */
         @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 0; } }
         .timer-ring::before { content: ''; position: absolute; left: -5px; top: -5px; right: -5px; bottom: -5px; border-radius: 50%; border: 2px solid #3b82f6; animation: pulse-ring 2s infinite; }
+
+        /* Modal Ảnh */
+        #modal-image { backdrop-filter: blur(5px); transition: opacity 0.3s; }
+        .img-zoom { max-height: 80vh; max-width: 90vw; object-fit: contain; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
     </style>
 </head>
 <body class="bg-slate-100 pb-36 font-sans text-slate-800 select-none">
@@ -128,14 +128,15 @@
     </div>
 
     <script>
-        // --- 1. KHỞI TẠO ---
+        // --- 1. CONFIG & INIT ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
         lucide.createIcons();
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'numeric'});
         
         const user = JSON.parse(localStorage.getItem('pt_user'));
         if (!user) window.location.href = 'login.html';
 
-        const STORAGE_KEY = `pt_progress_v21_${user.id}`; // Key mới tránh xung đột
+        const STORAGE_KEY = `pt_progress_v4_pro_${user.id}`; 
         let PLANS = {}, PROGRESS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}, SET_COUNTS = {}, CURRENT_TAB = "";
         let timerInterval = null, timeLeft = 60;
 
@@ -173,7 +174,7 @@
             CURRENT_TAB = day;
             document.getElementById('history-view').classList.add('hidden');
             document.getElementById('workout-view').classList.remove('hidden');
-            document.getElementById('floating-action').classList.remove('translate-y-[150%]');
+            document.getElementById('floating-action').classList.remove('translate-y-[150%]'); // Hiện nút lưu
             
             document.querySelectorAll('#tabs button').forEach(b => {
                 b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 shadow-sm transition-all active:scale-95';
@@ -245,7 +246,9 @@
             updateProgressUI();
         }
 
-        // --- 3. LOGIC HÌNH ẢNH & MODAL ---
+        // --- 3. LOGIC TƯƠNG TÁC ---
+
+        // Modal Ảnh
         function viewImage(url) {
             const modal = document.getElementById('modal-image');
             const img = document.getElementById('img-preview');
@@ -258,7 +261,6 @@
             document.getElementById('modal-image').classList.remove('flex');
         }
 
-        // --- 4. LOGIC NHẬP LIỆU ---
         function adjustVal(id, delta) {
             const input = document.getElementById(id);
             let val = parseFloat(input.value) || 0;
@@ -268,18 +270,23 @@
         }
 
         function saveTemp(key) {
-            const w = document.getElementById(`w-${key}`).value, r = document.getElementById(`r-${key}`).value;
+            const w = document.getElementById(`w-${key}`).value;
+            const r = document.getElementById(`r-${key}`).value;
             if (!PROGRESS[key]) PROGRESS[key] = {};
             PROGRESS[key].weight = w; PROGRESS[key].reps = r;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
         }
 
         function toggleSet(key, exName, setNum) {
-            const w = document.getElementById(`w-${key}`).value, r = document.getElementById(`r-${key}`).value, row = document.getElementById(`row-${key}`);
+            const w = document.getElementById(`w-${key}`).value;
+            const r = document.getElementById(`r-${key}`).value;
+            const row = document.getElementById(`row-${key}`);
+
             if (!w || !r || w==0 || r==0) { 
                 alert("Hãy nhập số Kg và Reps thực tế!"); 
                 const checkbox = row.querySelector('input[type="checkbox"]'); checkbox.checked = false; return; 
             }
+
             const checkbox = row.querySelector('input[type="checkbox"]');
             if (checkbox.checked) {
                 row.classList.add('set-done');
@@ -295,10 +302,12 @@
 
         function addSet(day, exName) { SET_COUNTS[`${day}_${exName}`]++; renderExercises(day); }
         function removeLastSet(day, exName) {
-            const exKey = `${day}_${exName}`, count = SET_COUNTS[exKey];
+            const exKey = `${day}_${exName}`;
+            const count = SET_COUNTS[exKey];
             if(count <= 1) return;
             if(confirm("Xóa set cuối cùng?")) {
-                delete PROGRESS[`${exKey}_set${count}`];
+                const key = `${exKey}_set${count}`;
+                delete PROGRESS[key];
                 SET_COUNTS[exKey]--;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
                 renderExercises(day);
@@ -332,7 +341,7 @@
         async function finishWorkout() {
             const logs = Object.values(PROGRESS).filter(item => item.checked).map(item => ({exercise: item.exercise, weight: item.weight, reps: item.reps}));
             if (logs.length === 0) return alert("Chưa tập bài nào!");
-            if (!confirm(`Hoàn thành và lưu ${logs.length} sets?`)) return;
+            if (!confirm(`Hoàn thành và lưu ${logs.length} sets tập?`)) return;
 
             const btn = document.getElementById('btnFinish'); btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> Đang lưu...'; btn.disabled = true;
             try {
