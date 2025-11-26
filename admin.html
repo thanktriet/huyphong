@@ -3,407 +3,712 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PT Manager - Admin Console</title>
+    <title>Admin - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* CORE */
-        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; background-color: #f8fafc; }
+        /* CSS CORE */
+        body { font-family: 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; background-color: #f8fafc; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
         /* TABS */
-        .tab-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
-        .tab-btn:hover:not(.active) { background-color: #f1f5f9; color: #334155; }
+        .tab-btn { transition: all 0.2s; border: 1px solid transparent; }
+        .tab-btn:hover:not(.active) { background-color: #e2e8f0; }
         .tab-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
         
         /* TOAST */
-        #toast-container { position: fixed; top: 24px; right: 24px; z-index: 100; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
-        .toast { background: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 4px 10px -5px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); border-left: 5px solid; pointer-events: auto; min-width: 320px; font-weight: 500; font-size: 14px; color: #1e293b; }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; pointer-events: auto; min-width: 300px; transition: all 0.3s; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
-        @keyframes slideIn { from { transform: translateX(100%) scale(0.9); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* CALENDAR AGENDA */
-        .agenda-date { position: sticky; top: 0; background: #f8fafc; padding: 12px 20px; font-weight: 700; color: #64748b; border-bottom: 1px solid #e2e8f0; z-index: 10; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; }
-        .agenda-item { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.15s; }
-        .agenda-item:hover { background-color: #f8fafc; }
-        .time-badge { font-family: 'Roboto Mono', monospace; font-weight: 700; background: #e0f2fe; color: #0284c7; padding: 6px 10px; rounded: 8px; font-size: 14px; min-width: 70px; text-align: center; letter-spacing: -0.5px; }
+        /* CALENDAR */
+        .agenda-date { position: sticky; top: 0; background: #f1f5f9; padding: 12px 16px; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0; z-index: 10; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+        .agenda-item { padding: 14px 16px; border-bottom: 1px solid #f8fafc; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+        .agenda-item:hover { background-color: #fff; box-shadow: inset 0 0 0 1px #e2e8f0; }
+        .time-badge { font-family: monospace; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 6px 10px; rounded: 8px; font-size: 14px; min-width: 60px; text-align: center; }
 
         /* UTILS */
-        .modal { transition: opacity 0.2s ease, transform 0.2s ease; } 
-        .modal-content { transform: scale(0.95); transition: transform 0.2s ease; }
-        body.modal-active .modal { opacity: 1; pointer-events: auto; }
-        body.modal-active .modal-content { transform: scale(1); }
-        body.modal-active { overflow: hidden; }
+        .modal { transition: opacity 0.2s ease; } body.modal-active { overflow: hidden; }
+        .table-container { max-height: 500px; overflow-y: auto; }
+        .macro-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 2px; }
+        .bg-pro { background: #fee2e2; color: #b91c1c; } .bg-carb { background: #dcfce7; color: #15803d; } .bg-fat { background: #fef9c3; color: #a16207; }
         
-        .table-container { max-height: 550px; overflow-y: auto; border-radius: 0 0 12px 12px; }
-        .table-head-sticky { position: sticky; top: 0; z-index: 5; background: #f8fafc; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        
-        .macro-badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; }
-        .bg-pro { background: #fee2e2; color: #991b1b; } 
-        .bg-carb { background: #dcfce7; color: #166534; } 
-        .bg-fat { background: #fef9c3; color: #854d0e; }
-        
-        /* INPUT STYLES */
-        .input-field { width: 100%; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 10px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-size: 14px; }
-        .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        
-        /* BUTTON STYLES */
-        .btn-primary { background-color: #2563eb; color: white; font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: background-color 0.2s, transform 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-primary:active { transform: scale(0.98); }
-        
-        .btn-danger-soft { background-color: #fef2f2; color: #ef4444; padding: 6px; border-radius: 8px; transition: all 0.2s; }
-        .btn-danger-soft:hover { background-color: #fee2e2; color: #dc2626; }
-        
-        .btn-icon-soft { background-color: #f1f5f9; color: #64748b; padding: 6px; border-radius: 8px; transition: all 0.2s; }
-        .btn-icon-soft:hover { background-color: #e2e8f0; color: #334155; }
+        /* SYNC INDICATOR */
+        .sync-badge { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); color: white; padding: 6px 12px; rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur opacity-0 transition-opacity duration-300 pointer-events: none; z-index: 50; }
+        .sync-badge.show { opacity: 1; }
     </style>
 </head>
-<body class="pb-20">
+<body class="bg-slate-100 font-sans text-slate-800 pb-20">
 
     <div id="toast-container"></div>
+    <div id="sync-indicator" class="sync-badge"><i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Đang đồng bộ...</div>
 
-    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-xl backdrop-blur-md bg-opacity-95">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+    <div class="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-900/50"><i data-lucide="dumbbell" class="w-5 h-5 text-white"></i></div>
-                <div>
-                    <h1 class="text-lg font-bold leading-tight tracking-tight">PT Control Center</h1>
-                    <p class="text-slate-400 text-xs font-medium">Xin chào, <span id="ptName" class="text-white">Coach</span></p>
-                </div>
+                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="dumbbell" class="w-6 h-6 text-white"></i></div>
+                <div><h1 class="text-lg font-bold leading-tight">PT Control Center</h1><p class="text-slate-400 text-xs">Xin chào, <span id="ptName">Coach</span></p></div>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <div class="h-8 w-px bg-slate-700/50 hidden sm:block"></div>
-                <button onclick="logout()" class="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm font-semibold bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> <span class="hidden sm:inline">Đăng xuất</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
-        
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-colors">
-                <div><p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Tổng Học Viên</p><h3 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" id="stat-total">-</h3></div>
-                <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i data-lucide="users" class="w-6 h-6"></i></div>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-green-200 transition-colors">
-                <div><p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Đang Tập (Active)</p><h3 class="text-3xl font-black text-slate-800 group-hover:text-green-600 transition-colors" id="stat-active">-</h3></div>
-                <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600"><i data-lucide="activity" class="w-6 h-6"></i></div>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-orange-200 transition-colors">
-                <div><p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Lịch Hôm Nay</p><h3 class="text-3xl font-black text-slate-800 group-hover:text-orange-600 transition-colors" id="stat-today">-</h3></div>
-                <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-600"><i data-lucide="calendar" class="w-6 h-6"></i></div>
-            </div>
-        </div>
-
-        <div class="flex gap-2 overflow-x-auto no-scrollbar bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 sticky top-20 z-20">
-            <button onclick="switchTab('calendar', this)" class="tab-btn active flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-slate-500 flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Lịch Trình</button>
-            <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-slate-500 flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="pencil-ruler" class="w-4 h-4"></i> Giáo Án</button>
-            <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-slate-500 flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="users" class="w-4 h-4"></i> Học Viên</button>
-            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-slate-500 flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="dumbbell" class="w-4 h-4"></i> Kho Bài Tập</button>
-            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-slate-500 flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="utensils" class="w-4 h-4"></i> Kho Món Ăn</button>
-        </div>
-
-        <div id="view-calendar" class="view-section space-y-6">
-            <div class="flex justify-between items-center">
-                <div><h2 class="text-xl font-bold text-slate-800">Lịch Dạy Sắp Tới</h2><p class="text-sm text-slate-500">Quản lý thời gian biểu của bạn</p></div>
-                <button onclick="toggleModal('modal-book')" class="btn-primary shadow-lg shadow-blue-200"><i data-lucide="plus" class="w-5 h-5"></i> Đặt Lịch Mới</button>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px] relative" id="agenda-container">
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3 text-blue-500"></i><p>Đang đồng bộ dữ liệu...</p>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-builder" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-200" id="plan-editor">
-                <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-                    <div><h2 class="text-xl font-bold text-blue-600 flex items-center gap-2"><i data-lucide="edit-3" class="w-6 h-6"></i> <span id="plan-form-title">Soạn Giáo Án</span></h2></div>
-                    <button onclick="resetPlanForm()" class="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-2 rounded-full hover:bg-slate-200 flex items-center gap-1 transition-colors"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Làm mới</button>
-                </div>
-                <input type="hidden" id="plan-id-edit"> 
-                <div class="grid grid-cols-2 gap-6 mb-6">
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Tên Giáo Án</label><input id="plan-name" class="input-field font-bold text-lg" placeholder="Vd: Tăng cơ - Phase 1"></div>
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Đối Tượng</label><select id="plan-student" class="input-field bg-white font-medium"><option value="">-- Đang tải --</option></select></div>
-                </div>
-                
-                <div class="border rounded-xl overflow-hidden mb-6 shadow-sm">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b">
-                            <tr><th class="p-3 w-28 pl-4">Thứ</th><th class="p-3">Bài tập</th><th class="p-3 w-16 text-center">Set</th><th class="p-3 w-16 text-center">Rep</th><th class="p-3 w-40">Ghi chú</th><th class="p-3 w-10"></th></tr>
-                        </thead>
-                        <tbody id="plan-rows" class="divide-y divide-slate-100 bg-white"></tbody>
-                    </table>
-                    <button onclick="addPlanRow()" class="w-full py-3 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-100 border-t transition-colors flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Thêm dòng bài tập</button>
-                </div>
-                <button onclick="savePlan()" id="btn-save-plan" class="btn-primary w-full py-3.5 text-base shadow-lg shadow-blue-200">Lưu & Gửi Giáo Án</button>
-                
-                <div class="mt-10 pt-8 border-t border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Lịch sử giáo án đã giao</h3>
-                    <div class="table-container max-h-64 border rounded-xl bg-white"><table class="w-full text-sm text-left"><thead class="bg-slate-50 table-head-sticky font-bold text-slate-500"><tr><th class="p-4">Tên Plan</th><th class="p-4">Học Viên</th><th class="p-4 text-right">Thao tác</th></tr></thead><tbody id="plan-list" class="divide-y divide-slate-100"></tbody></table></div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-100 rounded-full opacity-50"></div>
-                    <h2 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2 relative z-10"><i data-lucide="copy" class="w-5 h-5"></i> Giao Bài Nhanh</h2>
-                    <div class="space-y-4 relative z-10">
-                        <div><label class="text-xs font-bold text-indigo-400 uppercase mb-1 block">1. Chọn Mẫu</label><select id="assign-template" class="input-field bg-white border-indigo-200 focus:border-indigo-500 text-indigo-900"><option>Đang tải...</option></select></div>
-                        <div><label class="text-xs font-bold text-indigo-400 uppercase mb-1 block">2. Chọn Học Viên (Giữ Ctrl chọn nhiều)</label><select id="assign-students" multiple class="input-field bg-white border-indigo-200 focus:border-indigo-500 h-32 text-indigo-900"></select></div>
-                        <div><label class="text-xs font-bold text-indigo-400 uppercase mb-1 block">3. Đổi tên (Không bắt buộc)</label><input id="assign-new-name" class="input-field bg-white border-indigo-200 focus:border-indigo-500 text-indigo-900" placeholder="Tên mới..."></div>
-                        <button onclick="assignTemplate()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95">🚀 Giao Ngay</button>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[400px] flex flex-col">
-                    <h2 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider flex items-center gap-2"><i data-lucide="layout-template" class="w-4 h-4 text-slate-400"></i> Kho Giáo Án Mẫu</h2>
-                    <div id="template-list-display" class="flex-1 overflow-y-auto pr-2 space-y-2 no-scrollbar"><p class="text-xs text-center text-slate-400 py-10">Chưa có mẫu nào.</p></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-students" class="view-section hidden space-y-6">
-            <div class="flex justify-between items-center">
-                <div><h2 class="text-xl font-bold text-slate-800">Danh sách Học Viên</h2><p class="text-sm text-slate-500">Quản lý thông tin và gói tập</p></div>
-                <button onclick="toggleModal('modal-add-student')" class="btn-primary shadow-lg shadow-blue-200"><i data-lucide="user-plus" class="w-5 h-5"></i> Thêm Học Viên</button>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-50 font-bold border-b text-slate-500"><tr><th class="p-5 pl-6">Thông tin Học viên</th><th class="p-5 text-center">Trạng thái Gói Tập</th><th class="p-5 text-right pr-6 w-64">Thao tác</th></tr></thead>
-                    <tbody id="student-list" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="view-exercise" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-fit sticky top-24">
-                <h2 class="font-bold text-lg mb-6 flex justify-between items-center"><span id="ex-form-title">Thêm Bài Tập Mới</span> <button onclick="resetExForm()" class="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors">Hủy bỏ</button></h2>
-                <form id="form-exercise" class="space-y-4">
-                    <input type="hidden" id="ex-id-edit">
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Tên bài tập</label><input id="ex-name" class="input-field font-bold" placeholder="Vd: Bench Press" required></div>
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Nhóm cơ</label><select id="ex-group" class="input-field bg-white"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option><option>Cardio</option><option>Toàn thân</option></select></div>
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Hình ảnh (URL)</label><input id="ex-image" class="input-field" placeholder="https://..."></div>
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Mô tả kỹ thuật</label><textarea id="ex-desc" rows="3" class="input-field resize-none" placeholder="Ghi chú..."></textarea></div>
-                    <button id="btn-ex-save" class="btn-primary w-full py-3 shadow-lg shadow-blue-200 mt-2">Thêm Vào Kho</button>
-                </form>
-            </div>
-            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col h-[600px]">
-                <div class="flex justify-between mb-4 items-center"><h2 class="font-bold text-lg text-slate-800">Kho Bài Tập</h2><div class="relative w-64"><input onkeyup="filterTable('ex-list',this.value)" class="input-field pl-10 rounded-full" placeholder="Tìm kiếm..."><i data-lucide="search" class="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400"></i></div></div>
-                <div class="table-container flex-1 border rounded-xl"><table class="w-full text-sm"><thead class="bg-slate-50 table-head-sticky text-slate-500 font-bold"><tr><th class="p-4">Tên bài</th><th class="p-4">Nhóm</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="ex-list" class="divide-y divide-slate-100 bg-white"></tbody></table></div>
-            </div>
-        </div>
-
-        <div id="view-food" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-fit sticky top-24">
-                <h2 class="font-bold text-lg mb-6 flex justify-between items-center"><span id="fd-form-title">Thêm Món Ăn</span> <button onclick="resetFdForm()" class="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors">Hủy bỏ</button></h2>
-                <form id="form-food" class="space-y-4">
-                    <input type="hidden" id="fd-id-edit">
-                    <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Tên món</label><input id="fd-name" class="input-field font-bold" placeholder="Vd: Ức gà luộc" required></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Calo (kcal)</label><input id="fd-cal" type="number" class="input-field font-bold text-orange-600" placeholder="0" required></div>
-                        <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500 uppercase">Đơn vị</label><input id="fd-unit" class="input-field" value="100g"></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Protein</label><input id="fd-pro" type="number" class="input-field text-xs" placeholder="0"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Carb</label><input id="fd-carb" type="number" class="input-field text-xs" placeholder="0"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Fat</label><input id="fd-fat" type="number" class="input-field text-xs" placeholder="0"></div>
-                    </div>
-                    <button id="btn-fd-save" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 hover:bg-green-700 transition-all mt-2 flex justify-center items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Lưu Món Ăn</button>
-                </form>
-            </div>
-            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col h-[600px]">
-                <div class="flex justify-between mb-4 items-center"><h2 class="font-bold text-lg text-slate-800">Kho Món Ăn</h2><div class="relative w-64"><input onkeyup="filterTable('fd-list',this.value)" class="input-field pl-10 rounded-full" placeholder="Tìm kiếm..."><i data-lucide="search" class="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400"></i></div></div>
-                <div class="table-container flex-1 border rounded-xl"><table class="w-full text-sm text-left"><thead class="bg-slate-50 table-head-sticky text-slate-500 font-bold"><tr><th class="p-4">Thông tin món</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="fd-list" class="divide-y divide-slate-100 bg-white"></tbody></table></div>
+            <div class="flex items-center gap-3">
+                <button onclick="initApp(true)" class="text-slate-400 hover:text-white transition-colors" title="Làm mới dữ liệu"><i data-lucide="refresh-ccw" class="w-4 h-4"></i></button>
+                <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300 hover:text-white transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </div>
         </div>
     </div>
 
-    <div id="modal-edit-session" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl z-50 p-6 modal-content relative"><button onclick="toggleModal('modal-edit-session')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-6">Dời Lịch Tập</h3><input type="hidden" id="edit-id"><div class="space-y-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Ngày mới</label><input id="edit-date" type="date" class="input-field font-bold text-slate-800"></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Giờ mới</label><input id="edit-time" type="time" class="input-field font-bold text-slate-800"></div><div class="flex gap-3 pt-2"><button onclick="toggleModal('modal-edit-session')" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">Hủy</button><button onclick="submitEditSession()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200">Lưu Thay Đổi</button></div></div></div></div>
-    <div id="modal-book" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl z-50 p-6 modal-content relative"><button onclick="toggleModal('modal-book')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-6">Đặt Lịch Mới</h3><form id="form-book" class="space-y-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Ngày</label><input id="bk-date" type="date" class="input-field bg-slate-50 font-bold text-slate-500" readonly></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Giờ</label><input id="bk-time" type="time" class="input-field font-bold" required></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Học viên</label><select id="bk-student" class="input-field bg-white" required></select></div><button class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 mt-2">Xác Nhận Đặt Lịch</button></form></div></div>
-    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-full max-w-md rounded-2xl shadow-2xl z-50 p-8 modal-content relative"><button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-xl font-bold mb-6 text-slate-800">Thêm Học Viên Mới</h3><form id="form-register" class="space-y-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Họ và tên</label><input id="reg-name" class="input-field" placeholder="Nguyễn Văn A" required></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Email đăng nhập</label><input id="reg-email" type="email" class="input-field" placeholder="email@example.com" required></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Số điện thoại</label><input id="reg-phone" class="input-field" placeholder="09..." required></div><button class="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 mt-4">Tạo Tài Khoản</button></form></div></div>
-    <div id="modal-extend" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl z-50 p-6 modal-content relative"><button onclick="toggleModal('modal-extend')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-6">Gia Hạn Gói Tập</h3><input type="hidden" id="ext-id"><div class="space-y-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Gia hạn đến ngày</label><input id="ext-date" type="date" class="input-field font-bold text-slate-800"></div><button onclick="submitExtend()" class="w-full py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg shadow-green-200">Xác Nhận Gia Hạn</button></div></div></div>
-    <div id="modal-edit-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-full max-w-md rounded-2xl shadow-2xl z-50 p-6 modal-content relative"><button onclick="toggleModal('modal-edit-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-6">Sửa Thông Tin</h3><input type="hidden" id="edt-st-id"><div class="space-y-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Họ tên</label><input id="edt-st-name" class="input-field" placeholder="Họ tên"></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Email</label><input id="edt-st-email" class="input-field" placeholder="Email"></div><div class="space-y-1"><label class="text-xs font-bold text-slate-500 uppercase">Số điện thoại</label><input id="edt-st-phone" class="input-field" placeholder="SĐT"></div><button onclick="submitEditStudent()" class="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 shadow-lg shadow-orange-200">Lưu Thay Đổi</button></div></div></div>
+    <div class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
+        
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500"><div class="text-slate-400 text-xs font-bold uppercase mb-1">Tổng Học Viên</div><div class="text-3xl font-black text-slate-800" id="stat-total">-</div></div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-green-500"><div class="text-slate-400 text-xs font-bold uppercase mb-1">Active</div><div class="text-3xl font-black text-slate-800" id="stat-active">-</div></div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border-b-4 border-orange-500"><div class="text-slate-400 text-xs font-bold uppercase mb-1">Lịch Hôm Nay</div><div class="text-3xl font-black text-slate-800" id="stat-today">-</div></div>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto no-scrollbar bg-white p-2 rounded-xl shadow-sm">
+            <button onclick="switchTab('calendar', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Lịch Trình</button>
+            <button onclick="switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="pencil-ruler" class="w-4 h-4"></i> Giáo Án</button>
+            <button onclick="switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="users" class="w-4 h-4"></i> Học Viên</button>
+            <button onclick="switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="dumbbell" class="w-4 h-4"></i> Bài Tập</button>
+            <button onclick="switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="utensils" class="w-4 h-4"></i> Món Ăn</button>
+        </div>
+
+        <div id="view-calendar" class="view-section space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-700">Lịch Dạy Sắp Tới</h2>
+                <button onclick="toggleModal('modal-book')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex gap-2 shadow hover:bg-blue-700 transition-colors"><i data-lucide="plus-circle" class="w-4 h-4"></i> Đặt Lịch</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]" id="agenda-container"><div class="p-10 text-center text-slate-400">Đang tải...</div></div>
+        </div>
+
+        <div id="view-builder" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow border border-slate-200" id="plan-editor">
+                <h2 class="text-lg font-bold text-blue-600 mb-4 flex items-center gap-2"><i data-lucide="edit" class="w-5 h-5"></i> <span id="plan-form-title">Soạn Giáo Án Mới</span><button onclick="resetPlanForm()" class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full hover:bg-slate-200 ml-auto">Reset</button></h2>
+                <input type="hidden" id="plan-id-edit"> 
+                <div class="grid grid-cols-2 gap-4 mb-4"><div class="space-y-1"><label class="text-xs font-bold text-slate-400">Tên</label><input id="plan-name" class="w-full border p-2.5 rounded-lg font-bold" placeholder="Vd: Tăng cơ Phase 1"></div><div class="space-y-1"><label class="text-xs font-bold text-slate-400">Đối tượng</label><select id="plan-student" class="w-full border p-2.5 rounded-lg bg-white"><option value="">-- Chọn --</option></select></div></div>
+                <div class="border rounded-xl overflow-hidden mb-4"><table class="w-full text-sm text-left"><tbody id="plan-rows" class="divide-y divide-slate-100"></tbody></table><button onclick="addPlanRow()" class="w-full py-2.5 bg-slate-50 text-blue-600 text-xs font-bold hover:bg-blue-50 border-t flex justify-center items-center gap-2"><i data-lucide="plus" class="w-3"></i> Thêm bài</button></div>
+                <button onclick="savePlan()" id="btn-save-plan" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700 transition-colors">Lưu & Gửi Giáo Án</button>
+            </div>
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100 shadow-sm"><h2 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2"><i data-lucide="copy" class="w-5 h-5"></i> Giao Nhanh</h2><div class="space-y-3"><div><label class="text-xs font-bold text-indigo-400">1. Chọn Mẫu</label><select id="assign-template" class="w-full p-2 rounded border text-sm bg-white"><option>Đang tải...</option></select></div><div><label class="text-xs font-bold text-indigo-400">2. Chọn HV (Giữ Ctrl chọn nhiều)</label><select id="assign-students" multiple class="w-full p-2 rounded border text-sm bg-white h-32 outline-none"></select></div><div><label class="text-xs font-bold text-indigo-400">3. Đổi tên</label><input id="assign-new-name" class="w-full p-2 rounded border text-sm" placeholder="Tên mới..."></div><button onclick="assignTemplate()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg shadow transition-colors">🚀 Giao Ngay</button></div></div>
+                <div class="bg-white p-6 rounded-xl shadow border border-slate-200"><h2 class="text-sm font-bold text-slate-700 mb-3 uppercase">Kho Mẫu</h2><div id="template-list-display" class="space-y-2 max-h-60 overflow-y-auto"><p class="text-xs text-center text-slate-400">Đang tải...</p></div></div>
+            </div>
+            <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow border border-slate-200"><h2 class="text-lg font-bold text-slate-700 mb-4">Danh Sách Đã Giao</h2><div class="table-container"><table class="w-full text-sm text-left"><thead class="bg-slate-50 sticky top-0"><tr><th class="p-3">Tên Plan</th><th class="p-3">Học Viên</th><th class="p-3 text-right">Thao tác</th></tr></thead><tbody id="plan-list" class="divide-y divide-slate-100"></tbody></table></div></div>
+        </div>
+
+        <div id="view-students" class="view-section hidden space-y-4">
+            <div class="flex justify-between items-center"><h2 class="text-lg font-bold text-slate-700">Danh sách Học viên</h2><button onclick="toggleModal('modal-add-student')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex gap-2 shadow hover:bg-blue-700"><i data-lucide="user-plus" class="w-4 h-4"></i> Thêm</button></div>
+            <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden"><table class="w-full text-sm text-left"><thead class="bg-slate-50 font-bold border-b"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói Tập</th><th class="p-4 text-right w-56">Thao tác</th></tr></thead><tbody id="student-list" class="divide-y divide-slate-100"></tbody></table></div>
+        </div>
+
+        <div id="view-exercise" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow border h-fit sticky top-24"><h2 class="font-bold mb-4 flex justify-between items-center"><span id="ex-form-title">Thêm Bài Tập</span> <button onclick="resetExForm()" class="text-xs text-slate-400 hover:text-red-500">Hủy</button></h2><form id="form-exercise" class="space-y-3"><input type="hidden" id="ex-id-edit"><input id="ex-name" class="w-full border p-2.5 rounded" placeholder="Tên bài" required><select id="ex-group" class="w-full border p-2.5 rounded"><option>Ngực</option><option>Lưng</option><option>Chân</option><option>Vai</option><option>Tay</option><option>Bụng</option><option>Cardio</option></select><input id="ex-image" class="w-full border p-2.5 rounded" placeholder="Link Hình Ảnh (URL)"><textarea id="ex-desc" rows="2" class="w-full border p-2.5 rounded" placeholder="Mô tả"></textarea><button id="btn-ex-save" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700">Thêm Mới</button></form></div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow border"><div class="flex justify-between mb-4"><h2 class="font-bold">Kho Bài Tập</h2><input onkeyup="filterTable('ex-list',this.value)" class="border p-2 rounded text-sm pl-8" placeholder="Tìm kiếm..."><i data-lucide="search" class="absolute ml-2 mt-2.5 w-4 text-slate-400"></i></div><div class="table-container"><table class="w-full text-sm"><tbody id="ex-list" class="divide-y divide-slate-100"></tbody></table></div></div>
+        </div>
+
+        <div id="view-food" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow border h-fit sticky top-24"><h2 class="font-bold mb-4 flex justify-between items-center"><span id="fd-form-title">Thêm Món Ăn</span> <button onclick="resetFdForm()" class="text-xs text-slate-400 hover:text-red-500">Hủy</button></h2><form id="form-food" class="space-y-3"><input type="hidden" id="fd-id-edit"><input id="fd-name" class="w-full border p-2.5 rounded" placeholder="Tên món" required><div class="grid grid-cols-2 gap-2"><input id="fd-cal" type="number" class="border p-2 rounded" placeholder="Calo" required><input id="fd-unit" class="border p-2 rounded" value="100g"></div><div class="grid grid-cols-3 gap-2"><input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro"><input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb"><input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat"></div><button id="btn-fd-save" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow hover:bg-green-700">Thêm Mới</button></form></div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow border"><div class="flex justify-between mb-4"><h2 class="font-bold">Kho Món Ăn</h2><input onkeyup="filterTable('fd-list',this.value)" class="border p-2 rounded pl-8 text-sm" placeholder="Tìm..."></div><div class="table-container"><table class="w-full text-sm"><tbody id="fd-list" class="divide-y divide-slate-100"></tbody></table></div></div>
+        </div>
+    </div>
+
+    <div id="modal-edit-session" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6"><h3 class="font-bold mb-4">Dời Lịch</h3><input type="hidden" id="edit-id"><div class="space-y-3"><input id="edit-date" type="date" class="w-full border p-2 rounded"><input id="edit-time" type="time" class="w-full border p-2 rounded"><div class="flex gap-2 pt-2"><button onclick="toggleModal('modal-edit-session')" class="flex-1 bg-slate-100 py-2 rounded">Hủy</button><button onclick="submitEditSession()" class="flex-1 bg-blue-600 text-white py-2 rounded">Lưu</button></div></div></div></div>
+    <div id="modal-book" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-book')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="text-lg font-bold mb-4">Đặt Lịch</h3><form id="form-book" class="space-y-3"><input id="bk-date" type="date" class="w-full border p-2 rounded font-bold"><input id="bk-time" type="time" class="w-full border p-2 rounded" required><select id="bk-student" class="w-full border p-2 rounded" required></select><button class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl">Lưu</button></form></div></div>
+    <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Thêm Học Viên</h3><form id="form-register" class="space-y-3"><input id="reg-name" class="w-full border p-3 rounded" placeholder="Họ tên" required><input id="reg-email" class="w-full border p-3 rounded" placeholder="Email" required><input id="reg-phone" class="w-full border p-3 rounded" placeholder="SĐT" required><button class="w-full bg-blue-600 text-white font-bold py-3 rounded">Tạo</button></form></div></div>
+    <div id="modal-extend" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-extend')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Gia Hạn Gói Tập</h3><input type="hidden" id="ext-id"><div class="space-y-3"><label class="block text-sm font-bold text-slate-600">Hạn sử dụng mới:</label><input id="ext-date" type="date" class="w-full border p-3 rounded-lg font-bold bg-slate-50"><button onclick="submitExtend()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700">Xác Nhận</button></div></div></div>
+    <div id="modal-edit-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-edit-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Sửa Thông Tin</h3><input type="hidden" id="edt-st-id"><div class="space-y-3"><input id="edt-st-name" class="w-full border p-3 rounded" placeholder="Họ tên"><input id="edt-st-email" class="w-full border p-3 rounded" placeholder="Email"><input id="edt-st-phone" class="w-full border p-3 rounded" placeholder="SĐT"><button onclick="submitEditStudent()" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl hover:bg-orange-600">Cập Nhật</button></div></div></div>
 
     <datalist id="dl-exercises"></datalist>
 
     <script>
- <script>
-    // ==================== 1. CẤU HÌNH & KHỞI TẠO ====================
-    const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
-    lucide.createIcons();
-    
-    // Kiểm tra đăng nhập
-    const USER = JSON.parse(localStorage.getItem('pt_user'));
-    if(!USER || USER.role !== 'PT') window.location.href = 'login.html';
-    document.getElementById('ptName').innerText = USER.name;
+        // ==================== 1. UI HELPER FUNCTIONS (HOISTED) ====================
+        function switchTab(name, btn) {
+            document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+            document.getElementById(`view-${name}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+            btn.classList.add('active');
+        }
 
-    // Biến toàn cục & Cache
-    let STUDENTS = [], STUDENTS_MAP = {}, SCHEDULE_DATA = [], EXERCISES = [], FOODS = [], PLANS = [], TEMPLATES = [];
-    let DATE = new Date(), SEL_DATE = "";
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.classList.toggle('opacity-0');
+            m.classList.toggle('pointer-events-none');
+            document.body.classList.toggle('modal-active');
+        }
 
-    // Hàm gọi API chung
-    async function callAPI(action, data={}) {
-        showSync(true);
+        function filterTable(id, k) {
+            document.querySelectorAll(`#${id} tr`).forEach(r => r.style.display = r.innerText.toLowerCase().includes(k.toLowerCase()) ? '' : 'none');
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 h-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
+            document.getElementById('toast-container').appendChild(t);
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function showSync(s) {
+            const el = document.getElementById('sync-indicator');
+            if (el) el.className = s ? 'sync-badge show' : 'sync-badge';
+        }
+
+        // ==================== 2. CONFIG & MAIN LOGIC ====================
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec";
+
+        // Init Icons immediately
+        if (window.lucide) lucide.createIcons();
+
+        // Safe User Parsing
+        let USER = null;
         try {
-            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
-            const json = await res.json();
-            showSync(false);
-            return json;
-        } catch(e) {
-            console.error(e); 
-            showSync(false);
-            alert("Lỗi kết nối: " + e);
-            return { success: false };
-        }
-    }
-
-    // UI Helpers
-    function showToast(msg, type='success') {
-        const t = document.createElement('div'); 
-        t.className = `toast ${type}`; 
-        t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`; 
-        document.getElementById('toast-container').appendChild(t); 
-        lucide.createIcons(); 
-        setTimeout(() => t.remove(), 3000);
-    }
-    function showSync(s) { const el = document.getElementById('sync-indicator'); if(el) el.className = s ? 'sync-badge show' : 'sync-badge'; }
-
-    // KHỞI ĐỘNG APP
-    async function initApp(force=false) {
-        if(!force) loadFromCache();
-        await Promise.all([
-            refreshData('get_all_students', 'STUDENTS'),
-            refreshData('get_schedule', 'SCHEDULE'),
-            refreshData('get_all_exercises', 'EXERCISES'),
-            refreshData('get_all_foods', 'FOODS'),
-            refreshData('get_all_plans', 'PLANS'),
-            refreshData('get_templates', 'TEMPLATES'),
-            refreshData('admin_get_dashboard', 'DASHBOARD')
-        ]);
-        localStorage.setItem('pt_admin_cache', JSON.stringify(CACHE));
-        processData();
-        addPlanRow();
-    }
-
-    // CACHING SYSTEM
-    let CACHE = { STUDENTS: [], SCHEDULE: [], EXERCISES: [], FOODS: [], PLANS: [], TEMPLATES: [], DASHBOARD: {} };
-    function loadFromCache() { const s=localStorage.getItem('pt_admin_cache'); if(s) { CACHE=JSON.parse(s); processData(); } }
-    async function refreshData(act, key) { const r = await callAPI(act); if(r.success) CACHE[key] = r.data; }
-    
-    function processData() {
-        STUDENTS = CACHE.STUDENTS || [];
-        SCHEDULE_DATA = CACHE.SCHEDULE || [];
-        EXERCISES = CACHE.EXERCISES || [];
-        FOODS = CACHE.FOODS || [];
-        PLANS = CACHE.PLANS || [];
-        TEMPLATES = CACHE.TEMPLATES || [];
-        
-        STUDENTS_MAP={}; STUDENTS.forEach(s=>STUDENTS_MAP[s.id]=s.name);
-        
-        renderCalendar(); 
-        renderStudents(); 
-        renderPlans(); 
-        renderTemplates(); 
-        renderExercises(); 
-        renderFoods(); 
-        renderDashboard(); 
-        fillDropdowns();
-    }
-
-    // ==================== 2. LỊCH TRÌNH (AGENDA VIEW) ====================
-    function renderCalendar() {
-        const list = document.getElementById('agenda-container');
-        if(!SCHEDULE_DATA || SCHEDULE_DATA.length===0) { 
-            list.innerHTML='<div class="p-10 text-center text-slate-400 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>Chưa có lịch hẹn nào.</div>'; 
-            lucide.createIcons(); return; 
+            USER = JSON.parse(localStorage.getItem('pt_user'));
+        } catch (e) {
+            console.error("Error parsing user:", e);
         }
 
-        const sorted = SCHEDULE_DATA.filter(e => e.status !== 'Cancelled')
-            .sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-            
-        const groups = {}; 
-        sorted.forEach(e => { if(!groups[e.date]) groups[e.date]=[]; groups[e.date].push(e); });
-        const formatTime = (t) => t.length > 10 ? t.substring(11, 16) : t;
+        if (!USER || USER.role !== 'PT') {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('ptName').innerText = USER.name;
+        }
 
-        list.innerHTML = Object.keys(groups).map(date => {
-            const d = new Date(date);
-            const displayDate = d.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit'});
-            const isToday = new Date().toISOString().slice(0,10) === date;
-            
-            let html = `<div class="agenda-date ${isToday ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}">
-                            <span>${displayDate}</span> ${isToday ? '<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Hôm nay</span>' : ''}
-                        </div>`;
-            
-            groups[date].forEach(e => {
-                const st = STUDENTS.find(s => s.id === e.userId); // Tìm object học viên
-                const stName = st ? st.name : 'Unknown';
-                const sessionLeft = st ? st.sessionLeft : 0;
+        // Global State
+        let CACHE = { STUDENTS: [], SCHEDULE: [], EXERCISES: [], FOODS: [], PLANS: [], TEMPLATES: [], DASHBOARD: {} };
+        let STUDENTS_MAP = {}; // { id: name }
+        let STUDENTS = [], SCHEDULE_DATA = [], EXERCISES = [], FOODS = [], PLANS = [], TEMPLATES = [];
+        let DATE = new Date();
+        let SEL_DATE = "";
 
-                let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
-                if(e.status === 'Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
+        // API Call
+        async function callAPI(action, data = {}) {
+            showSync(true);
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, data })
+                });
+                const json = await res.json();
+                showSync(false);
+                return json;
+            } catch (e) {
+                showSync(false);
+                console.error(e);
+                alert("Lỗi kết nối: " + e);
+                return { success: false };
+            }
+        }
 
-                html += `
-                <div class="agenda-item group hover:bg-slate-50">
-                    <div class="flex items-center gap-4">
-                        <span class="time-badge">${formatTime(e.time)}</span>
-                        <div>
-                            <div class="font-bold text-slate-800 text-sm">${stName}</div>
-                            <div class="text-xs text-slate-400">Gói: <b class="${sessionLeft<5?'text-red-500':'text-blue-600'}">${sessionLeft}</b> buổi</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${statusBadge}
-                        ${e.status === 'Upcoming' ? `
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button>
-                            <button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200" title="Dời"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                            <button onclick="cancelSession('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>` : ''}
-                    </div>
-                </div>`;
+        // Init Application
+        async function initApp(force = false) {
+            if (!force) loadFromCache();
+            
+            // Fetch all data in background
+            await Promise.all([
+                refreshData('get_all_students', 'STUDENTS'),
+                refreshData('get_schedule', 'SCHEDULE'),
+                refreshData('get_all_exercises', 'EXERCISES'),
+                refreshData('get_all_foods', 'FOODS'),
+                refreshData('get_all_plans', 'PLANS'),
+                refreshData('get_templates', 'TEMPLATES'),
+                refreshData('admin_get_dashboard', 'DASHBOARD')
+            ]);
+            
+            // Save to cache
+            localStorage.setItem('pt_admin_cache', JSON.stringify(CACHE));
+            
+            // Update global vars & UI
+            syncGlobals();
+            processData();
+            addPlanRow(); // Init plan builder row
+        }
+
+        function loadFromCache() {
+            const s = localStorage.getItem('pt_admin_cache');
+            if (s) {
+                try {
+                    CACHE = JSON.parse(s);
+                    syncGlobals();
+                    processData();
+                } catch (e) { console.error("Cache error", e); }
+            }
+        }
+
+        function syncGlobals() {
+            STUDENTS = CACHE.STUDENTS || [];
+            SCHEDULE_DATA = CACHE.SCHEDULE || [];
+            EXERCISES = CACHE.EXERCISES || [];
+            FOODS = CACHE.FOODS || [];
+            PLANS = CACHE.PLANS || [];
+            TEMPLATES = CACHE.TEMPLATES || [];
+        }
+
+        async function refreshData(act, key) {
+            const r = await callAPI(act);
+            if (r.success) CACHE[key] = r.data;
+        }
+
+        function processData() {
+            STUDENTS_MAP = {};
+            if (STUDENTS) STUDENTS.forEach(s => STUDENTS_MAP[s.id] = s.name);
+            
+            renderCalendar();
+            renderStudents();
+            renderPlans();
+            renderTemplates();
+            renderExercises();
+            renderFoods();
+            renderDashboard();
+            fillDropdowns();
+        }
+
+        // ==================== 3. FEATURE LOGIC ====================
+
+        // --- CALENDAR ---
+        function renderCalendar() {
+            const list = document.getElementById('agenda-container');
+            if (!SCHEDULE_DATA || SCHEDULE_DATA.length === 0) {
+                list.innerHTML = '<div class="p-10 text-center text-slate-400 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>Chưa có lịch hẹn nào.</div>';
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            const sorted = SCHEDULE_DATA.filter(e => e.status !== 'Cancelled')
+                .sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+            
+            const groups = {};
+            sorted.forEach(e => {
+                if (!groups[e.date]) groups[e.date] = [];
+                groups[e.date].push(e);
             });
-            return html;
-        }).join('');
-        lucide.createIcons();
-    }
 
-    // Hành động Lịch
-    document.getElementById('form-book').addEventListener('submit', async (e) => {
-        e.preventDefault(); 
-        const d = {userId: document.getElementById('bk-student').value, date: document.getElementById('bk-date').value, time: document.getElementById('bk-time').value};
-        if(new Date(d.date) < new Date().setHours(0,0,0,0)) return alert("Không thể đặt lịch quá khứ!");
-        const res = await callAPI('book_session', d);
-        if(res.success) { showToast("Đã đặt lịch"); toggleModal('modal-book'); await refreshData('get_schedule', 'SCHEDULE'); renderCalendar(); initDashboard(); } 
-        else alert(res.message);
-    });
+            const formatTime = (t) => t.length > 10 ? t.substring(11, 16) : t;
 
-    async function checkIn(bid, uid){
-        if(confirm("Xác nhận Check-in?")) {
-            const r = await callAPI('deduct_session', {userId: uid});
-            if(r.success) {
-                await callAPI('update_schedule', {bookingId: bid, status: 'Completed'});
-                showToast(r.message); 
-                await Promise.all([refreshData('get_schedule','SCHEDULE'), refreshData('get_all_students','STUDENTS')]); 
-                renderCalendar(); renderStudents();
-            } else alert(r.message);
+            list.innerHTML = Object.keys(groups).map(date => {
+                const d = new Date(date);
+                const displayDate = d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' });
+                const isToday = new Date().toISOString().slice(0, 10) === date;
+                
+                let html = `<div class="agenda-date ${isToday ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}">
+                                <span>${displayDate}</span> ${isToday ? '<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Hôm nay</span>' : ''}
+                            </div>`;
+                
+                groups[date].forEach(e => {
+                    const stName = STUDENTS_MAP[e.userId] || 'Unknown';
+                    // Find student object for session count
+                    const st = STUDENTS.find(s => s.id === e.userId);
+                    const sessionLeft = st ? st.sessionLeft : 0;
+
+                    let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
+                    if (e.status === 'Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
+
+                    html += `
+                    <div class="agenda-item group hover:bg-slate-50">
+                        <div class="flex items-center gap-4">
+                            <span class="time-badge">${formatTime(e.time)}</span>
+                            <div>
+                                <div class="font-bold text-slate-800 text-sm">${stName}</div>
+                                <div class="text-xs text-slate-400">Gói: <b class="${sessionLeft < 5 ? 'text-red-500' : 'text-blue-600'}">${sessionLeft}</b> buổi</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${statusBadge}
+                            ${e.status === 'Upcoming' ? `
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button>
+                                <button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200" title="Dời"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button onclick="cancelSession('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>` : ''}
+                        </div>
+                    </div>`;
+                });
+                return html;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
         }
-    }
-    async function cancelSession(id){ if(confirm("Hủy buổi này?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy", "error"); await refreshData('get_schedule','SCHEDULE'); renderCalendar(); }}
-    function openEdit(id,d,t) { document.getElementById('edit-id').value=id; document.getElementById('edit-date').value=d; document.getElementById('edit-time').value=t.length>10?t.substring(11,16):t; toggleModal('modal-edit-session'); }
-    async function submitEditSession() { await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value}); showToast("Đã dời lịch"); toggleModal('modal-edit-session'); await refreshData('get_schedule','SCHEDULE'); renderCalendar(); }
 
-    // ==================== 3. QUẢN LÝ HỌC VIÊN (HYBRID) ====================
-    function renderStudents() {
-        if(!STUDENTS) return;
-        document.getElementById('student-list').innerHTML = STUDENTS.map(st => `
-            <tr class="hover:bg-slate-50 border-b">
-                <td class="p-4">
-                    <b>${st.name}</b><br><span class="text-xs text-slate-400">${st.email}</span><br>
-                    <span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span>
+        // --- Calendar Actions ---
+        async function checkIn(bid, uid) {
+            if (confirm("Check-in?")) {
+                const r = await callAPI('deduct_session', { userId: uid });
+                if (r.success) {
+                    await callAPI('update_schedule', { bookingId: bid, status: 'Completed' });
+                    showToast(r.message);
+                    await Promise.all([refreshData('get_schedule', 'SCHEDULE'), refreshData('get_all_students', 'STUDENTS')]);
+                    syncGlobals();
+                    renderCalendar();
+                    renderStudents();
+                } else alert(r.message);
+            }
+        }
+
+        async function cancelSession(id) {
+            if (confirm("Hủy?")) {
+                await callAPI('cancel_session', { bookingId: id });
+                showToast("Đã hủy", "error");
+                await refreshData('get_schedule', 'SCHEDULE');
+                syncGlobals();
+                renderCalendar();
+            }
+        }
+
+        function openEdit(id, d, t) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-date').value = d;
+            document.getElementById('edit-time').value = t.length > 10 ? t.substring(11, 16) : t;
+            toggleModal('modal-edit-session');
+        }
+
+        async function submitEditSession() {
+            await callAPI('update_schedule', {
+                bookingId: document.getElementById('edit-id').value,
+                date: document.getElementById('edit-date').value,
+                time: document.getElementById('edit-time').value
+            });
+            showToast("Đã dời lịch");
+            toggleModal('modal-edit-session');
+            await refreshData('get_schedule', 'SCHEDULE');
+            syncGlobals();
+            renderCalendar();
+        }
+
+        // Form Book Session
+        const formBook = document.getElementById('form-book');
+        if (formBook) formBook.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const d = {
+                userId: document.getElementById('bk-student').value,
+                date: document.getElementById('bk-date').value,
+                time: document.getElementById('bk-time').value
+            };
+            const res = await callAPI('book_session', d);
+            if (res.success) {
+                showToast("Đã đặt lịch");
+                toggleModal('modal-book');
+                await refreshData('get_schedule', 'SCHEDULE');
+                syncGlobals();
+                renderCalendar();
+                initDashboard();
+            } else {
+                alert(res.message);
+            }
+        });
+
+        // --- STUDENTS ---
+        function renderStudents() {
+            if (!STUDENTS) return;
+            document.getElementById('student-list').innerHTML = STUDENTS.map(st => `
+                <tr class="hover:bg-slate-50 border-b">
+                    <td class="p-4">
+                        <b>${st.name}</b><br><span class="text-xs text-slate-400">${st.email}</span><br>
+                        <span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="font-black text-lg text-blue-600">${st.sessionLeft}</div>
+                        <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
+                    </td>
+                    <td class="p-4 text-right space-y-2">
+                        <div class="flex gap-1 justify-end">
+                            <button onclick="topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold hover:bg-blue-100">Nạp Buổi</button>
+                            <button onclick="openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button>
+                        </div>
+                        <div class="flex gap-1 justify-end">
+                            <button onclick="openEditStudent('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                            <button onclick="toggleStatus('${st.id}','${st.status}')" class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-xs border" title="Khóa/Mở">${st.status==='Active'?'🔒':'🔓'}</button>
+                            <button onclick="deleteStudent('${st.id}','${st.name}')" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs border" title="Xóa"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function topUp(id, n) {
+            const a = prompt(`Nạp thêm buổi cho ${n}?`, "10");
+            if (a) {
+                await callAPI('admin_update_student', { studentId: id, addSession: a });
+                showToast("Đã nạp");
+                await refreshData('get_all_students', 'STUDENTS');
+                syncGlobals(); renderStudents();
+            }
+        }
+        
+        function openExtendModal(id) { document.getElementById('ext-id').value = id; toggleModal('modal-extend'); }
+        async function submitExtend() {
+            const id = document.getElementById('ext-id').value, date = document.getElementById('ext-date').value;
+            if (!date) return alert("Chọn ngày");
+            await callAPI('admin_update_student', { studentId: id, setExpiryDate: date });
+            showToast("Đã gia hạn"); toggleModal('modal-extend');
+            await refreshData('get_all_students', 'STUDENTS');
+            syncGlobals(); renderStudents();
+        }
+
+        async function deleteStudent(id, name) {
+            if (confirm(`XÓA VĨNH VIỄN ${name}?`)) {
+                const r = await callAPI('admin_delete_student', { id });
+                if (r.success) {
+                    showToast("Đã xóa");
+                    await refreshData('get_all_students', 'STUDENTS');
+                    syncGlobals(); renderStudents(); initDashboard();
+                } else alert(r.message);
+            }
+        }
+
+        function openEditStudent(id) {
+            const s = STUDENTS.find(x => x.id === id); if (!s) return;
+            document.getElementById('edt-st-id').value = id;
+            document.getElementById('edt-st-name').value = s.name;
+            document.getElementById('edt-st-email').value = s.email;
+            document.getElementById('edt-st-phone').value = s.phone;
+            toggleModal('modal-edit-student');
+        }
+        async function submitEditStudent() {
+            await callAPI('admin_edit_student_info', {
+                id: document.getElementById('edt-st-id').value,
+                name: document.getElementById('edt-st-name').value,
+                email: document.getElementById('edt-st-email').value,
+                phone: document.getElementById('edt-st-phone').value
+            });
+            showToast("Đã cập nhật"); toggleModal('modal-edit-student');
+            await refreshData('get_all_students', 'STUDENTS');
+            syncGlobals(); renderStudents();
+        }
+
+        async function toggleStatus(id, st) {
+            if (confirm("Đổi trạng thái?")) {
+                await callAPI('admin_update_student', { studentId: id, status: st === 'Active' ? 'Inactive' : 'Active' });
+                await refreshData('get_all_students', 'STUDENTS');
+                syncGlobals(); renderStudents();
+            }
+        }
+
+        const formReg = document.getElementById('form-register');
+        if (formReg) formReg.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await callAPI('register', {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                phone: document.getElementById('reg-phone').value
+            });
+            showToast("Đã thêm HV"); toggleModal('modal-add-student');
+            await refreshData('get_all_students', 'STUDENTS');
+            syncGlobals(); renderStudents();
+        });
+
+        // --- PLANS & TEMPLATES ---
+        function renderPlans() {
+            const l = PLANS.filter(p => p.userId !== 'TEMPLATE');
+            document.getElementById('plan-list').innerHTML = l.map(p => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 font-bold text-blue-600">${p.name}</td>
+                    <td class="p-3 text-xs text-slate-600">${STUDENTS_MAP[p.userId] || p.userId}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editPlan('${p.id}')" class="text-blue-500 hover:text-blue-700"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                        <button onclick="delItem('plan','${p.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderTemplates() {
+            document.getElementById('assign-template').innerHTML = '<option value="">-- Chọn Mẫu --</option>' + TEMPLATES.map(t => `<option value="${t.id}">${t.name} (${t.count} bài)</option>`).join('');
+            document.getElementById('template-list-display').innerHTML = TEMPLATES.map(t => `
+                <div class="flex justify-between p-2 bg-slate-50 border rounded mb-2 group hover:border-blue-200">
+                    <span class="text-sm font-bold cursor-pointer hover:text-blue-600" onclick="editPlan('${t.id}')">${t.name} (${t.count} bài)</span>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editPlan('${t.id}')" class="p-1 bg-white border rounded hover:text-blue-600"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                        <button onclick="delItem('plan','${t.id}')" class="p-1 bg-white border rounded hover:text-red-600"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                    </div>
+                </div>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function editPlan(id) {
+            const r = await callAPI('get_plan_details', { planId: id });
+            if (r.success) {
+                const p = r.data;
+                document.getElementById('plan-id-edit').value = id;
+                document.getElementById('plan-name').value = p.name;
+                document.getElementById('plan-student').value = p.userId;
+                document.getElementById('plan-form-title').innerText = "Sửa: " + p.name;
+                document.getElementById('btn-save-plan').innerText = "Cập Nhật";
+                const tbody = document.getElementById('plan-rows'); tbody.innerHTML = '';
+                p.details.forEach(d => {
+                    tbody.insertAdjacentHTML('beforeend', `<tr>
+                        <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50">${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => `<option ${d.day==day?'selected':''}>${day}</option>`).join('')}</select></td>
+                        <td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td>
+                        <td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-sm text-center"></td>
+                        <td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-center"></td>
+                        <td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td>
+                        <td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td>
+                    </tr>`);
+                });
+                if (window.lucide) lucide.createIcons();
+                switchTab('builder', document.querySelectorAll('.tab-btn')[1]);
+                document.getElementById('plan-editor').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function resetPlanForm() {
+            document.getElementById('plan-id-edit').value = "";
+            document.getElementById('plan-name').value = "";
+            document.getElementById('plan-rows').innerHTML = "";
+            document.getElementById('plan-form-title').innerText = "Tạo Giáo Án Mới";
+            document.getElementById('btn-save-plan').innerText = "Lưu & Gửi";
+            addPlanRow();
+        }
+
+        async function savePlan() {
+            const id = document.getElementById('plan-id-edit').value;
+            const name = document.getElementById('plan-name').value;
+            const uId = document.getElementById('plan-student').value;
+            if (!name || !uId) return alert("Thiếu thông tin!");
+            
+            const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => {
+                const inp = r.querySelectorAll('input, select');
+                return { day: inp[0].value, exercise: inp[1].value, sets: inp[2].value, reps: inp[3].value, note: inp[4].value, video: '' };
+            }).filter(d => d.exercise.trim() !== "");
+
+            const res = await callAPI('save_workout_plan', { planId: id, planName: name, targetUser: uId, details });
+            if (res.success) {
+                showToast("Đã lưu");
+                await Promise.all([refreshData('get_all_plans', 'PLANS'), refreshData('get_templates', 'TEMPLATES')]);
+                syncGlobals(); renderPlans(); renderTemplates(); resetPlanForm();
+            }
+        }
+
+        function addPlanRow() {
+            document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr>
+                <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td>
+                <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td>
+                <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-center"></td>
+                <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-center"></td>
+                <td class="p-2"><input class="w-full border p-1 rounded"></td>
+                <td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td>
+            </tr>`);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function assignTemplate() {
+            const tId = document.getElementById('assign-template').value;
+            const sSelect = document.getElementById('assign-students');
+            const sIds = Array.from(sSelect.selectedOptions).map(o => o.value);
+            if (!tId || sIds.length === 0) return alert("Chọn đủ thông tin");
+            const res = await callAPI('assign_template', { templateId: tId, studentIds: sIds, newName: document.getElementById('assign-new-name').value });
+            if (res.success) {
+                showToast(res.message);
+                await refreshData('get_all_plans', 'PLANS');
+                syncGlobals(); renderPlans();
+            } else alert(res.message);
+        }
+
+        // --- EXERCISE & FOOD ---
+        function renderExercises() {
+            if (!EXERCISES) return;
+            document.getElementById('dl-exercises').innerHTML = EXERCISES.map(e => `<option value="${e.name}">`).join('');
+            document.getElementById('ex-list').innerHTML = EXERCISES.map(e => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3"><div class="font-medium text-slate-800">${e.name}</div>${e.image ? `<a href="${e.image}" target="_blank" class="text-[10px] text-blue-500 hover:underline flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}</td>
+                    <td class="p-3 text-slate-500 text-xs">${e.group}</td>
+                    <td class="p-3 text-right space-x-1"><button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500 hover:text-blue-700"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td>
+                </tr>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderFoods() {
+            if (!FOODS) return;
+            document.getElementById('fd-list').innerHTML = FOODS.map(f => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3"><b>${f.name}</b><div class="macro-grid"><div class="macro-item bg-slate-100">${f.cal}</div><div class="macro-item bg-pro">${f.pro}</div><div class="macro-item bg-carb">${f.carb}</div><div class="macro-item bg-fat">${f.fat}</div></div></td>
+                    <td class="p-3 text-right space-x-1"><button onclick='editFd(${JSON.stringify(f)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('food','${f.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td>
+                </tr>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const formEx = document.getElementById('form-exercise');
+        if (formEx) formEx.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('ex-id-edit').value;
+            await callAPI(id ? 'admin_update_exercise' : 'admin_add_exercise', {
+                id, name: document.getElementById('ex-name').value,
+                group: document.getElementById('ex-group').value,
+                image: document.getElementById('ex-image').value,
+                desc: document.getElementById('ex-desc').value
+            });
+            showToast("Thành công");
+            await refreshData('get_all_exercises', 'EXERCISES');
+            syncGlobals(); renderExercises(); resetExForm();
+        });
+
+        const formFd = document.getElementById('form-food');
+        if (formFd) formFd.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('fd-id-edit').value;
+            await callAPI(id ? 'admin_update_food' : 'admin_add_food', {
+                id, name: document.getElementById('fd-name').value,
+                cal: document.getElementById('fd-cal').value,
+                unit: document.getElementById('fd-unit').value,
+                pro: document.getElementById('fd-pro').value,
+                carb: document.getElementById('fd-carb').value,
+                fat: document.getElementById('fd-fat').value
+            });
+            showToast("Thành công");
+            await refreshData('get_all_foods', 'FOODS');
+            syncGlobals(); renderFoods(); resetFdForm();
+        });
+
+        function editEx(e) { document.getElementById('ex-id-edit').value = e.id; document.getElementById('ex-name').value = e.name; document.getElementById('ex-group').value = e.group; document.getElementById('ex-image').value = e.image || ""; document.getElementById('ex-desc').value = e.desc || ""; document.getElementById('ex-form-title').innerText = "Sửa Bài Tập"; document.getElementById('btn-ex-save').innerText = "Cập Nhật"; }
+        function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value = ""; document.getElementById('ex-form-title').innerText = "Thêm Bài"; document.getElementById('btn-ex-save').innerText = "Thêm Mới"; }
+        function editFd(f) { document.getElementById('fd-id-edit').value = f.id; document.getElementById('fd-name').value = f.name; document.getElementById('fd-cal').value = f.cal; document.getElementById('fd-unit').value = f.unit; document.getElementById('fd-pro').value = f.pro; document.getElementById('fd-carb').value = f.carb; document.getElementById('fd-fat').value = f.fat; document.getElementById('fd-form-title').innerText = "Sửa Món"; document.getElementById('btn-fd-save').innerText = "Cập Nhật"; }
+        function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value = ""; document.getElementById('fd-form-title').innerText = "Thêm Món"; document.getElementById('btn-fd-save').innerText = "Thêm Mới"; }
+
+        // UTILS
+        async function delItem(t, id) {
+            if (confirm("Xóa?")) {
+                // Optimistic UI remove
+                if(t==='exercise') { EXERCISES=EXERCISES.filter(x=>x.id!==id); renderExercises(); }
+                if(t==='food') { FOODS=FOODS.filter(x=>x.id!==id); renderFoods(); }
+                if(t==='plan') { PLANS=PLANS.filter(x=>x.id!==id); renderPlans(); }
+                
+                const r = await callAPI(`admin_delete_${t}`, { id });
+                if (r.success) {
+                    showToast("Đã xóa");
+                    // Reload background to be sure
+                    if (t == 'exercise') await refreshData('get_all_exercises', 'EXERCISES');
+                    if (t == 'food') await refreshData('get_all_foods', 'FOODS');
+                    if (t == 'plan') { await refreshData('get_all_plans', 'PLANS'); await refreshData('get_templates', 'TEMPLATES'); }
+                    if (t == 'student') await refreshData('get_all_students', 'STUDENTS');
+                    syncGlobals(); processData();
+                }
+            }
+        }
+
+        function renderDashboard() {
+            if (CACHE.DASHBOARD) {
+                document.getElementById('stat-total').innerText = CACHE.DASHBOARD.totalStudent;
+                document.getElementById('stat-active').innerText = CACHE.DASHBOARD.activeStudent;
+                document.getElementById('stat-today').innerText = CACHE.DASHBOARD.todaySessions;
+            }
+        }
+
+        function fillDropdowns() {
+            if (!STUDENTS) return;
+            const optsNormal = '<option value="">-- Chọn Học Viên --</option><option value="TEMPLATE" class="font-bold text-blue-600">★ LƯU LÀM MẪU</option>' + STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            document.getElementById('plan-student').innerHTML = optsNormal;
+            document.getElementById('bk-student').innerHTML = '<option value="">-- Chọn --</option>' + STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            document.getElementById('assign-students').innerHTML = STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        function switchTab(n, b) {
+            document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+            document.getElementById(`view-${n}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+            b.classList.add('active');
+        }
+
+        function logout() { localStorage.removeItem('pt_user'); window.location.href = 'login.html'; }
+
+        initApp();
     </script>
 </body>
 </html>
