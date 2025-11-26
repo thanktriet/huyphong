@@ -130,131 +130,345 @@
 
     <datalist id="dl-exercises"></datalist>
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
+<script>
+    // ==================== 1. CẤU HÌNH & KHỞI TẠO ====================
+    const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
+    lucide.createIcons();
+    
+    // Kiểm tra đăng nhập
+    const USER = JSON.parse(localStorage.getItem('pt_user'));
+    if(!USER || USER.role !== 'PT') window.location.href = 'login.html';
+    document.getElementById('ptName').innerText = USER.name;
+
+    // Biến toàn cục
+    let STUDENTS = [], STUDENTS_MAP = {}, SCHEDULE_DATA = [], EXERCISES = [], FOODS = [], PLANS = [];
+    let DATE = new Date(), SEL_DATE = "";
+
+    // Hàm gọi API chung
+    async function callAPI(action, data={}) {
+        try {
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
+            return await res.json();
+        } catch(e) {
+            console.error(e); alert("Lỗi kết nối: " + e);
+            return { success: false };
+        }
+    }
+
+    // Toast Notification
+    function showToast(msg, type='success') {
+        const t = document.createElement('div'); 
+        t.className = `toast ${type}`; 
+        t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`; 
+        document.getElementById('toast-container').appendChild(t); 
+        lucide.createIcons(); 
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    // KHỞI ĐỘNG APP
+    async function initApp() {
+        await Promise.all([
+            loadStudents(),   // Tải trước để map tên
+            loadTemplates(),  // Tải mẫu giáo án
+            loadSchedule(),   // Tải lịch
+            loadEx(),         // Tải bài tập
+            loadFd(),         // Tải món ăn
+            loadPl(),         // Tải lịch sử giao bài
+            initDashboard()
+        ]);
+        addPlanRow();
+    }
+
+    // ==================== 2. LỊCH TRÌNH (AGENDA VIEW - ĐÃ FIX LỖI GIỜ) ====================
+    async function loadSchedule() {
+        const res = await callAPI('get_schedule');
+        if (res.success) { SCHEDULE_DATA = res.data; renderAgenda(); }
+    }
+
+    function renderAgenda() {
+        const list = document.getElementById('agenda-container');
+        list.innerHTML = '';
+        
+        const sorted = SCHEDULE_DATA.filter(e => e.status !== 'Cancelled')
+            .sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
+            
+        if(sorted.length === 0) { 
+            list.innerHTML = '<div class="p-10 text-center text-slate-400 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>Chưa có lịch hẹn nào.</div>'; 
+            lucide.createIcons(); return; 
+        }
+
+        // Gom nhóm theo Ngày
+        const groups = {};
+        sorted.forEach(e => { if(!groups[e.date]) groups[e.date]=[]; groups[e.date].push(e); });
+
+        // Helper fix giờ (Cắt bỏ phần ngày 1899 nếu có)
+        const formatTime = (t) => t.length > 10 ? t.substring(11, 16) : t;
+
+        Object.keys(groups).forEach(date => {
+            const d = new Date(date);
+            const displayDate = d.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit'});
+            const isToday = new Date().toISOString().slice(0,10) === date;
+            
+            let html = `<div class="agenda-date ${isToday ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}">
+                            <span>${displayDate}</span> ${isToday ? '<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Hôm nay</span>' : ''}
+                        </div>`;
+            
+            groups[date].forEach(e => {
+                const st = STUDENTS.find(s => s.id === e.userId);
+                const stName = st ? st.name : 'Unknown';
+                const sessionLeft = st ? st.sessionLeft : 0;
+                const timeStr = formatTime(e.time);
+
+                let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
+                if(e.status === 'Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
+
+                html += `
+                <div class="agenda-item group hover:bg-slate-50">
+                    <div class="flex items-center gap-4">
+                        <span class="time-badge">${timeStr}</span>
+                        <div>
+                            <div class="font-bold text-slate-800 text-sm">${stName}</div>
+                            <div class="text-xs text-slate-400">Gói: <b class="${sessionLeft<5?'text-red-500':'text-blue-600'}">${sessionLeft}</b> buổi</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${statusBadge}
+                        ${e.status === 'Upcoming' ? `
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button>
+                            <button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200" title="Dời"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="cancelSession('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            });
+            list.innerHTML += `<div>${html}</div>`;
+        });
         lucide.createIcons();
-        const USER = JSON.parse(localStorage.getItem('pt_user'));
-        if(!USER || USER.role !== 'PT') window.location.href = 'login.html';
-        document.getElementById('ptName').innerText = USER.name;
+    }
 
-        // STATE & CACHE
-        let CACHE = { STUDENTS: [], SCHEDULE: [], EXERCISES: [], FOODS: [], PLANS: [], TEMPLATES: [], DASHBOARD: {} };
-        let STUDENTS_MAP = {};
+    // Hành động Lịch
+    document.getElementById('form-book').addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const d = {userId: document.getElementById('bk-student').value, date: document.getElementById('bk-date').value, time: document.getElementById('bk-time').value};
+        if(new Date(d.date) < new Date().setHours(0,0,0,0)) return alert("Không thể đặt lịch quá khứ!");
+        const res = await callAPI('book_session', d);
+        if(res.success) { showToast("Đã đặt lịch"); toggleModal('modal-book'); loadSchedule(); initDashboard(); } else alert(res.message);
+    });
 
-        async function callAPI(a,d={}) { 
-            showSync(true);
-            try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:a,data:d})}); const res=await r.json(); showSync(false); return res;}
-            catch(e){showSync(false); return {success:false};} 
+    async function checkIn(bid, uid){
+        if(confirm("Xác nhận Check-in?")) {
+            const r = await callAPI('deduct_session', {userId: uid});
+            if(r.success) {
+                await callAPI('update_schedule', {bookingId: bid, status: 'Completed'});
+                showToast(r.message); loadSchedule(); loadStudents();
+            } else alert(r.message);
         }
-        function showToast(m,t='success'){const d=document.createElement('div');d.className=`toast ${t}`;d.innerHTML=`<i data-lucide="${t==='success'?'check-circle':'alert-circle'}" class="w-5 ${t==='success'?'text-green-600':'text-red-600'}"></i><span>${m}</span>`;document.getElementById('toast-container').appendChild(d);lucide.createIcons();setTimeout(()=>d.remove(),3000);}
-        function showSync(s) { const el = document.getElementById('sync-indicator'); if(el) el.style.opacity = s ? '1' : '0'; }
+    }
 
-        // INIT
-        function loadFromCache() { const s=localStorage.getItem('pt_admin_cache'); if(s) { CACHE=JSON.parse(s); processData(); } }
-        async function initApp() {
-            loadFromCache();
-            await Promise.all([
-                refreshData('get_all_students', 'STUDENTS'),
-                refreshData('get_schedule', 'SCHEDULE'),
-                refreshData('get_all_exercises', 'EXERCISES'),
-                refreshData('get_all_foods', 'FOODS'),
-                refreshData('get_all_plans', 'PLANS'),
-                refreshData('get_templates', 'TEMPLATES'),
-                refreshData('admin_get_dashboard', 'DASHBOARD')
-            ]);
-            localStorage.setItem('pt_admin_cache', JSON.stringify(CACHE));
-            processData();
-            addPlanRow();
-        }
-        async function refreshData(act, key) { const r = await callAPI(act); if(r.success) CACHE[key] = r.data; }
-        function processData() {
-            STUDENTS_MAP={}; if(CACHE.STUDENTS) CACHE.STUDENTS.forEach(s=>STUDENTS_MAP[s.id]=s.name);
-            renderCalendar(); renderStudents(); renderPlans(); renderTemplates(); renderExercises(); renderFoods(); renderDashboard(); fillDropdowns();
-        }
+    async function cancelSession(id){ if(confirm("Hủy buổi này?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy", "error"); loadSchedule(); }}
+    
+    function openEdit(id, date, time) {
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-date').value = date;
+        document.getElementById('edit-time').value = time.length > 10 ? time.substring(11, 16) : time; // Fix giờ
+        toggleModal('modal-edit-session');
+    }
 
-        // 1. CALENDAR AGENDA
-        function renderCalendar() {
-            const list = document.getElementById('agenda-container'); 
-            if(!CACHE.SCHEDULE || CACHE.SCHEDULE.length===0) { list.innerHTML='<div class="p-10 text-center text-slate-400">Trống lịch.</div>'; return; }
-            const sorted = CACHE.SCHEDULE.filter(e => e.status !== 'Cancelled').sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-            const groups = {}; sorted.forEach(e => { if(!groups[e.date]) groups[e.date]=[]; groups[e.date].push(e); });
-            const formatTime = (t) => t.length > 10 ? t.substring(11, 16) : t;
+    async function submitEditSession() {
+        await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value});
+        showToast("Đã dời lịch"); toggleModal('modal-edit-session'); loadSchedule();
+    }
 
-            list.innerHTML = Object.keys(groups).map(date => {
-                const d = new Date(date); const displayDate = d.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit'});
-                const isToday = new Date().toISOString().slice(0,10) === date;
-                let html = `<div class="agenda-date ${isToday ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}"><span>${displayDate}</span> ${isToday ? '<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Hôm nay</span>' : ''}</div>`;
-                groups[date].forEach(e => {
-                    const stName = STUDENTS_MAP[e.userId] || 'Unknown';
-                    let statusBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">Sắp tới</span>`;
-                    if(e.status === 'Completed') statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded line-through">Đã xong</span>`;
-                    html += `<div class="agenda-item group hover:bg-slate-50"><div class="flex items-center gap-4"><span class="time-badge">${formatTime(e.time)}</span><div><div class="font-bold text-slate-800 text-sm">${stName}</div><div class="text-xs text-slate-400">ID: ${e.id.slice(-4)}</div></div></div><div class="flex items-center gap-2">${statusBadge}${e.status === 'Upcoming' ? `<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="checkIn('${e.id}','${e.userId}')" class="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Check-in"><i data-lucide="check" class="w-4 h-4"></i></button><button onclick="openEdit('${e.id}','${e.date}','${e.time}')" class="p-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200" title="Dời"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="cancelSession('${e.id}')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Hủy"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>` : ''}</div></div>`;
-                });
-                return html;
-            }).join('');
+    // ==================== 3. QUẢN LÝ GIÁO ÁN & MẪU ====================
+    async function loadPl() { 
+        const r = await callAPI('get_all_plans'); 
+        if(r.success){ 
+            PLANS=r.data; 
+            // Lọc chỉ hiện giáo án đã giao (không phải template)
+            const assigned = PLANS.filter(p => p.userId !== 'TEMPLATE');
+            document.getElementById('plan-list').innerHTML = assigned.map(p => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 font-bold text-blue-600">${p.name}</td>
+                    <td class="p-3 text-xs text-slate-600">${STUDENTS_MAP[p.userId] || p.userId}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editPlan('${p.id}')" class="text-blue-500 hover:text-blue-700"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                        <button onclick="delItem('plan','${p.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).join(''); 
+            lucide.createIcons(); 
+        } 
+    }
+
+    async function loadTemplates() {
+        const res = await callAPI('get_templates');
+        if(res.success) {
+            document.getElementById('assign-template').innerHTML = '<option value="">-- Chọn Mẫu --</option>' + res.data.map(t => `<option value="${t.id}">${t.name} (${t.count} bài)</option>`).join('');
+            document.getElementById('template-list-display').innerHTML = res.data.map(t => `
+                <div class="flex justify-between p-2 bg-slate-50 border rounded mb-2 group hover:border-blue-200">
+                    <span class="text-sm font-bold cursor-pointer hover:text-blue-600" onclick="editPlan('${t.id}')">${t.name}</span>
+                    <div class="flex gap-1">
+                        <button onclick="editPlan('${t.id}')" class="text-blue-500 p-1"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                        <button onclick="delItem('plan','${t.id}')" class="text-red-400 p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                    </div>
+                </div>`).join('');
             lucide.createIcons();
         }
-        document.getElementById('form-book').addEventListener('submit', async (e) => { e.preventDefault(); await callAPI('book_session', { userId: document.getElementById('bk-student').value, date: document.getElementById('bk-date').value, time: document.getElementById('bk-time').value }); showToast("Đã đặt lịch"); toggleModal('modal-book'); await refreshData('get_schedule','SCHEDULE'); renderCalendar(); });
-        async function checkIn(bid, uid){ if(confirm("Check-in?")) { const r=await callAPI('deduct_session',{userId:uid}); if(r.success){ await callAPI('update_schedule',{bookingId:bid,status:'Completed'}); showToast(r.message); await Promise.all([refreshData('get_schedule','SCHEDULE'),refreshData('get_all_students','STUDENTS')]); renderCalendar(); renderStudents(); } else alert(r.message); }}
-        async function cancelSession(id){ if(confirm("Hủy?")) { await callAPI('cancel_session',{bookingId:id}); showToast("Đã hủy", "error"); await refreshData('get_schedule','SCHEDULE'); renderCalendar(); }}
-        function openEdit(id,d,t) { document.getElementById('edit-id').value=id; document.getElementById('edit-date').value=d; document.getElementById('edit-time').value=t.length>10?t.substring(11,16):t; toggleModal('modal-edit-session'); }
-        async function submitEditSession() { await callAPI('update_schedule',{bookingId:document.getElementById('edit-id').value, date:document.getElementById('edit-date').value, time:document.getElementById('edit-time').value}); showToast("Đã dời lịch"); toggleModal('modal-edit-session'); await refreshData('get_schedule','SCHEDULE'); renderCalendar(); }
+    }
 
-        // 2. STUDENTS (HYBRID)
-        function renderStudents() {
-            if(!CACHE.STUDENTS) return;
-            document.getElementById('student-list').innerHTML = CACHE.STUDENTS.map(st => `
-                <tr class="hover:bg-slate-50 border-b"><td class="p-4"><b>${st.name}</b><br><span class="text-xs text-slate-400">${st.email}</span><br><span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span></td><td class="p-4 text-center"><div class="font-black text-lg text-blue-600">${st.sessionLeft}</div><div class="text-[10px] text-slate-400 uppercase">Buổi</div></td><td class="p-4 text-right space-y-2"><div class="flex gap-1 justify-end"><button onclick="topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold hover:bg-blue-100">Nạp Buổi</button><button onclick="openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button></div><div class="flex gap-1 justify-end"><button onclick="openEditStudent('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa"><i data-lucide="edit-2" class="w-3 h-3"></i></button><button onclick="toggleStatus('${st.id}','${st.status}')" class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-xs border" title="Khóa/Mở">${st.status==='Active'?'🔒':'🔓'}</button><button onclick="deleteStudent('${st.id}','${st.name}')" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs border" title="Xóa"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></td></tr>`).join('');
+    async function editPlan(id) {
+        const r = await callAPI('get_plan_details', {planId: id});
+        if(r.success) {
+            const p = r.data;
+            document.getElementById('plan-id-edit').value = id;
+            document.getElementById('plan-name').value = p.name;
+            document.getElementById('plan-student').value = p.userId;
+            document.getElementById('plan-form-title').innerText = "Sửa: " + p.name;
+            document.getElementById('btn-save-plan').innerText = "Cập Nhật Giáo Án";
+            const tbody = document.getElementById('plan-rows'); tbody.innerHTML = '';
+            p.details.forEach(d => {
+                tbody.insertAdjacentHTML('beforeend', `<tr>
+                    <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50">${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => `<option ${d.day==day?'selected':''}>${day}</option>`).join('')}</select></td>
+                    <td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td>
+                    <td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-sm text-center"></td>
+                    <td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td>
+                    <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>`);
+            });
+            lucide.createIcons();
+            document.getElementById('plan-editor').scrollIntoView({behavior: 'smooth'});
+        }
+    }
+
+    function resetPlanForm() {
+        document.getElementById('plan-id-edit').value = "";
+        document.getElementById('plan-name').value = "";
+        document.getElementById('plan-student').value = ""; 
+        document.getElementById('plan-rows').innerHTML = "";
+        document.getElementById('plan-form-title').innerText = "Soạn Giáo Án Mới";
+        document.getElementById('btn-save-plan').innerText = "Lưu & Gửi";
+        addPlanRow();
+    }
+
+    async function savePlan() {
+        const id = document.getElementById('plan-id-edit').value;
+        const name = document.getElementById('plan-name').value;
+        const uId = document.getElementById('plan-student').value;
+        if (!name || !uId) return alert("Thiếu thông tin!");
+        
+        const details = Array.from(document.querySelectorAll('#plan-rows tr')).map(r => {
+            const inp = r.querySelectorAll('input, select');
+            return { day: inp[0].value, exercise: inp[1].value, sets: inp[2].value, reps: inp[3].value, note: inp[4].value, video: '' };
+        }).filter(d => d.exercise.trim() !== "");
+        
+        const res = await callAPI('save_workout_plan', { planId: id, planName: name, targetUser: uId, details });
+        if (res.success) { showToast("Đã lưu thành công!"); loadPl(); loadTemplates(); resetPlanForm(); }
+    }
+
+    function addPlanRow() {
+        document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr>
+            <td class="p-2"><select class="w-full border p-1 rounded text-sm bg-slate-50"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td>
+            <td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài..."></td>
+            <td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-sm text-center"></td>
+            <td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-sm text-center"></td>
+            <td class="p-2"><input class="w-full border p-1 rounded text-sm"></td>
+            <td class="p-2"><button onclick="this.closest('tr').remove()" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+        </tr>`);
+        lucide.createIcons();
+    }
+
+    async function assignTemplate() {
+        const tId = document.getElementById('assign-template').value;
+        const sSelect = document.getElementById('assign-students');
+        const sIds = Array.from(sSelect.selectedOptions).map(o => o.value);
+        const newName = document.getElementById('assign-new-name').value;
+
+        if(!tId || sIds.length===0) return alert("Chọn Mẫu và Học viên!");
+        if(!confirm(`Giao giáo án này cho ${sIds.length} người?`)) return;
+
+        const res = await callAPI('assign_template', { templateId: tId, studentIds: sIds, newName: newName });
+        if(res.success) { showToast(res.message); loadPl(); document.getElementById('assign-new-name').value=''; sSelect.selectedIndex=-1; } 
+        else alert(res.message);
+    }
+
+    // ==================== 4. QUẢN LÝ HỌC VIÊN (Sửa/Xóa/Nạp) ====================
+    async function loadStudents() {
+        const r = await callAPI('get_all_students');
+        if(r.success) {
+            STUDENTS = r.data;
+            STUDENTS_MAP = {}; STUDENTS.forEach(s => STUDENTS_MAP[s.id] = s.name);
+            
+            // Dropdown options
+            const optsNormal = '<option value="">-- Chọn Học Viên --</option>' + '<option value="TEMPLATE" class="font-bold text-blue-600">★ LƯU LÀM MẪU (TEMPLATE)</option>' + STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            const optsOnlySt = '<option value="">-- Chọn --</option>' + STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            
+            document.getElementById('plan-student').innerHTML = optsNormal;
+            document.getElementById('bk-student').innerHTML = optsOnlySt;
+            document.getElementById('assign-students').innerHTML = STUDENTS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+            document.getElementById('student-list').innerHTML = STUDENTS.map(st => `
+                <tr class="hover:bg-slate-50 border-b"><td class="p-4"><b>${st.name}</b><br><span class="text-xs text-slate-400">${st.email}</span><br><span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span></td>
+                <td class="p-4 text-center font-bold text-blue-600">${st.sessionLeft}</td>
+                <td class="p-4 text-right space-y-2">
+                    <div class="flex gap-1 justify-end"><button onclick="topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold">Nạp Buổi</button><button onclick="openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold">Gia Hạn</button></div>
+                    <div class="flex gap-1 justify-end"><button onclick="openEditStudent('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa"><i data-lucide="edit-2" class="w-3 h-3"></i></button><button onclick="toggleStatus('${st.id}','${st.status}')" class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-xs border" title="Khóa/Mở">${st.status==='Active'?'🔒':'🔓'}</button><button onclick="deleteStudent('${st.id}','${st.name}')" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs border" title="Xóa"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>
+                </td></tr>`).join('');
+        }
+    }
+    async function topUp(id,n) { const a=prompt(`Nạp thêm buổi cho ${n}?`,"10"); if(a) { await callAPI('admin_update_student',{studentId:id,addSession:a}); showToast("Đã nạp"); loadStudents(); }}
+    function openExtendModal(id) { document.getElementById('ext-id').value=id; toggleModal('modal-extend'); }
+    async function submitExtend() { const id=document.getElementById('ext-id').value, date=document.getElementById('ext-date').value; if(!date) return alert("Chọn ngày"); await callAPI('admin_update_student',{studentId:id, setExpiryDate:date}); showToast("Đã gia hạn"); toggleModal('modal-extend'); loadStudents(); }
+    function openEditStudent(id) { const s=STUDENTS.find(x=>x.id===id); if(!s)return; document.getElementById('edt-st-id').value=id; document.getElementById('edt-st-name').value=s.name; document.getElementById('edt-st-email').value=s.email; document.getElementById('edt-st-phone').value=s.phone; toggleModal('modal-edit-student'); }
+    async function submitEditStudent() { await callAPI('admin_edit_student_info', {id:document.getElementById('edt-st-id').value, name:document.getElementById('edt-st-name').value, email:document.getElementById('edt-st-email').value, phone:document.getElementById('edt-st-phone').value}); showToast("Đã cập nhật"); toggleModal('modal-edit-student'); loadStudents(); }
+    async function toggleStatus(id, st) { if(confirm("Đổi trạng thái tài khoản?")) { await callAPI('admin_update_student', { studentId: id, status: st==='Active'?'Inactive':'Active' }); loadStudents(); } }
+    async function deleteStudent(id, name) { if(confirm(`XÓA VĨNH VIỄN học viên ${name}?`)) { const r=await callAPI('admin_delete_student', {id}); if(r.success){showToast("Đã xóa"); loadStudents(); initDashboard();} else alert(r.message); } }
+    const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm HV"); toggleModal('modal-add-student'); loadStudents(); });
+
+    // ==================== 5. QUẢN LÝ BÀI TẬP & MÓN ĂN (FIXED IMAGE & MACROS) ====================
+    async function loadEx() {
+        const r = await callAPI('get_all_exercises');
+        if(r.success) {
+            EXERCISES = r.data;
+            document.getElementById('dl-exercises').innerHTML = EXERCISES.map(e=>`<option value="${e.name}">`).join('');
+            document.getElementById('ex-list').innerHTML = EXERCISES.map(e => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3"><div class="font-medium text-slate-800">${e.name}</div>${e.image ? `<a href="${e.image}" target="_blank" class="text-[10px] text-blue-500 hover:underline flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}</td>
+                    <td class="p-3 text-slate-500 text-xs">${e.group}</td>
+                    <td class="p-3 text-right space-x-1"><button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500 hover:text-blue-700"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>`).join('');
             lucide.createIcons();
         }
-        async function topUp(id,n) { const a=prompt(`Nạp buổi cho ${n}?`,"10"); if(a) { await callAPI('admin_update_student',{studentId:id,addSession:a}); showToast("Đã nạp"); await refreshData('get_all_students','STUDENTS'); renderStudents(); }}
-        function openExtendModal(id) { document.getElementById('ext-id').value=id; toggleModal('modal-extend'); }
-        async function submitExtend() { const id=document.getElementById('ext-id').value, date=document.getElementById('ext-date').value; if(!date) return alert("Chọn ngày"); await callAPI('admin_update_student',{studentId:id, setExpiryDate:date}); showToast("Đã gia hạn"); toggleModal('modal-extend'); await refreshData('get_all_students','STUDENTS'); renderStudents(); }
-        function openEditStudent(id) { const s=CACHE.STUDENTS.find(x=>x.id===id); if(!s)return; document.getElementById('edt-st-id').value=id; document.getElementById('edt-st-name').value=s.name; document.getElementById('edt-st-email').value=s.email; document.getElementById('edt-st-phone').value=s.phone; toggleModal('modal-edit-student'); }
-        async function submitEditStudent() { await callAPI('admin_edit_student_info', {id:document.getElementById('edt-st-id').value, name:document.getElementById('edt-st-name').value, email:document.getElementById('edt-st-email').value, phone:document.getElementById('edt-st-phone').value}); showToast("Đã cập nhật"); toggleModal('modal-edit-student'); await refreshData('get_all_students','STUDENTS'); renderStudents(); }
-        async function toggleStatus(id, st) { if(confirm("Đổi trạng thái?")) { await callAPI('admin_update_student', { studentId: id, status: st==='Active'?'Inactive':'Active' }); await refreshData('get_all_students','STUDENTS'); renderStudents(); } }
-        async function deleteStudent(id, name) { if(confirm(`XÓA VĨNH VIỄN ${name}?`)) { await callAPI('admin_delete_student', {id}); showToast("Đã xóa"); await refreshData('get_all_students','STUDENTS'); renderStudents(); } }
-        const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm HV"); toggleModal('modal-add-student'); await refreshData('get_all_students','STUDENTS'); renderStudents(); });
+    }
+    function editEx(e) { document.getElementById('ex-id-edit').value=e.id; document.getElementById('ex-name').value=e.name; document.getElementById('ex-group').value=e.group; document.getElementById('ex-video').value=e.image||""; document.getElementById('ex-desc').value=e.desc||""; document.getElementById('ex-form-title').innerText="Sửa Bài Tập"; document.getElementById('btn-ex-save').innerText="Cập Nhật"; }
+    function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value=""; document.getElementById('ex-form-title').innerText="Thêm Bài Tập"; document.getElementById('btn-ex-save').innerText="Thêm Mới"; }
+    const formEx = document.getElementById('form-exercise'); if(formEx) formEx.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('ex-id-edit').value; await callAPI(id?'admin_update_exercise':'admin_add_exercise', {id, name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, image:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); showToast("Thành công"); loadEx(); resetExForm(); });
 
-        // 3. EXERCISE & FOOD
-        function renderExercises() { document.getElementById('ex-list').innerHTML = CACHE.EXERCISES.map(e=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-medium">${e.name}</td><td class="p-3 text-slate-500 text-xs">${e.group}</td><td class="p-3 text-right space-x-1"><button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
-        function renderFoods() { document.getElementById('fd-list').innerHTML = CACHE.FOODS.map(f=>`<tr class="border-b hover:bg-slate-50"><td class="p-3"><b>${f.name}</b><div class="macro-grid"><div class="macro-item bg-slate-100">${f.cal}</div><div class="macro-item bg-pro">${f.pro}</div><div class="macro-item bg-carb">${f.carb}</div><div class="macro-item bg-fat">${f.fat}</div></div></td><td class="p-3 text-right space-x-1"><button onclick='editFd(${JSON.stringify(f)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('food','${f.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
-        const formEx = document.getElementById('form-exercise'); if(formEx) formEx.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('ex-id-edit').value; await callAPI(id?'admin_update_exercise':'admin_add_exercise', {id, name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, video:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); showToast("Thành công"); await refreshData('get_all_exercises','EXERCISES'); renderExercises(); resetExForm(); });
-        const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); await refreshData('get_all_foods','FOODS'); renderFoods(); resetFdForm(); });
-        function editEx(e) { document.getElementById('ex-id-edit').value=e.id; document.getElementById('ex-name').value=e.name; document.getElementById('ex-group').value=e.group; document.getElementById('ex-video').value=e.video; document.getElementById('ex-desc').value=e.desc||""; document.getElementById('ex-form-title').innerText="Sửa Bài"; document.getElementById('btn-ex-save').innerText="Cập Nhật"; }
-        function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value=""; document.getElementById('ex-form-title').innerText="Thêm Bài"; document.getElementById('btn-ex-save').innerText="Thêm Mới"; }
-        function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; }
-        function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; }
-
-        // 4. PLANS & TEMPLATES
-        function renderPlans() { const l=CACHE.PLANS.filter(p=>p.userId!=='TEMPLATE'); document.getElementById('plan-list').innerHTML=l.map(p=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold text-blue-600">${p.name}</td><td class="p-3 text-xs">${STUDENTS_MAP[p.userId]||p.userId}</td><td class="p-3 text-right space-x-2"><button onclick="editPlan('${p.id}')" class="text-blue-500"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('plan','${p.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
-        function renderTemplates() {
-            document.getElementById('assign-template').innerHTML = '<option value="">-- Chọn Mẫu --</option>' + CACHE.TEMPLATES.map(t => `<option value="${t.id}">${t.name} (${t.count} bài)</option>`).join('');
-            document.getElementById('template-list-display').innerHTML = CACHE.TEMPLATES.map(t => `<div class="flex justify-between p-2 bg-slate-50 border rounded mb-2"><span class="text-sm font-bold cursor-pointer hover:text-blue-600" onclick="editPlan('${t.id}')">${t.name} (${t.count} bài)</span><div class="flex gap-1"><button onclick="editPlan('${t.id}')" class="text-blue-500 p-1"><i data-lucide="edit-2" class="w-3 h-3"></i></button><button onclick="delItem('plan','${t.id}')" class="text-red-400 p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div>`).join('');
+    async function loadFd() {
+        const r = await callAPI('get_all_foods');
+        if(r.success) {
+            FOODS = r.data;
+            document.getElementById('fd-list').innerHTML = FOODS.map(f => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3"><b>${f.name}</b><div class="flex gap-1 mt-1"><span class="macro-badge bg-slate-100">${f.cal}kcal</span><span class="macro-badge bg-pro">P:${f.pro}</span><span class="macro-badge bg-carb">C:${f.carb}</span><span class="macro-badge bg-fat">F:${f.fat}</span></div></td>
+                    <td class="p-3 text-right space-x-1"><button onclick='editFd(${JSON.stringify(f)})' class="text-blue-500"><i data-lucide="edit-2" class="w-4"></i></button><button onclick="delItem('food','${f.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4"></i></button></td>
+                </tr>`).join('');
             lucide.createIcons();
         }
-        async function editPlan(id) { const r=await callAPI('get_plan_details',{planId:id}); if(r.success){ const p=r.data; document.getElementById('plan-id-edit').value=id; document.getElementById('plan-name').value=p.name; document.getElementById('plan-student').value=p.userId; document.getElementById('plan-form-title').innerText="Sửa: "+p.name; document.getElementById('btn-save-plan').innerText="Cập Nhật"; const b=document.getElementById('plan-rows'); b.innerHTML=''; p.details.forEach(d=>b.insertAdjacentHTML('beforeend',`<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option ${d.day=='Thứ 2'?'selected':''}>Thứ 2</option><option ${d.day=='Thứ 3'?'selected':''}>Thứ 3</option><option ${d.day=='Thứ 4'?'selected':''}>Thứ 4</option><option ${d.day=='Thứ 5'?'selected':''}>Thứ 5</option><option ${d.day=='Thứ 6'?'selected':''}>Thứ 6</option><option ${d.day=='Thứ 7'?'selected':''}>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold"></td><td class="p-2"><input type="number" value="${d.sets}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="${d.reps}" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="text" value="${d.note}" class="w-full border p-1 rounded text-sm"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`)); lucide.createIcons(); switchTab('builder',document.querySelectorAll('.tab-btn')[1]); }}
-        function resetPlanForm() { document.getElementById('plan-id-edit').value=""; document.getElementById('plan-name').value=""; document.getElementById('plan-rows').innerHTML=""; document.getElementById('plan-form-title').innerText="Tạo Giáo Án"; document.getElementById('btn-save-plan').innerText="Lưu & Gửi"; addPlanRow(); }
-        async function savePlan() { const id=document.getElementById('plan-id-edit').value, name=document.getElementById('plan-name').value, uId=document.getElementById('plan-student').value; if(!name||!uId) return alert("Thiếu thông tin"); const details=Array.from(document.querySelectorAll('#plan-rows tr')).map(r=>{const i=r.querySelectorAll('input,select');return{day:i[0].value,exercise:i[1].value,sets:i[2].value,reps:i[3].value,note:i[4].value,video:''}}).filter(d=>d.exercise); const res=await callAPI('save_workout_plan',{planId:id,planName:name,targetUser:uId,details}); if(res.success){showToast("Đã lưu"); await Promise.all([refreshData('get_all_plans','PLANS'), refreshData('get_templates','TEMPLATES')]); renderPlans(); renderTemplates(); resetPlanForm();} }
-        function addPlanRow() { document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `<tr><td class="p-2"><select class="w-full border p-1 rounded text-sm"><option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option><option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option></select></td><td class="p-2"><input list="dl-exercises" class="w-full border p-1 rounded font-bold"></td><td class="p-2"><input type="number" value="3" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input type="number" value="10" class="w-full border p-1 rounded text-center"></td><td class="p-2"><input class="w-full border p-1 rounded"></td><td class="p-2"><button onclick="this.closest('tr').remove()"><i data-lucide="trash-2" class="text-red-400 w-4"></i></button></td></tr>`); }
-        async function assignTemplate() { const tId=document.getElementById('assign-template').value, sIds=Array.from(document.getElementById('assign-students').selectedOptions).map(o=>o.value); if(!tId||sIds.length==0) return alert("Chọn đủ thông tin"); const res=await callAPI('assign_template',{templateId:tId,studentIds:sIds,newName:document.getElementById('assign-new-name').value}); if(res.success){showToast(res.message); await refreshData('get_all_plans','PLANS'); renderPlans();} else alert(res.message); }
+    }
+    function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; }
+    function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; }
+    const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); loadFd(); resetFdForm(); });
 
-        // UTILS
-        function renderDashboard() { if(CACHE.DASHBOARD){document.getElementById('stat-total').innerText=CACHE.DASHBOARD.totalStudent; document.getElementById('stat-active').innerText=CACHE.DASHBOARD.activeStudent; document.getElementById('stat-today').innerText=CACHE.DASHBOARD.todaySessions;} }
-        function fillDropdowns() {
-            const optsNormal = '<option value="">-- Chọn Học Viên --</option><option value="TEMPLATE" class="font-bold text-blue-600">★ LƯU LÀM MẪU</option>'+CACHE.STUDENTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-            document.getElementById('plan-student').innerHTML=optsNormal;
-            document.getElementById('bk-student').innerHTML='<option value="">-- Chọn --</option>'+CACHE.STUDENTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-            document.getElementById('assign-students').innerHTML=CACHE.STUDENTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-            document.getElementById('dl-exercises').innerHTML=CACHE.EXERCISES.map(e=>`<option value="${e.name}">`).join('');
-        }
-        async function delItem(t,id) { if(confirm("Xóa?")) { const r=await callAPI(`admin_delete_${t}`,{id}); if(r.success){ showToast("Đã xóa"); if(t=='exercise')await refreshData('get_all_exercises','EXERCISES');renderExercises(); if(t=='food')await refreshData('get_all_foods','FOODS');renderFoods(); if(t=='plan'){await refreshData('get_all_plans','PLANS');await refreshData('get_templates','TEMPLATES');renderPlans();renderTemplates();} }}}
-        function switchTab(n,b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
-        function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
-        function filterTable(id,k) { document.querySelectorAll(`#${id} tr`).forEach(r=>r.style.display=r.innerText.toLowerCase().includes(k.toLowerCase())?'':'none'); }
-        function logout() { localStorage.removeItem('pt_user'); window.location.href='login.html'; }
+    // UTILS
+    async function initDashboard() { const r=await callAPI('admin_get_dashboard'); if(r.success){ document.getElementById('stat-total').innerText=r.data.totalStudent; document.getElementById('stat-active').innerText=r.data.activeStudent; document.getElementById('stat-today').innerText=r.data.todaySessions; }}
+    async function delItem(t,id) { if(confirm("Xóa mục này?")) { const r=await callAPI(`admin_delete_${t}`,{id}); if(r.success){ showToast("Đã xóa"); if(t=='exercise')loadEx(); if(t=='food')loadFd(); if(t=='plan'){loadPl();loadTemplates();} if(t=='student'){loadStudents();initDashboard();} }}}
+    function switchTab(n,b) { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${n}`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active')); b.classList.add('active'); }
+    function toggleModal(id) { const m=document.getElementById(id); m.classList.toggle('opacity-0'); m.classList.toggle('pointer-events-none'); document.body.classList.toggle('modal-active'); }
+    function filterTable(id,k) { document.querySelectorAll(`#${id} tr`).forEach(r=>r.style.display=r.innerText.toLowerCase().includes(k.toLowerCase())?'':'none'); }
+    function logout() { localStorage.removeItem('pt_user'); window.location.href='login.html'; }
 
-        initApp();
-    </script>
+    initApp();
+</script>
 </body>
 </html>
