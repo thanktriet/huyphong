@@ -88,7 +88,9 @@
         if (!userJson) window.location.href = 'login.html';
         const USER = JSON.parse(userJson);
 
-        let ALL_EVENTS = [];
+        // Caching
+        const CACHE_KEY_SCH = `pt_schedule_v2_${USER.id}`;
+        let ALL_EVENTS = JSON.parse(localStorage.getItem(CACHE_KEY_SCH)) || [];
         let CURRENT_TAB = 'upcoming';
 
         // 2. CORE API
@@ -100,25 +102,25 @@
         }
 
         // 3. LOGIC CHÍNH
-        // ...
-        const CACHE_KEY_SCH = `pt_schedule_${user.id}`;
-
-        async function loadSchedule() {
-             // 1. Cache
-            const cached = localStorage.getItem(CACHE_KEY_SCH);
-            if (cached) {
-                ALL_EVENTS = JSON.parse(cached);
+        async function init() {
+            // Render Cache ngay lập tức
+            if(ALL_EVENTS.length > 0) {
                 renderHeroCard();
                 renderList();
             }
 
-            // 2. API
+            // Fetch mới ngầm
             const res = await callAPI('get_schedule');
             if (res.success) {
+                // Lọc lịch của User hiện tại
                 const myEvents = res.data.filter(e => e.userId === USER.id);
+                
+                // Sắp xếp tăng dần theo thời gian
                 ALL_EVENTS = myEvents.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
                 
+                // Lưu cache
                 localStorage.setItem(CACHE_KEY_SCH, JSON.stringify(ALL_EVENTS));
+
                 renderHeroCard();
                 renderList();
             }
@@ -130,6 +132,7 @@
             const now = new Date();
             
             // Tìm sự kiện sắp tới gần nhất (Upcoming và chưa qua giờ)
+            // Logic: Tìm cái đầu tiên mà thời gian > hiện tại
             const nextEvent = ALL_EVENTS.find(e => {
                 const eventTime = new Date(e.date + 'T' + e.time);
                 return e.status === 'Upcoming' && eventTime > now;
@@ -283,7 +286,7 @@
             }
         }
 
-        loadSchedule();
+        init();
     </script>
 </body>
 </html>
