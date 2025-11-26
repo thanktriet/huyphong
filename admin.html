@@ -314,15 +314,90 @@
         const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm HV"); toggleModal('modal-add-student'); await refreshData('get_all_students','STUDENTS'); renderStudents(); });
 
         // 3. DATA (EX & FOOD)
-        function renderExercises() { document.getElementById('ex-list').innerHTML = CACHE.EXERCISES.map(e=>`<tr class="border-b hover:bg-slate-50"><td class="p-3"><div class="font-bold text-slate-700">${e.name}</div>${e.image ? `<a href="${e.image}" target="_blank" class="text-[10px] text-blue-500 flex items-center gap-1 hover:underline mt-1"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}</td><td class="p-3 text-slate-500 text-xs font-medium bg-slate-100 rounded px-2 py-1 w-fit h-fit">${e.group}</td><td class="p-3 text-right space-x-1"><button onclick='editEx(${JSON.stringify(e)})' class="btn-icon-soft text-blue-500"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('exercise','${e.id}')" class="btn-danger-soft"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
+        
         function renderFoods() { document.getElementById('fd-list').innerHTML = CACHE.FOODS.map(f=>`<tr class="border-b hover:bg-slate-50"><td class="p-3"><b>${f.name}</b><div class="flex gap-2 mt-1"><span class="macro-badge bg-slate-100">${f.cal}kcal</span><span class="macro-badge bg-pro">P:${f.pro}</span><span class="macro-badge bg-carb">C:${f.carb}</span><span class="macro-badge bg-fat">F:${f.fat}</span></div></td><td class="p-3 text-right space-x-1"><button onclick='editFd(${JSON.stringify(f)})' class="btn-icon-soft text-blue-500"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('food','${f.id}')" class="btn-danger-soft"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
-        const formEx = document.getElementById('form-exercise'); if(formEx) formEx.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('ex-id-edit').value; await callAPI(id?'admin_update_exercise':'admin_add_exercise', {id, name:document.getElementById('ex-name').value, group:document.getElementById('ex-group').value, image:document.getElementById('ex-video').value, desc:document.getElementById('ex-desc').value}); showToast("Thành công"); await refreshData('get_all_exercises','EXERCISES'); renderExercises(); resetExForm(); });
         const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); await refreshData('get_all_foods','FOODS'); renderFoods(); resetFdForm(); });
-        function editEx(e) { document.getElementById('ex-id-edit').value=e.id; document.getElementById('ex-name').value=e.name; document.getElementById('ex-group').value=e.group; document.getElementById('ex-video').value=e.image||""; document.getElementById('ex-desc').value=e.desc||""; document.getElementById('ex-form-title').innerText="Sửa Bài Tập"; document.getElementById('btn-ex-save').innerText="Cập Nhật"; }
-        function resetExForm() { document.getElementById('form-exercise').reset(); document.getElementById('ex-id-edit').value=""; document.getElementById('ex-form-title').innerText="Thêm Bài Tập"; document.getElementById('btn-ex-save').innerText="Thêm Mới"; }
         function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món Ăn"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; }
         function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; }
+// ==================== 4. QUẢN LÝ BÀI TẬP (FIXED) ====================
+        async function loadEx() { 
+            const r = await callAPI('get_all_exercises'); 
+            if(r.success){ 
+                EXERCISES = r.data; 
+                // Fill Datalist
+                document.getElementById('dl-exercises').innerHTML = EXERCISES.map(e=>`<option value="${e.name}">`).join(''); 
+                
+                // Render Table
+                document.getElementById('ex-list').innerHTML = EXERCISES.map(e => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-3">
+                            <div class="font-medium text-slate-800">${e.name}</div>
+                            ${e.image ? `<a href="${e.image}" target="_blank" class="text-[10px] text-blue-500 hover:underline flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}
+                        </td>
+                        <td class="p-3 text-slate-500 text-xs bg-slate-100 rounded px-2 py-1 w-fit h-fit">${e.group}</td>
+                        <td class="p-3 text-right space-x-1">
+                            <button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500 hover:bg-blue-50 p-1 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                            <button onclick="delItem('exercise','${e.id}')" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`).join(''); 
+                lucide.createIcons(); 
+            } 
+        }
 
+        // Sửa bài tập
+        function editEx(e) { 
+            document.getElementById('ex-id-edit').value = e.id; 
+            document.getElementById('ex-name').value = e.name; 
+            document.getElementById('ex-group').value = e.group; 
+            
+            // FIX: Dùng đúng ID 'ex-image'
+            document.getElementById('ex-image').value = e.image || ""; 
+            
+            document.getElementById('ex-desc').value = e.desc || ""; 
+            document.getElementById('ex-form-title').innerText = "Sửa Bài Tập"; 
+            document.getElementById('btn-ex-save').innerText = "Cập Nhật"; 
+        }
+
+        // Reset Form
+        function resetExForm() { 
+            document.getElementById('form-exercise').reset(); 
+            document.getElementById('ex-id-edit').value = ""; 
+            document.getElementById('ex-form-title').innerText = "Thêm Bài Tập"; 
+            document.getElementById('btn-ex-save').innerText = "Thêm Mới"; 
+        }
+
+        // Submit Form (Thêm/Sửa)
+        const formEx = document.getElementById('form-exercise'); 
+        if (formEx) formEx.addEventListener('submit', async (e) => { 
+            e.preventDefault(); 
+            const id = document.getElementById('ex-id-edit').value; 
+            
+            // FIX: Lấy dữ liệu từ ô 'ex-image'
+            const data = {
+                id: id,
+                name: document.getElementById('ex-name').value, 
+                group: document.getElementById('ex-group').value, 
+                image: document.getElementById('ex-image').value, // <--- Đã sửa đúng ID
+                desc: document.getElementById('ex-desc').value
+            };
+
+            const action = id ? 'admin_update_exercise' : 'admin_add_exercise';
+            const res = await callAPI(action, data);
+            
+            if (res.success) {
+                showToast("Thành công"); 
+                await refreshData('get_all_exercises', 'EXERCISES'); 
+                renderExercises(); 
+                resetExForm(); 
+            } else {
+                alert(res.message);
+            }
+        });
+
+
+
+
+        
         // 4. PLANS
         function renderPlans() { const l=CACHE.PLANS.filter(p=>p.userId!=='TEMPLATE'); document.getElementById('plan-list').innerHTML=l.map(p=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-bold text-blue-600">${p.name}</td><td class="p-3 text-xs text-slate-500 font-medium">${STUDENTS_MAP[p.userId]||p.userId}</td><td class="p-3 text-right space-x-1"><button onclick="editPlan('${p.id}')" class="btn-icon-soft text-blue-500"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('plan','${p.id}')" class="btn-danger-soft"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
         function renderTemplates() { document.getElementById('assign-template').innerHTML = '<option value="">-- Chọn Mẫu --</option>' + CACHE.TEMPLATES.map(t => `<option value="${t.id}">${t.name} (${t.count} bài)</option>`).join(''); document.getElementById('template-list-display').innerHTML = CACHE.TEMPLATES.map(t => `<div class="flex justify-between p-3 bg-white border rounded-xl mb-2 group hover:border-blue-400 transition-colors shadow-sm"><span class="text-sm font-bold cursor-pointer hover:text-blue-600" onclick="editPlan('${t.id}')">${t.name}</span><div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="editPlan('${t.id}')" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><i data-lucide="edit-2" class="w-3 h-3"></i></button><button onclick="delItem('plan','${t.id}')" class="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div>`).join(''); lucide.createIcons(); }
