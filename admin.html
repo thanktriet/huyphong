@@ -313,82 +313,169 @@
         async function deleteStudent(id, name) { if(confirm(`XÓA VĨNH VIỄN học viên ${name}?`)) { await callAPI('admin_delete_student', {id}); showToast("Đã xóa"); await refreshData('get_all_students','STUDENTS'); renderStudents(); } }
         const formReg = document.getElementById('form-register'); if(formReg) formReg.addEventListener('submit', async(e)=>{ e.preventDefault(); await callAPI('register',{name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value}); showToast("Đã thêm HV"); toggleModal('modal-add-student'); await refreshData('get_all_students','STUDENTS'); renderStudents(); });
 
-        // 3. DATA (EX & FOOD)
-        
-        function renderFoods() { document.getElementById('fd-list').innerHTML = CACHE.FOODS.map(f=>`<tr class="border-b hover:bg-slate-50"><td class="p-3"><b>${f.name}</b><div class="flex gap-2 mt-1"><span class="macro-badge bg-slate-100">${f.cal}kcal</span><span class="macro-badge bg-pro">P:${f.pro}</span><span class="macro-badge bg-carb">C:${f.carb}</span><span class="macro-badge bg-fat">F:${f.fat}</span></div></td><td class="p-3 text-right space-x-1"><button onclick='editFd(${JSON.stringify(f)})' class="btn-icon-soft text-blue-500"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="delItem('food','${f.id}')" class="btn-danger-soft"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join(''); lucide.createIcons(); }
-        const formFd = document.getElementById('form-food'); if(formFd) formFd.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=document.getElementById('fd-id-edit').value; await callAPI(id?'admin_update_food':'admin_add_food', {id, name:document.getElementById('fd-name').value, cal:document.getElementById('fd-cal').value, unit:document.getElementById('fd-unit').value, pro:document.getElementById('fd-pro').value, carb:document.getElementById('fd-carb').value, fat:document.getElementById('fd-fat').value}); showToast("Thành công"); await refreshData('get_all_foods','FOODS'); renderFoods(); resetFdForm(); });
-        function editFd(f) { document.getElementById('fd-id-edit').value=f.id; document.getElementById('fd-name').value=f.name; document.getElementById('fd-cal').value=f.cal; document.getElementById('fd-unit').value=f.unit; document.getElementById('fd-pro').value=f.pro; document.getElementById('fd-carb').value=f.carb; document.getElementById('fd-fat').value=f.fat; document.getElementById('fd-form-title').innerText="Sửa Món Ăn"; document.getElementById('btn-fd-save').innerText="Cập Nhật"; }
-        function resetFdForm() { document.getElementById('form-food').reset(); document.getElementById('fd-id-edit').value=""; document.getElementById('fd-form-title').innerText="Thêm Món"; document.getElementById('btn-fd-save').innerText="Thêm Mới"; }
-// ==================== 4. QUẢN LÝ BÀI TẬP (FIXED) ====================
-        async function loadEx() { 
-            const r = await callAPI('get_all_exercises'); 
-            if(r.success){ 
-                EXERCISES = r.data; 
-                // Fill Datalist
-                document.getElementById('dl-exercises').innerHTML = EXERCISES.map(e=>`<option value="${e.name}">`).join(''); 
-                
-                // Render Table
-                document.getElementById('ex-list').innerHTML = EXERCISES.map(e => `
-                    <tr class="border-b hover:bg-slate-50">
-                        <td class="p-3">
-                            <div class="font-medium text-slate-800">${e.name}</div>
-                            ${e.image ? `<a href="${e.image}" target="_blank" class="text-[10px] text-blue-500 hover:underline flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}
-                        </td>
-                        <td class="p-3 text-slate-500 text-xs bg-slate-100 rounded px-2 py-1 w-fit h-fit">${e.group}</td>
-                        <td class="p-3 text-right space-x-1">
-                            <button onclick='editEx(${JSON.stringify(e)})' class="text-blue-500 hover:bg-blue-50 p-1 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                            <button onclick="delItem('exercise','${e.id}')" class="text-red-400 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </td>
-                    </tr>`).join(''); 
-                lucide.createIcons(); 
-            } 
+        // ==================== 4. QUẢN LÝ BÀI TẬP (EXERCISE) ====================
+        async function loadEx() {
+            const r = await callAPI('get_all_exercises');
+            if (r.success) {
+                EXERCISES = r.data;
+                // 1. Điền Datalist để gợi ý khi nhập liệu
+                const dl = document.getElementById('dl-exercises');
+                if (dl) dl.innerHTML = EXERCISES.map(e => `<option value="${e.name}">`).join('');
+
+                // 2. Render Danh sách Bài tập
+                const list = document.getElementById('ex-list');
+                if (list) {
+                    list.innerHTML = EXERCISES.map(e => `
+                        <tr class="border-b hover:bg-slate-50 transition-colors">
+                            <td class="p-3">
+                                <div class="font-bold text-slate-700">${e.name}</div>
+                                ${e.image ? `<a href="${e.image}" target="_blank" class="text-[11px] text-blue-500 flex items-center gap-1 hover:underline mt-0.5"><i data-lucide="image" class="w-3 h-3"></i> Xem ảnh</a>` : ''}
+                            </td>
+                            <td class="p-3">
+                                <span class="text-[10px] font-bold uppercase bg-slate-100 text-slate-500 px-2 py-1 rounded">${e.group}</span>
+                            </td>
+                            <td class="p-3 text-right space-x-1">
+                                <button onclick='editEx(${JSON.stringify(e)})' class="p-1.5 bg-slate-50 text-blue-600 rounded hover:bg-blue-50 transition-colors" title="Sửa"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button onclick="delItem('exercise','${e.id}')" class="p-1.5 bg-slate-50 text-red-600 rounded hover:bg-red-50 transition-colors" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </td>
+                        </tr>`).join('');
+                    lucide.createIcons();
+                }
+            }
         }
 
-        // Sửa bài tập
-        function editEx(e) { 
-            document.getElementById('ex-id-edit').value = e.id; 
-            document.getElementById('ex-name').value = e.name; 
-            document.getElementById('ex-group').value = e.group; 
+        function editEx(e) {
+            // Đổ dữ liệu vào form
+            document.getElementById('ex-id-edit').value = e.id;
+            document.getElementById('ex-name').value = e.name;
+            document.getElementById('ex-group').value = e.group;
+            document.getElementById('ex-image').value = e.image || ""; // Lấy link ảnh
+            document.getElementById('ex-desc').value = e.desc || "";
             
-            // FIX: Dùng đúng ID 'ex-image'
-            document.getElementById('ex-image').value = e.image || ""; 
-            
-            document.getElementById('ex-desc').value = e.desc || ""; 
-            document.getElementById('ex-form-title').innerText = "Sửa Bài Tập"; 
-            document.getElementById('btn-ex-save').innerText = "Cập Nhật"; 
+            // Đổi trạng thái nút bấm
+            document.getElementById('ex-form-title').innerText = "Sửa Bài Tập";
+            const btn = document.getElementById('btn-ex-save');
+            btn.innerText = "Cập Nhật";
+            btn.className = "w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow hover:bg-orange-600 transition-colors";
         }
 
-        // Reset Form
-        function resetExForm() { 
-            document.getElementById('form-exercise').reset(); 
-            document.getElementById('ex-id-edit').value = ""; 
-            document.getElementById('ex-form-title').innerText = "Thêm Bài Tập"; 
-            document.getElementById('btn-ex-save').innerText = "Thêm Mới"; 
+        function resetExForm() {
+            document.getElementById('form-exercise').reset();
+            document.getElementById('ex-id-edit').value = "";
+            
+            document.getElementById('ex-form-title').innerText = "Thêm Bài Tập";
+            const btn = document.getElementById('btn-ex-save');
+            btn.innerText = "Thêm Mới";
+            btn.className = "w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow hover:bg-blue-700 transition-colors";
         }
 
-        // Submit Form (Thêm/Sửa)
-        const formEx = document.getElementById('form-exercise'); 
-        if (formEx) formEx.addEventListener('submit', async (e) => { 
-            e.preventDefault(); 
-            const id = document.getElementById('ex-id-edit').value; 
+        // Xử lý Submit Form Bài Tập
+        const formEx = document.getElementById('form-exercise');
+        if (formEx) formEx.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('ex-id-edit').value;
             
-            // FIX: Lấy dữ liệu từ ô 'ex-image'
             const data = {
                 id: id,
-                name: document.getElementById('ex-name').value, 
-                group: document.getElementById('ex-group').value, 
-                image: document.getElementById('ex-image').value, // <--- Đã sửa đúng ID
+                name: document.getElementById('ex-name').value,
+                group: document.getElementById('ex-group').value,
+                image: document.getElementById('ex-image').value, // Gửi đúng trường image
                 desc: document.getElementById('ex-desc').value
             };
 
             const action = id ? 'admin_update_exercise' : 'admin_add_exercise';
-            const res = await callAPI(action, data);
             
+            // Optimistic Update (Cập nhật giao diện trước khi gọi API)
+            // ... (Code này giữ nguyên hoặc bỏ qua nếu muốn đơn giản, ở đây ta gọi API luôn)
+            
+            const res = await callAPI(action, data);
             if (res.success) {
-                showToast("Thành công"); 
-                await refreshData('get_all_exercises', 'EXERCISES'); 
-                renderExercises(); 
-                resetExForm(); 
+                showToast(id ? "Đã cập nhật bài tập!" : "Đã thêm bài tập mới!");
+                await refreshData('get_all_exercises', 'EXERCISES'); // Tải lại dữ liệu mới nhất
+                renderExercises();
+                resetExForm();
+            } else {
+                alert(res.message);
+            }
+        });
+
+        // ==================== 5. QUẢN LÝ MÓN ĂN (FOOD) ====================
+        async function loadFd() {
+            const r = await callAPI('get_all_foods');
+            if (r.success) {
+                FOODS = r.data;
+                const list = document.getElementById('fd-list');
+                if (list) {
+                    list.innerHTML = FOODS.map(f => `
+                        <tr class="border-b hover:bg-slate-50 transition-colors">
+                            <td class="p-3">
+                                <div class="font-bold text-slate-700">${f.name}</div>
+                                <div class="mt-1 grid grid-cols-4 gap-1 text-[10px] font-bold text-center max-w-[200px]">
+                                    <span class="bg-slate-100 text-slate-600 p-1 rounded" title="Calories">${f.cal}</span>
+                                    <span class="bg-red-50 text-red-600 p-1 rounded" title="Protein">${f.pro}</span>
+                                    <span class="bg-green-50 text-green-600 p-1 rounded" title="Carb">${f.carb}</span>
+                                    <span class="bg-yellow-50 text-yellow-600 p-1 rounded" title="Fat">${f.fat}</span>
+                                </div>
+                            </td>
+                            <td class="p-3 text-right space-x-1">
+                                <button onclick='editFd(${JSON.stringify(f)})' class="p-1.5 bg-slate-50 text-blue-600 rounded hover:bg-blue-50 transition-colors" title="Sửa"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button onclick="delItem('food','${f.id}')" class="p-1.5 bg-slate-50 text-red-600 rounded hover:bg-red-50 transition-colors" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </td>
+                        </tr>`).join('');
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function editFd(f) {
+            document.getElementById('fd-id-edit').value = f.id;
+            document.getElementById('fd-name').value = f.name;
+            document.getElementById('fd-cal').value = f.cal;
+            document.getElementById('fd-unit').value = f.unit;
+            document.getElementById('fd-pro').value = f.pro;
+            document.getElementById('fd-carb').value = f.carb;
+            document.getElementById('fd-fat').value = f.fat;
+
+            document.getElementById('fd-form-title').innerText = "Sửa Món Ăn";
+            const btn = document.getElementById('btn-fd-save');
+            btn.innerText = "Cập Nhật";
+            btn.className = "w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow hover:bg-orange-600 transition-colors";
+        }
+
+        function resetFdForm() {
+            document.getElementById('form-food').reset();
+            document.getElementById('fd-id-edit').value = "";
+            
+            document.getElementById('fd-form-title').innerText = "Thêm Món Ăn";
+            const btn = document.getElementById('btn-fd-save');
+            btn.innerText = "Thêm Mới";
+            btn.className = "w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow hover:bg-green-700 transition-colors";
+        }
+
+        // Xử lý Submit Form Món Ăn
+        const formFd = document.getElementById('form-food');
+        if (formFd) formFd.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('fd-id-edit').value;
+            
+            const data = {
+                id: id,
+                name: document.getElementById('fd-name').value,
+                cal: document.getElementById('fd-cal').value,
+                unit: document.getElementById('fd-unit').value,
+                pro: document.getElementById('fd-pro').value,
+                carb: document.getElementById('fd-carb').value,
+                fat: document.getElementById('fd-fat').value
+            };
+
+            const action = id ? 'admin_update_food' : 'admin_add_food';
+            
+            const res = await callAPI(action, data);
+            if (res.success) {
+                showToast(id ? "Đã cập nhật món ăn!" : "Đã thêm món mới!");
+                await refreshData('get_all_foods', 'FOODS');
+                renderFoods();
+                resetFdForm();
             } else {
                 alert(res.message);
             }
