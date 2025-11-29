@@ -401,8 +401,9 @@
             document.getElementById('student-list').innerHTML = STUDENTS.map(st => `
                 <tr class="hover:bg-slate-50 border-b">
                     <td class="p-4">
-                        <b>${st.name}</b><br><span class="text-xs text-slate-400">${st.email}</span><br>
-                        <span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span>
+                        <a href="profile-student.html?id=${st.id}" class="font-bold text-blue-600 hover:underline text-lg">${st.name}</a>
+                        <br><span class="text-xs text-slate-400">${st.email}</span>
+                        <br><span class="text-[10px] ${st.isExpired?'text-red-500':'text-green-600'} font-bold">${st.isExpired?'Hết hạn':'Hạn: '+st.expiryDate}</span>
                     </td>
                     <td class="p-4 text-center">
                         <div class="font-black text-lg text-blue-600">${st.sessionLeft}</div>
