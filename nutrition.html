@@ -22,7 +22,9 @@
 
     <div class="bg-white p-5 sticky top-0 z-20 shadow-sm flex justify-between items-center border-b border-slate-100">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2"><i data-lucide="utensils" class="text-green-600 w-7 h-7"></i> Dinh Dưỡng</h1>
+            <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="utensils" class="text-green-600 w-7 h-7"></i> Dinh Dưỡng
+            </h1>
             <p class="text-xs text-slate-400 mt-0.5" id="currentDate">...</p>
         </div>
         <button onclick="window.location.reload()" class="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-green-600"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
@@ -232,9 +234,9 @@
             
             // Cộng dồn tất cả chỉ số (Ép kiểu Number để không bị cộng chuỗi)
             DATA.cal += Number(SELECTED_FOOD.cal || 0) * r;
-            DATA.pro += Number(SELECTED_FOOD.pro || 0) * r;
-            DATA.carb += Number(SELECTED_FOOD.carb || 0) * r;
-            DATA.fat += Number(SELECTED_FOOD.fat || 0) * r;
+            DATA.pro += Number(SELECTED_FOOD.pro || 0) * r; // <--- Đã thêm dòng này
+            DATA.carb += Number(SELECTED_FOOD.carb || 0) * r; // <--- Đã thêm dòng này
+            DATA.fat += Number(SELECTED_FOOD.fat || 0) * r; // <--- Đã thêm dòng này
             
             DATA.list.push({name: SELECTED_FOOD.name, cal: (SELECTED_FOOD.cal * r), type: SELECTED_MEAL});
             renderStats(); closeModal(); showToast("Đã thêm!");
