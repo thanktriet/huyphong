@@ -6,26 +6,22 @@
     <title>Dinh Dưỡng - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        /* Tiện ích */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Macro Card */
-        .macro-card { transition: all 0.2s; }
-        .macro-card:active { transform: scale(0.95); }
-        
-        /* Food Item */
-        .food-item { transition: background-color 0.2s; }
-        .food-item:active { background-color: #f0fdf4; }
+    
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
+    </script>
 
-        /* Toast */
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .macro-card { transition: transform 0.2s; } .macro-card:active { transform: scale(0.95); }
+        .food-item { transition: background-color 0.2s; } .food-item:active { background-color: #f0fdf4; }
+        .meal-header { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); z-index: 5; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+        
+        /* TOAST */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast { background: white; padding: 12px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; pointer-events: auto; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
         @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        /* Meal Group Header */
-        .meal-header { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); z-index: 5; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
     </style>
 </head>
 <body class="bg-slate-50 pb-28 font-sans text-slate-800">
@@ -39,7 +35,7 @@
             </h1>
             <p class="text-xs text-slate-400 mt-0.5" id="currentDate">...</p>
         </div>
-        <button onclick="window.location.reload()" class="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-green-600"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+        <button onclick="hardRefresh()" class="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-green-600" title="Làm mới dữ liệu"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
     </div>
 
     <div class="max-w-md mx-auto px-5 mt-6 space-y-8">
@@ -156,58 +152,58 @@
     </div>
 
     <script>
-        // ==================== 1. CẤU HÌNH & AUTH (TÍCH HỢP SẴN) ====================
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
         lucide.createIcons();
         document.getElementById('currentDate').innerText = `Hôm nay, ${new Date().toLocaleDateString('vi-VN')}`;
+        
+        // --- AUTH & INIT ---
+        const user = JSON.parse(localStorage.getItem('pt_user'));
+        if (!user) window.location.href = 'login.html';
 
-        // Tự động Auth (Thay thế auth.js)
-        const USER = JSON.parse(localStorage.getItem('pt_user'));
-        if (!USER) window.location.href = 'login.html';
-
-        // ==================== 2. STATE & API ====================
-        const CACHE_KEY = `pt_nutri_v3_${USER.id}`;
+        const CACHE_KEY = `pt_nutri_v4_${user.id}`;
         let DATA = JSON.parse(localStorage.getItem(CACHE_KEY)) || { cal:0, pro:0, carb:0, fat:0, list:[] };
+        
+        // FIX DỮ LIỆU CŨ (Nếu cache cũ bị thiếu trường nào thì bù vào)
+        if(DATA.pro === undefined) DATA.pro = 0;
+        if(DATA.carb === undefined) DATA.carb = 0;
+        if(DATA.fat === undefined) DATA.fat = 0;
+
         let FOOD_DB = [];
         let SELECTED_FOOD = null, SELECTED_MEAL = 'Phụ', SELECTED_MANUAL_MEAL = 'Phụ';
 
+        async function init() {
+            renderStats(); 
+            await Promise.all([loadFoodDB(), loadStats()]);
+        }
+        
+        // --- API CALLER ---
         async function callAPI(action, data={}) {
             try { 
                 const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) }); 
                 return await res.json(); 
             } catch(e) { return { success: false }; }
         }
-
         function showToast(msg, type='success') {
-            const t = document.createElement('div'); 
-            t.className = `toast ${type}`; 
-            t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
-            document.getElementById('toast-container').appendChild(t); 
-            lucide.createIcons(); 
-            setTimeout(() => t.remove(), 3000);
+            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
+            document.getElementById('toast-container').appendChild(t); lucide.createIcons(); setTimeout(() => t.remove(), 3000);
         }
 
-        // ==================== 3. INIT & LOAD ====================
-        async function init() {
-            renderStats(); // Render cache ngay lập tức
-            await Promise.all([loadFoodDB(), loadStats()]); // Tải dữ liệu mới
-        }
-        
+        // --- LOADERS ---
         async function loadFoodDB() {
             const res = await callAPI('get_all_foods');
             if(res.success) { FOOD_DB = res.data; renderFoodList(FOOD_DB); }
         }
-
         async function loadStats() {
-            const res = await callAPI('get_daily_macros', { userId: USER.id });
+            const res = await callAPI('get_daily_macros', { userId: user.id });
             if(res.success) {
                 DATA = res.data;
+                // Đảm bảo dữ liệu từ server cũng chuẩn
+                DATA.pro = DATA.pro || 0; DATA.carb = DATA.carb || 0; DATA.fat = DATA.fat || 0;
                 localStorage.setItem(CACHE_KEY, JSON.stringify(DATA));
                 renderStats();
             }
         }
 
-        // ==================== 4. RENDER FUNCTIONS ====================
+        // --- RENDERERS ---
         function renderStats() {
             const cleanNum = (n) => (isNaN(n) || n > 10000) ? 0 : Math.round(n);
             document.getElementById('val-cal').innerText = cleanNum(DATA.cal);
@@ -221,18 +217,11 @@
             const groups = { 'Sáng': [], 'Trưa': [], 'Tối': [], 'Phụ': [], 'Tiệc': [] };
             (DATA.list || []).forEach(item => {
                 let type = item.type || 'Phụ';
-                if(type.includes('Sáng')) type = 'Sáng'; 
-                else if(type.includes('Trưa')) type = 'Trưa'; 
-                else if(type.includes('Tối')) type = 'Tối'; 
-                else if(type.includes('Tiệc')) type = 'Tiệc'; 
-                else type = 'Phụ';
-                
-                if(!groups[type]) groups[type] = []; 
-                groups[type].push(item);
+                if(type.includes('Sáng')) type = 'Sáng'; else if(type.includes('Trưa')) type = 'Trưa'; else if(type.includes('Tối')) type = 'Tối'; else if(type.includes('Tiệc')) type = 'Tiệc'; else type = 'Phụ';
+                if(!groups[type]) groups[type] = []; groups[type].push(item);
             });
 
-            const container = document.getElementById('daily-log'); 
-            container.innerHTML = '';
+            const container = document.getElementById('daily-log'); container.innerHTML = '';
             const order = ['Sáng', 'Trưa', 'Tối', 'Phụ', 'Tiệc'];
             let hasItem = false;
 
@@ -240,14 +229,7 @@
                 if(groups[meal].length > 0) {
                     hasItem = true;
                     let total = groups[meal].reduce((s, i) => s + Number(i.cal), 0);
-                    let itemsHtml = groups[meal].map(item => `
-                        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center mb-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-1 h-8 bg-slate-200 rounded-full"></div>
-                                <div><div class="font-bold text-slate-700 text-sm">${item.name}</div></div>
-                            </div>
-                            <div class="font-bold text-slate-600 text-sm">${Math.round(item.cal)}</div>
-                        </div>`).join('');
+                    let itemsHtml = groups[meal].map(item => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center mb-2"><div class="flex items-center gap-3"><div class="w-1 h-8 bg-slate-200 rounded-full"></div><div><div class="font-bold text-slate-700 text-sm">${item.name}</div></div></div><div class="font-bold text-slate-600 text-sm">${Math.round(item.cal)}</div></div>`).join('');
                     container.innerHTML += `<div class="mb-4"><div class="meal-header flex justify-between items-center mb-2 px-1"><h3 class="font-bold text-slate-500 text-xs uppercase tracking-wider">${meal}</h3><span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">${Math.round(total)} kcal</span></div>${itemsHtml}</div>`;
                 }
             });
@@ -258,9 +240,8 @@
         function renderFoodList(list) {
             const container = document.getElementById('food-list');
             if(list.length === 0) { container.innerHTML = '<div class="text-center text-slate-400 py-8 text-xs">Không tìm thấy món nào.</div>'; return; }
-            
             const displayList = list.slice(0, 50);
-            container.innerHTML = displayList.map(f => `
+            container.innerHTML = displayList.map((f, i) => `
                 <div class="food-item p-3 bg-white border border-slate-100 rounded-2xl flex justify-between items-center cursor-pointer hover:border-green-500 hover:shadow-sm mb-2" onclick='openModal(${JSON.stringify(f)})'>
                     <div>
                         <div class="font-bold text-slate-700 text-sm">${f.name}</div>
@@ -275,7 +256,7 @@
             lucide.createIcons();
         }
 
-        // ==================== 5. ACTIONS ====================
+        // --- ACTIONS ---
         function filterFoods() {
             const k = document.getElementById('food-search').value.toLowerCase();
             renderFoodList(FOOD_DB.filter(f => f.name.toLowerCase().includes(k)));
@@ -290,90 +271,66 @@
             document.getElementById('modal-amount').classList.remove('hidden'); 
             document.getElementById('modal-amount').classList.add('flex'); 
         }
-
-        function closeModal() { 
-            document.getElementById('modal-amount').classList.add('hidden'); 
-            document.getElementById('modal-amount').classList.remove('flex'); 
-        }
-
-        function adjAmount(v) { 
-            const i = document.getElementById('input-amount'); 
-            let c = parseInt(i.value) || 0; 
-            if(c+v > 0) i.value = c+v; 
-        }
+        function closeModal() { document.getElementById('modal-amount').classList.add('hidden'); document.getElementById('modal-amount').classList.remove('flex'); }
+        function adjAmount(v) { const i = document.getElementById('input-amount'); let c = parseInt(i.value) || 0; if(c+v > 0) i.value = c+v; }
         
-        function selectMeal(btn, meal) { 
-            SELECTED_MEAL = meal; 
-            document.querySelectorAll('.meal-btn').forEach(b => b.className = "meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500");
-            const target = btn || Array.from(document.querySelectorAll('.meal-btn')).find(b => b.innerText === meal);
-            if(target) target.className = "meal-btn bg-green-50 border-2 border-green-500 p-2 rounded-xl text-xs font-bold text-green-700 shadow-sm";
-        }
+        function selectMeal(btn, meal) { SELECTED_MEAL = meal; document.querySelectorAll('.meal-btn').forEach(b => b.className = "meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500"); const target = btn || Array.from(document.querySelectorAll('.meal-btn')).find(b => b.innerText === meal); if(target) target.className = "meal-btn bg-green-50 border-2 border-green-500 p-2 rounded-xl text-xs font-bold text-green-700 shadow-sm"; }
+        function selectManMeal(btn, meal) { SELECTED_MANUAL_MEAL = meal; document.querySelectorAll('.meal-btn-man').forEach(b => b.className = "meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500"); btn.className = "meal-btn-man bg-green-50 border border-green-500 p-2 rounded-lg text-xs font-bold text-green-700 shadow-sm"; }
 
-        function selectManMeal(btn, meal) { 
-            SELECTED_MANUAL_MEAL = meal; 
-            document.querySelectorAll('.meal-btn-man').forEach(b => b.className = "meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500");
-            btn.className = "meal-btn-man bg-green-50 border border-green-500 p-2 rounded-lg text-xs font-bold text-green-700 shadow-sm";
-        }
-
-        // --- [ĐÃ FIX] CỘNG DỒN MACRO ---
+        // --- CORE LOGIC: ADD FOOD ---
         async function confirmAddFood() {
             const amt = document.getElementById('input-amount').value;
             if(!amt || amt<=0) return alert("Lỗi số lượng");
             const r = amt / 100;
             
-            // Tính toán chỉ số
-            const addedCal = Number(SELECTED_FOOD.cal || 0) * r;
+            // Tính toán (Fix lỗi cộng dồn)
+            // Ép kiểu Number để tránh lỗi cộng chuỗi
+            const addCal = Number(SELECTED_FOOD.cal || 0) * r;
+            const addPro = Number(SELECTED_FOOD.pro || 0) * r;
+            const addCarb = Number(SELECTED_FOOD.carb || 0) * r;
+            const addFat = Number(SELECTED_FOOD.fat || 0) * r;
+
+            DATA.cal += addCal;
+            DATA.pro += addPro;
+            DATA.carb += addCarb;
+            DATA.fat += addFat;
             
-            // Cộng dồn vào DATA (Optimistic Update)
-            DATA.cal += addedCal;
-            DATA.pro += Number(SELECTED_FOOD.pro || 0) * r; // Đã fix
-            DATA.carb += Number(SELECTED_FOOD.carb || 0) * r; // Đã fix
-            DATA.fat += Number(SELECTED_FOOD.fat || 0) * r; // Đã fix
+            DATA.list.push({name: SELECTED_FOOD.name, cal: addCal, type: SELECTED_MEAL});
+            localStorage.setItem(CACHE_KEY, JSON.stringify(DATA));
             
-            DATA.list.push({name: SELECTED_FOOD.name, cal: addedCal, type: SELECTED_MEAL});
+            renderStats(); closeModal(); showToast("Đã thêm!");
             
-            localStorage.setItem(CACHE_KEY, JSON.stringify(DATA)); // Lưu cache ngay
-            renderStats(); 
-            closeModal(); 
-            showToast("Đã thêm món ăn!");
-            
-            // Gửi lên server
             await callAPI('log_meal', { 
-                userId: USER.id, 
-                name: SELECTED_FOOD.name, 
-                amount: Number(amt), 
-                baseCal: SELECTED_FOOD.cal, 
-                basePro: SELECTED_FOOD.pro, 
-                baseCarb: SELECTED_FOOD.carb, 
-                baseFat: SELECTED_FOOD.fat, 
+                userId: user.id, name: SELECTED_FOOD.name, amount: Number(amt), 
+                baseCal: SELECTED_FOOD.cal, basePro: SELECTED_FOOD.pro, 
+                baseCarb: SELECTED_FOOD.carb, baseFat: SELECTED_FOOD.fat, 
                 type: SELECTED_MEAL 
             });
-            loadStats(); // Sync lại cho chắc
+            loadStats(); 
         }
         
         async function addManualFood() {
             const name=document.getElementById('man-name').value, cal=document.getElementById('man-cal').value;
             if(!name||!cal) return alert("Thiếu thông tin");
             
-            DATA.cal += Number(cal); 
-            DATA.list.push({name, cal: Number(cal), type: SELECTED_MANUAL_MEAL});
-            renderStats(); showToast("Đã lưu bữa ăn!");
+            DATA.cal += Number(cal); DATA.list.push({name, cal: Number(cal), type: SELECTED_MANUAL_MEAL});
+            localStorage.setItem(CACHE_KEY, JSON.stringify(DATA));
+            renderStats(); showToast("Đã lưu!");
             
-            await callAPI('log_meal', { userId: USER.id, name, cal: Number(cal), isManual: true, type: SELECTED_MANUAL_MEAL });
+            await callAPI('log_meal', { userId: user.id, name, cal: Number(cal), isManual: true, type: SELECTED_MANUAL_MEAL });
             document.getElementById('man-name').value=''; document.getElementById('man-cal').value=''; switchInputMode('search');
             loadStats();
         }
-
-        // Utils
-        function switchInputMode(m) {
-            document.getElementById('mode-search').className = m==='search' ? 'space-y-4' : 'hidden';
-            document.getElementById('mode-manual').className = m==='manual' ? 'bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4' : 'hidden';
-            document.getElementById('tab-search').className = `px-4 py-1.5 text-[11px] font-bold rounded-md transition-all ${m==='search'?'active-tab':'text-slate-400 hover:text-slate-600'}`;
-            document.getElementById('tab-manual').className = `px-4 py-1.5 text-[11px] font-bold rounded-md transition-all ${m==='manual'?'active-tab':'text-slate-400 hover:text-slate-600'}`;
-        }
-
-        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
         
+        function switchInputMode(m) {
+            document.getElementById('mode-search').className=m=='search'?'space-y-4':'hidden';
+            document.getElementById('mode-manual').className=m=='manual'?'bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4':'hidden';
+            document.getElementById('tab-search').className=`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all ${m=='search'?'bg-white shadow-sm text-slate-800':'text-slate-400'}`;
+            document.getElementById('tab-manual').className=`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all ${m=='manual'?'bg-white shadow-sm text-slate-800':'text-slate-400'}`;
+        }
+        function hardRefresh() { localStorage.removeItem(CACHE_KEY); window.location.reload(); }
+        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
+
         init();
     </script>
 </body>
