@@ -278,34 +278,67 @@
         function selectManMeal(btn, meal) { SELECTED_MANUAL_MEAL = meal; document.querySelectorAll('.meal-btn-man').forEach(b => b.className = "meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500"); btn.className = "meal-btn-man bg-green-50 border border-green-500 p-2 rounded-lg text-xs font-bold text-green-700 shadow-sm"; }
 
         // --- CORE LOGIC: ADD FOOD ---
-        async function confirmAddFood() {
-            const amt = document.getElementById('input-amount').value;
-            if(!amt || amt<=0) return alert("Lỗi số lượng");
-            const r = amt / 100;
-            
-            // Tính toán (Fix lỗi cộng dồn)
-            // Ép kiểu Number để tránh lỗi cộng chuỗi
-            const addCal = Number(SELECTED_FOOD.cal || 0) * r;
-            const addPro = Number(SELECTED_FOOD.pro || 0) * r;
-            const addCarb = Number(SELECTED_FOOD.carb || 0) * r;
-            const addFat = Number(SELECTED_FOOD.fat || 0) * r;
+        // --- [FIX FINAL] XỬ LÝ DẤU PHẨY/CHẤM & CỘNG DỒN ---
+        
+        // Hàm tiện ích: Chuyển mọi thứ về số chuẩn (Dấu chấm)
+        function parseNum(val) {
+            if (!val) return 0;
+            // Đổi dấu phẩy sang chấm, xóa ký tự lạ, ép về số float
+            let num = parseFloat(String(val).replace(/,/g, '.'));
+            return isNaN(num) ? 0 : num;
+        }
 
-            DATA.cal += addCal;
-            DATA.pro += addPro;
-            DATA.carb += addCarb;
-            DATA.fat += addFat;
+        async function confirmAddFood() {
+            const amtInput = document.getElementById('input-amount').value;
+            const amt = parseNum(amtInput);
             
-            DATA.list.push({name: SELECTED_FOOD.name, cal: addCal, type: SELECTED_MEAL});
-            localStorage.setItem(CACHE_KEY, JSON.stringify(DATA));
+            if(amt <= 0) return alert("Số lượng không hợp lệ");
             
-            renderStats(); closeModal(); showToast("Đã thêm!");
+            // Tỷ lệ khối lượng (Vd: 200g / 100g = 2)
+            const ratio = amt / 100;
             
+            // Lấy dữ liệu gốc và chuẩn hóa
+            const baseCal = parseNum(SELECTED_FOOD.cal);
+            const basePro = parseNum(SELECTED_FOOD.pro);
+            const baseCarb = parseNum(SELECTED_FOOD.carb);
+            const baseFat = parseNum(SELECTED_FOOD.fat);
+            
+            // Tính toán giá trị thực tế
+            const addCal = baseCal * ratio;
+            const addPro = basePro * ratio;
+            const addCarb = baseCarb * ratio;
+            const addFat = baseFat * ratio;
+
+            // Cập nhật giao diện ngay lập tức (Optimistic)
+            DATA.cal = parseNum(DATA.cal) + addCal;
+            DATA.pro = parseNum(DATA.pro) + addPro;
+            DATA.carb = parseNum(DATA.carb) + addCarb;
+            DATA.fat = parseNum(DATA.fat) + addFat;
+            
+            DATA.list.push({
+                name: SELECTED_FOOD.name, 
+                cal: addCal, 
+                type: SELECTED_MEAL
+            });
+            
+            localStorage.setItem(CACHE_KEY, JSON.stringify(DATA)); // Lưu cache
+            renderStats(); 
+            closeModal(); 
+            showToast("Đã thêm món!");
+            
+            // Gửi lên Server (Gửi dữ liệu thô để Server tự tính và lưu)
             await callAPI('log_meal', { 
-                userId: user.id, name: SELECTED_FOOD.name, amount: Number(amt), 
-                baseCal: SELECTED_FOOD.cal, basePro: SELECTED_FOOD.pro, 
-                baseCarb: SELECTED_FOOD.carb, baseFat: SELECTED_FOOD.fat, 
+                userId: USER.id, 
+                name: SELECTED_FOOD.name, 
+                amount: amt, 
+                baseCal: baseCal, 
+                basePro: basePro, 
+                baseCarb: baseCarb, 
+                baseFat: baseFat, 
                 type: SELECTED_MEAL 
             });
+            
+            // Tải lại số liệu chính xác từ server
             loadStats(); 
         }
         
