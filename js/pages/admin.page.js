@@ -120,7 +120,7 @@ const AdminPage = {
         }
     },
 
-    switchTab(name, btn) {
+    async switchTab(name, btn) {
         this.currentTab = name;
         
         document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
