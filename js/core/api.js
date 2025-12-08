@@ -106,11 +106,14 @@ class APIClient {
     async call(action, data = {}, options = {}) {
         await this.init();
         
+        // Get CONFIG with fallback
+        const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
+        
         const {
             useCache = false,
             cacheKey = null,
-            retry = CONFIG.API_RETRY_COUNT,
-            timeout = CONFIG.API_TIMEOUT
+            retry = config.API_RETRY_COUNT || 3,
+            timeout = config.API_TIMEOUT || 30000
         } = options;
 
         // Check cache
