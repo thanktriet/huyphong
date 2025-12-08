@@ -1,7 +1,9 @@
 # Supabase sensitive data
 # Note: config-supabase.js contains credentials but is needed for deployment
 # In production, use environment variables or separate config file
-config.js
+# config.js - REMOVED: This file is needed for GitHub Pages deployment
+# Only ignore the old config.js in root, not js/core/config.js
+/config.js
 
 # OS files
 .DS_Store
