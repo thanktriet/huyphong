@@ -188,7 +188,9 @@
 
         // Helper functions
         function toggleModal(id) {
-            AdminCalendar.toggleModal(id);
+            if (typeof AdminCalendar !== 'undefined' && AdminCalendar.toggleModal) {
+                AdminCalendar.toggleModal(id);
+            }
         }
 
         function filterTable(id, keyword) {
@@ -212,7 +214,9 @@
         }
 
         function initApp(force = false) {
-            AdminPage.refresh();
+            if (typeof AdminPage !== 'undefined' && AdminPage.refresh) {
+                AdminPage.refresh();
+            }
         }
 
         function logout() {
@@ -221,9 +225,22 @@
 
         // Initialize
         (async function() {
-            await API.init();
-            await AdminPage.init();
-            AdminPlans.addRow(); // Init plan builder
+            try {
+                await API.init();
+                if (typeof AdminPage !== 'undefined') {
+                    await AdminPage.init();
+                    if (typeof AdminPlans !== 'undefined' && AdminPlans.addRow) {
+                        AdminPlans.addRow(); // Init plan builder
+                    }
+                } else {
+                    console.error('AdminPage is not defined');
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+                if (typeof Toast !== 'undefined') {
+                    Toast.error('Lỗi khởi tạo: ' + error.message);
+                }
+            }
         })();
     </script>
 </body>
