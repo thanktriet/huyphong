@@ -904,12 +904,21 @@ async function getDailyMacros(userId) {
                 .eq('id', userId)
                 .single();
 
-            if (!userError && userData) {
+            if (!userError && userData && userData !== null) {
+                // Safe access with nullish coalescing
                 targets = {
-                    calories: parseFloat(userData.target_calories) || 2000,
-                    protein: parseFloat(userData.target_protein) || 0,
-                    carb: parseFloat(userData.target_carb) || 0,
-                    fat: parseFloat(userData.target_fat) || 0
+                    calories: (userData.target_calories !== undefined && userData.target_calories !== null) 
+                        ? parseFloat(userData.target_calories) || 2000 
+                        : 2000,
+                    protein: (userData.target_protein !== undefined && userData.target_protein !== null) 
+                        ? parseFloat(userData.target_protein) || 0 
+                        : 0,
+                    carb: (userData.target_carb !== undefined && userData.target_carb !== null) 
+                        ? parseFloat(userData.target_carb) || 0 
+                        : 0,
+                    fat: (userData.target_fat !== undefined && userData.target_fat !== null) 
+                        ? parseFloat(userData.target_fat) || 0 
+                        : 0
                 };
             }
         } catch (targetError) {
@@ -930,13 +939,25 @@ async function getDailyMacros(userId) {
             });
         });
 
-        // Add targets and progress
+        // Add targets and progress - ensure targets exists
+        if (!targets || typeof targets !== 'object') {
+            targets = { calories: 2000, protein: 0, carb: 0, fat: 0 };
+        }
+        
         totals.targets = targets;
         totals.progress = {
-            calories: targets.calories > 0 ? Math.min((totals.cal / targets.calories) * 100, 100) : 0,
-            protein: targets.protein > 0 ? Math.min((totals.pro / targets.protein) * 100, 100) : 0,
-            carb: targets.carb > 0 ? Math.min((totals.carb / targets.carb) * 100, 100) : 0,
-            fat: targets.fat > 0 ? Math.min((totals.fat / targets.fat) * 100, 100) : 0
+            calories: (targets.calories && targets.calories > 0) 
+                ? Math.min((totals.cal / targets.calories) * 100, 100) 
+                : 0,
+            protein: (targets.protein && targets.protein > 0) 
+                ? Math.min((totals.pro / targets.protein) * 100, 100) 
+                : 0,
+            carb: (targets.carb && targets.carb > 0) 
+                ? Math.min((totals.carb / targets.carb) * 100, 100) 
+                : 0,
+            fat: (targets.fat && targets.fat > 0) 
+                ? Math.min((totals.fat / targets.fat) * 100, 100) 
+                : 0
         };
 
         return { success: true, data: totals };
