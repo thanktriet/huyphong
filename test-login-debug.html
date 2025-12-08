@@ -6,6 +6,16 @@
     <title>Debug Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="js/core/config.js"></script>
+    <script>
+        // Wait for CONFIG to be available
+        (function() {
+            if (typeof CONFIG === 'undefined' && typeof window.CONFIG === 'undefined') {
+                console.error('CONFIG not loaded!');
+            } else {
+                console.log('CONFIG loaded:', typeof CONFIG !== 'undefined' ? 'CONFIG' : 'window.CONFIG');
+            }
+        })();
+    </script>
     <script src="js/core/utils.js"></script>
     <script src="js/core/api.js"></script>
     <script src="js/services/auth.service.js"></script>
