@@ -29,8 +29,12 @@ Ví dụ:
 
 1. Click **Settings** (⚙️) ở sidebar bên trái
 2. Click **API** trong menu Settings
-3. Scroll xuống tìm phần **"Additional Allowed Origins"** hoặc **"CORS"**
-4. Trong text box, thêm domain của bạn (mỗi domain một dòng):
+3. **Tìm một trong các field sau** (Supabase có thể đã đổi tên):
+   - **"Additional Allowed Origins"** (nếu có)
+   - **"Allowed Origins"** (nếu có)
+   - **"CORS"** hoặc **"CORS Configuration"** (nếu có)
+   - **"Site URL"** (cũng có thể ảnh hưởng đến CORS)
+4. Trong text box (nếu tìm thấy), thêm domain của bạn (mỗi domain một dòng):
 
 ```
 http://localhost:8001
@@ -56,11 +60,20 @@ https://thanktriet.github.io/huyphong  ❌ (có path)
 thanktriet.github.io                  ❌ (thiếu protocol)
 ```
 
-### Bước 4: Lưu
+### Bước 4: Lưu (Nếu Tìm Thấy Field)
 
 1. Click nút **Save** hoặc **Update**
 2. Đợi thông báo "Settings updated successfully"
 3. Đợi 10-30 giây để Supabase cập nhật
+
+### ⚠️ Nếu Không Tìm Thấy "Additional Allowed Origins"
+
+**Tin tốt:** Supabase có thể đã tự động cho phép tất cả origins khi dùng anon key!
+
+Nếu vẫn gặp lỗi CORS, có thể do:
+1. **RLS Policies** - Xem phần "Kiểm Tra RLS" bên dưới
+2. **Network/Firewall** - Browser chặn
+3. **Cần cấu hình khác** - Xem file `FIX-CORS-SUPABASE-NEW.md` để biết thêm
 
 ### Bước 5: Test Lại
 
