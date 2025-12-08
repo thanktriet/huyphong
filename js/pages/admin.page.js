@@ -142,6 +142,11 @@ const AdminPage = {
         } else if (name === 'builder') {
             AdminPlans.init();
         } else if (name === 'mealplan') {
+            // Ensure students are loaded first to populate dropdown
+            if (!AdminStudents.students || AdminStudents.students.length === 0) {
+                await AdminStudents.load();
+            }
+            AdminStudents.fillDropdowns();
             AdminMealPlan.init();
         }
     },

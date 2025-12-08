@@ -221,7 +221,10 @@ const AdminStudents = {
     },
 
     fillDropdowns() {
-        if (!this.students) return;
+        if (!this.students || this.students.length === 0) {
+            console.warn('No students data to fill dropdowns');
+            return;
+        }
         
         const optsNormal = '<option value="">-- Chọn Học Viên --</option><option value="TEMPLATE" class="font-bold text-blue-600">★ LƯU LÀM MẪU</option>' + 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -236,8 +239,13 @@ const AdminStudents = {
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         if (assignStudents) assignStudents.innerHTML = 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        if (mealplanStudent) mealplanStudent.innerHTML = '<option value="">-- Chọn Học Viên --</option>' + 
-            this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        if (mealplanStudent) {
+            mealplanStudent.innerHTML = '<option value="">-- Chọn Học Viên --</option>' + 
+                this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            console.log('Meal plan dropdown populated with', this.students.length, 'students');
+        } else {
+            console.warn('mealplan-student-select element not found');
+        }
     },
 
 };
