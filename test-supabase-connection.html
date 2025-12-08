@@ -100,6 +100,21 @@
         }
 
         async function testConfig() {
+            // Wait a bit for scripts to load
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Try to load config manually if not available
+            if (typeof CONFIG === 'undefined' && typeof window.CONFIG === 'undefined') {
+                try {
+                    const response = await fetch('js/core/config.js');
+                    const code = await response.text();
+                    // Execute the code
+                    eval(code);
+                } catch (e) {
+                    console.error('Failed to load config:', e);
+                }
+            }
+            
             const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
             const result = {
                 hasCONFIG: typeof CONFIG !== 'undefined',
@@ -107,7 +122,9 @@
                 configKeys: config ? Object.keys(config) : [],
                 SUPABASE_URL: config.SUPABASE_URL || 'MISSING',
                 SUPABASE_ANON_KEY: config.SUPABASE_ANON_KEY ? config.SUPABASE_ANON_KEY.substring(0, 30) + '...' : 'MISSING',
-                scriptLoaded: document.querySelector('script[src*="config.js"]') ? 'Yes' : 'No'
+                scriptLoaded: document.querySelector('script[src*="config.js"]') ? 'Yes' : 'No',
+                scriptSrc: document.querySelector('script[src*="config.js"]')?.src || 'Not found',
+                configFileContent: config.SUPABASE_URL ? 'Loaded' : 'Not loaded'
             };
             
             if (result.hasCONFIG || result.hasWindowCONFIG) {
