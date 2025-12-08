@@ -252,30 +252,200 @@ const AdminMealPlan = {
     },
 
     async addMeal(dayOfWeek, mealType) {
-        // Simple prompt for now - can be enhanced with modal
-        const foodName = prompt('Tên món ăn:');
-        if (!foodName) return;
-
-        // Try to find food in library
-        const food = this.foods.find(f => f.name.toLowerCase().includes(foodName.toLowerCase()));
+        // Store context for modal
+        this.addingMealContext = { dayOfWeek, mealType };
         
+        // Show food selection modal
+        this.showFoodSelectionModal();
+    },
+
+    showFoodSelectionModal() {
+        if (this.foods.length === 0) {
+            Toast.error('Kho món ăn trống');
+            return;
+        }
+
+        // Create modal HTML
+        const modalHTML = `
+            <div id="modal-select-food" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="text-lg font-bold">Chọn Món Ăn</h3>
+                        <button onclick="document.getElementById('modal-select-food').remove()" class="text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div class="p-4 border-b">
+                        <input type="text" id="food-search-input" placeholder="Tìm món ăn..." 
+                               class="w-full border p-2 rounded-lg" 
+                               onkeyup="AdminMealPlan.filterFoods(this.value)">
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4" id="food-list-modal">
+                        ${this.renderFoodList()}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existing = document.getElementById('modal-select-food');
+        if (existing) existing.remove();
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        lucide.createIcons();
+    },
+
+    renderFoodList(searchTerm = '') {
+        let filteredFoods = this.foods;
+        
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredFoods = this.foods.filter(f => 
+                f.name.toLowerCase().includes(term)
+            );
+        }
+
+        if (filteredFoods.length === 0) {
+            return '<div class="text-center text-slate-400 py-8">Không tìm thấy món ăn</div>';
+        }
+
+        return filteredFoods.slice(0, 50).map(food => `
+            <div class="p-3 border rounded-lg mb-2 hover:bg-slate-50 cursor-pointer" 
+                 onclick="AdminMealPlan.selectFood(${JSON.stringify(food).replace(/"/g, '&quot;')})">
+                <div class="flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="font-bold text-slate-700">${food.name}</div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            <span class="text-orange-600 font-bold">${food.cal || food.calories || 0} kcal</span>
+                            <span class="mx-2">|</span>
+                            <span>P: ${food.pro || food.protein || 0}g</span>
+                            <span class="mx-1">C: ${food.carb || 0}g</span>
+                            <span class="mx-1">F: ${food.fat || 0}g</span>
+                        </div>
+                    </div>
+                    <div class="text-blue-600">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    filterFoods(searchTerm) {
+        const container = document.getElementById('food-list-modal');
+        if (container) {
+            container.innerHTML = this.renderFoodList(searchTerm);
+            lucide.createIcons();
+        }
+    },
+
+    selectFood(food) {
+        // Close modal
+        const modal = document.getElementById('modal-select-food');
+        if (modal) modal.remove();
+
+        // Show amount input modal
+        this.showAmountModal(food);
+    },
+
+    showAmountModal(food) {
+        const context = this.addingMealContext;
+        if (!context) return;
+
+        const modalHTML = `
+            <div id="modal-food-amount" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6">
+                    <h3 class="text-lg font-bold mb-4">${food.name}</h3>
+                    <div class="mb-4 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-xs text-slate-500 mb-1">Thông tin dinh dưỡng (100g)</div>
+                        <div class="text-sm">
+                            <span class="font-bold text-orange-600">${food.cal || food.calories || 0} kcal</span>
+                            <span class="mx-2">|</span>
+                            <span>P: ${food.pro || food.protein || 0}g</span>
+                            <span class="mx-1">C: ${food.carb || 0}g</span>
+                            <span class="mx-1">F: ${food.fat || 0}g</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-2">Số lượng (g)</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="AdminMealPlan.adjAmount(-50)" class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-bold text-xl hover:bg-slate-200">-</button>
+                            <input id="food-amount-input" type="number" value="100" min="1" 
+                                   class="flex-1 h-12 border-2 border-blue-500 rounded-xl text-center font-bold text-blue-600 text-xl outline-none">
+                            <button onclick="AdminMealPlan.adjAmount(50)" class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-bold text-xl hover:bg-slate-200">+</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="document.getElementById('modal-food-amount').remove()" 
+                                class="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200">
+                            Hủy
+                        </button>
+                        <button onclick="AdminMealPlan.confirmAddFood(${JSON.stringify(food).replace(/"/g, '&quot;')})" 
+                                class="flex-1 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
+                            Thêm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const existing = document.getElementById('modal-food-amount');
+        if (existing) existing.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    },
+
+    adjAmount(change) {
+        const input = document.getElementById('food-amount-input');
+        if (input) {
+            let val = parseInt(input.value) || 100;
+            val = Math.max(1, val + change);
+            input.value = val;
+        }
+    },
+
+    confirmAddFood(food) {
+        const context = this.addingMealContext;
+        if (!context) return;
+
+        const amountInput = document.getElementById('food-amount-input');
+        const amount = parseFloat(amountInput?.value) || 100;
+        const ratio = amount / 100;
+
+        // Calculate nutrition based on amount
+        const baseCal = parseFloat(food.cal || food.calories || 0);
+        const basePro = parseFloat(food.pro || food.protein || 0);
+        const baseCarb = parseFloat(food.carb || 0);
+        const baseFat = parseFloat(food.fat || 0);
+
         const meal = {
-            dayOfWeek: dayOfWeek,
-            mealType: mealType,
-            foodId: food?.id || null,
-            foodName: foodName,
-            amount: 100,
-            calories: food ? parseFloat(food.calories) : 0,
-            protein: food ? parseFloat(food.protein) : 0,
-            carb: food ? parseFloat(food.carb) : 0,
-            fat: food ? parseFloat(food.fat) : 0
+            dayOfWeek: context.dayOfWeek,
+            mealType: context.mealType,
+            foodId: food.id,
+            foodName: food.name,
+            amount: amount,
+            calories: baseCal * ratio,
+            protein: basePro * ratio,
+            carb: baseCarb * ratio,
+            fat: baseFat * ratio
         };
 
-        if (!this.mealPlan[dayOfWeek]) {
-            this.mealPlan[dayOfWeek] = [];
+        if (!this.mealPlan[context.dayOfWeek]) {
+            this.mealPlan[context.dayOfWeek] = [];
         }
-        this.mealPlan[dayOfWeek].push(meal);
+        this.mealPlan[context.dayOfWeek].push(meal);
+
+        // Close modal
+        const modal = document.getElementById('modal-food-amount');
+        if (modal) modal.remove();
+
+        // Clear context
+        this.addingMealContext = null;
+
+        // Re-render
         this.render();
+        Toast.success('Đã thêm món ăn');
     },
 
     async removeMeal(mealId) {
