@@ -26,7 +26,7 @@ Truy cập: `http://localhost:8001/login.html`
 Sau đó:
 1. Vào GitHub repository → Settings → Pages
 2. Enable GitHub Pages (branch: main, folder: /)
-3. Cấu hình CORS trong Supabase Dashboard
+3. **Cấu hình CORS trong Supabase Dashboard** - Xem hướng dẫn chi tiết: [CONFIG-CORS-SUPABASE.md](./CONFIG-CORS-SUPABASE.md)
 
 ## 📋 Features
 

@@ -6,8 +6,13 @@
     <title>Hồ Sơ Học Viên</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <!-- supabase/api.js will be loaded by API.init() -->
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/ui/toast.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
@@ -67,47 +72,83 @@
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id');
 
-        // Kiểm tra quyền Admin
-        const adminUser = JSON.parse(localStorage.getItem('pt_user'));
-        if (!adminUser || adminUser.role !== 'PT') {
-            alert("Bạn không có quyền truy cập!");
-            window.location.href = 'login.html';
-        }
+        // Initialize - Wait for scripts to load
+        (async function init() {
+            try {
+                // Wait for CONFIG to be available
+                if (typeof CONFIG === 'undefined') {
+                    await new Promise(resolve => {
+                        const checkConfig = setInterval(() => {
+                            if (typeof CONFIG !== 'undefined') {
+                                clearInterval(checkConfig);
+                                resolve();
+                            }
+                        }, 50);
+                    });
+                }
+                
+                // Initialize API (this will load supabase/api.js)
+                await API.init();
+                
+                // Check auth
+                if (!AuthService.isAuthenticated()) {
+                    window.location.href = 'login.html';
+                    return;
+                }
 
-        if (!studentId) {
-            alert("Không tìm thấy học viên!");
-            history.back();
-        }
+                // Kiểm tra quyền Admin
+                if (!AuthService.isAdmin()) {
+                    alert("Bạn không có quyền truy cập!");
+                    window.location.href = 'index.html';
+                    return;
+                }
 
-        // START
-        init();
+                if (!studentId) {
+                    alert("Không tìm thấy học viên!");
+                    history.back();
+                    return;
+                }
 
-        async function init() {
-            await loadStudentInfo();
-            await Promise.all([loadWorkoutHistory(), loadNutritionHistory(), loadBodyHistory()]);
-        }
+                // Load data
+                await loadStudentInfo();
+                await Promise.all([loadWorkoutHistory(), loadNutritionHistory(), loadBodyHistory()]);
+            } catch (error) {
+                console.error('Init error:', error);
+                Toast.error('Lỗi khởi tạo: ' + error.message);
+            }
+        })();
 
         // 1. LẤY THÔNG TIN CƠ BẢN
         async function loadStudentInfo() {
-            const res = await callAPI('get_all_students'); // Lấy list về lọc (hoặc viết API get_user_info riêng nếu muốn tối ưu hơn)
-            if(res.success) {
-                const student = res.data.find(s => s.id === studentId);
-                if (student) {
-                    document.getElementById('st-name').innerText = student.name;
-                    document.getElementById('st-email').innerText = student.email;
-                    document.getElementById('st-avt').innerText = student.name.charAt(0).toUpperCase();
-                    document.getElementById('st-session').innerText = `${student.sessionLeft} Buổi`;
-                    document.getElementById('st-expiry').innerText = student.isExpired ? "Hết hạn" : `Hạn: ${student.expiryDate}`;
+            try {
+                const res = await callAPI('get_all_students'); // Lấy list về lọc (hoặc viết API get_user_info riêng nếu muốn tối ưu hơn)
+                if(res.success) {
+                    const student = res.data.find(s => s.id === studentId);
+                    if (student) {
+                        document.getElementById('st-name').innerText = student.name;
+                        document.getElementById('st-email').innerText = student.email;
+                        document.getElementById('st-avt').innerText = student.name.charAt(0).toUpperCase();
+                        document.getElementById('st-session').innerText = `${student.sessionLeft || 0} Buổi`;
+                        document.getElementById('st-expiry').innerText = student.isExpired ? "Hết hạn" : `Hạn: ${student.expiryDate || '---'}`;
+                    } else {
+                        Toast.error('Không tìm thấy học viên');
+                    }
+                } else {
+                    Toast.error(res.message || 'Lỗi tải thông tin học viên');
                 }
+            } catch (error) {
+                console.error('Load student info error:', error);
+                Toast.error('Lỗi: ' + error.message);
             }
         }
 
         // 2. LỊCH SỬ TẬP
         async function loadWorkoutHistory() {
-            const res = await callAPI('get_workout_history', { userId: studentId });
-            const list = document.getElementById('workout-list');
-            
-            if(res.success && Object.keys(res.data).length > 0) {
+            try {
+                const res = await callAPI('get_workout_history', { userId: studentId });
+                const list = document.getElementById('workout-list');
+                
+                if(res.success && res.data && Object.keys(res.data).length > 0) {
                 const dates = Object.keys(res.data).sort((a,b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-')));
                 list.innerHTML = dates.map(date => {
                     const logs = res.data[date];
@@ -130,14 +171,19 @@
             } else {
                 list.innerHTML = '<div class="text-center py-10 text-slate-400">Chưa có dữ liệu tập luyện.</div>';
             }
+            } catch (error) {
+                console.error('Load workout history error:', error);
+                document.getElementById('workout-list').innerHTML = '<div class="text-center py-10 text-red-400">Lỗi tải dữ liệu.</div>';
+            }
         }
 
         // 3. LỊCH SỬ ĂN
         async function loadNutritionHistory() {
-            const res = await callAPI('get_nutrition_history', { userId: studentId });
-            const list = document.getElementById('nutrition-list');
-            
-            if(res.success && Object.keys(res.data).length > 0) {
+            try {
+                const res = await callAPI('get_nutrition_history', { userId: studentId });
+                const list = document.getElementById('nutrition-list');
+                
+                if(res.success && res.data && Object.keys(res.data).length > 0) {
                 const dates = Object.keys(res.data).sort((a,b) => new Date(b).getTime() - new Date(a).getTime());
                 list.innerHTML = dates.map(date => {
                     const d = res.data[date];
@@ -163,14 +209,19 @@
             } else {
                 list.innerHTML = '<div class="text-center py-10 text-slate-400">Chưa có dữ liệu ăn uống.</div>';
             }
+            } catch (error) {
+                console.error('Load nutrition history error:', error);
+                document.getElementById('nutrition-list').innerHTML = '<div class="text-center py-10 text-red-400">Lỗi tải dữ liệu.</div>';
+            }
         }
 
         // 4. LỊCH SỬ CÂN NẶNG
         async function loadBodyHistory() {
-            const res = await callAPI('get_body_history', { userId: studentId });
-            const list = document.getElementById('body-list');
-            
-            if(res.success && res.data.length > 0) {
+            try {
+                const res = await callAPI('get_body_history', { userId: studentId });
+                const list = document.getElementById('body-list');
+                
+                if(res.success && res.data && res.data.length > 0) {
                 const sorted = res.data.reverse();
                 list.innerHTML = sorted.map((b, i) => {
                     const dateParts = b.date.split('-'); 
@@ -197,6 +248,10 @@
                 lucide.createIcons();
             } else {
                 list.innerHTML = '<div class="text-center py-10 text-slate-400">Chưa có số đo.</div>';
+            }
+            } catch (error) {
+                console.error('Load body history error:', error);
+                document.getElementById('body-list').innerHTML = '<div class="text-center py-10 text-red-400">Lỗi tải dữ liệu.</div>';
             }
         }
 
