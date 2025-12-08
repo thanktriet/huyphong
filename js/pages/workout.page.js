@@ -34,7 +34,9 @@ const WorkoutPage = {
             
             const result = await WorkoutService.getPlan(this.user.id);
             
-            if (result.success && result.data && Object.keys(result.data).length > 0) {
+            console.log('Workout plan result:', result);
+            
+            if (result && result.success && result.data && Object.keys(result.data).length > 0) {
                 this.plans = result.data;
                 this.renderTabs();
             } else {
@@ -42,12 +44,21 @@ const WorkoutPage = {
                     <div class="text-center text-slate-400 mt-10 flex flex-col items-center">
                         <i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>
                         <p>Hôm nay nghỉ ngơi nhé!</p>
+                        <p class="text-xs text-slate-300 mt-2">${result?.message || 'Chưa có giáo án'}</p>
                     </div>
                 `;
                 lucide.createIcons();
             }
         } catch (error) {
+            console.error('Error loading workout plan:', error);
             Toast.error('Lỗi tải dữ liệu: ' + error.message);
+            document.getElementById('todo-list').innerHTML = `
+                <div class="text-center text-red-400 mt-10 flex flex-col items-center">
+                    <i data-lucide="alert-circle" class="w-12 h-12 mb-2"></i>
+                    <p>Lỗi: ${error.message}</p>
+                </div>
+            `;
+            lucide.createIcons();
         } finally {
             Loader.hideIn('todo-list');
         }

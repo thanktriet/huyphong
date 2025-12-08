@@ -186,10 +186,12 @@ class APIClient {
     }
 
     async getStudentPlan(userId, useCache = true) {
-        return this.call('getStudentPlan', { userId }, {
-            useCache,
-            cacheKey: `plan_${userId}`
-        });
+        await this.init();
+        // Call directly to avoid wrapper issues
+        if (!this.api || !this.api.getStudentPlan) {
+            throw new Error('Supabase API not initialized');
+        }
+        return await this.api.getStudentPlan(userId);
     }
 
     async getDailyMacros(userId) {
