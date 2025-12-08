@@ -1,0 +1,420 @@
+// =======================================================
+// WORKOUT PAGE LOGIC
+// =======================================================
+
+const WorkoutPage = {
+    user: null,
+    plans: {},
+    progress: {},
+    setCounts: {},
+    currentTab: "",
+    timerInterval: null,
+    timeLeft: 60,
+
+    async init() {
+        this.user = AuthService.getCurrentUser();
+        if (!this.user) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Load progress from cache
+        const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+        this.progress = Utils.storage.get(storageKey, {});
+        this.setCounts = {};
+
+        // Load plan
+        await this.loadPlan();
+        this.updateProgressUI();
+    },
+
+    async loadPlan() {
+        try {
+            Loader.showIn('todo-list', 'Đang tải giáo án...');
+            
+            const result = await WorkoutService.getPlan(this.user.id);
+            
+            if (result.success && result.data && Object.keys(result.data).length > 0) {
+                this.plans = result.data;
+                this.renderTabs();
+            } else {
+                document.getElementById('todo-list').innerHTML = `
+                    <div class="text-center text-slate-400 mt-10 flex flex-col items-center">
+                        <i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i>
+                        <p>Hôm nay nghỉ ngơi nhé!</p>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        } catch (error) {
+            Toast.error('Lỗi tải dữ liệu: ' + error.message);
+        } finally {
+            Loader.hideIn('todo-list');
+        }
+    },
+
+    renderTabs() {
+        const days = Object.keys(this.plans);
+        const container = document.getElementById('tabs');
+        
+        let html = days.map((day, i) => 
+            `<button onclick="WorkoutPage.switchTab('${day}', this)" 
+                class="px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-all active:scale-95 ${
+                    i === 0 ? 'tab-active' : 'bg-white text-slate-600 border-slate-200 shadow-sm'
+                }">${day}</button>`
+        ).join('');
+        
+        html += `<button onclick="WorkoutPage.showHistory(this)" 
+            class="px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-500 border-slate-200 shadow-sm flex items-center gap-1 active:scale-95">
+            <i data-lucide="history" class="w-4 h-4"></i> Lịch sử
+        </button>`;
+        
+        container.innerHTML = html;
+        lucide.createIcons();
+        
+        if (days.length > 0) {
+            this.switchTab(days[0], container.children[0]);
+        }
+    },
+
+    switchTab(day, btn) {
+        this.currentTab = day;
+        document.getElementById('history-view').classList.add('hidden');
+        document.getElementById('workout-view').classList.remove('hidden');
+        document.getElementById('floating-action').classList.remove('translate-y-[150%]');
+        
+        document.querySelectorAll('#tabs button').forEach(b => {
+            b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 shadow-sm transition-all active:scale-95';
+        });
+        
+        if (btn) {
+            btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border tab-active transition-all active:scale-95';
+        }
+
+        this.renderExercises(day);
+    },
+
+    renderExercises(day) {
+        const list = document.getElementById('todo-list');
+        const exercises = this.plans[day] || [];
+        
+        list.innerHTML = exercises.map((ex, i) => {
+            const exKey = `${day}_${ex.exercise}`;
+            let maxSavedSet = 0;
+            
+            Object.keys(this.progress).forEach(k => {
+                if (k.startsWith(exKey + '_set')) {
+                    const num = parseInt(k.split('_set')[1]);
+                    if (num > maxSavedSet) maxSavedSet = num;
+                }
+            });
+            
+            if (!this.setCounts[exKey]) {
+                this.setCounts[exKey] = Math.max(ex.sets, maxSavedSet);
+            }
+            
+            let setsHtml = '';
+            for (let s = 1; s <= this.setCounts[exKey]; s++) {
+                const key = `${exKey}_set${s}`;
+                const saved = this.progress[key] || {};
+                const isChecked = saved.checked ? 'checked' : '';
+                const rowClass = saved.checked ? 'set-done' : 'bg-white';
+                const wVal = saved.weight || '';
+                const rVal = saved.reps || ex.reps;
+
+                setsHtml += `
+                    <div class="set-row flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 ${rowClass} mb-2.5 shadow-sm" id="row-${key}">
+                        <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 mr-1">${s}</div>
+                        <div class="flex-1 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
+                            <button onclick="WorkoutPage.adjustVal('w-${key}', -2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
+                            <input type="number" id="w-${key}" value="${wVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="kg">
+                            <button onclick="WorkoutPage.adjustVal('w-${key}', 2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
+                        </div>
+                        <div class="w-24 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
+                            <button onclick="WorkoutPage.adjustVal('r-${key}', -1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
+                            <input type="number" id="r-${key}" value="${rVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="reps">
+                            <button onclick="WorkoutPage.adjustVal('r-${key}', 1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
+                        </div>
+                        <label class="relative cursor-pointer ml-1">
+                            <input type="checkbox" ${isChecked} onchange="WorkoutPage.toggleSet('${key}', '${ex.exercise}', ${s})" class="sr-only peer">
+                            <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 peer-checked:bg-blue-600 peer-checked:text-white transition-all shadow-sm peer-checked:shadow-blue-200 hover:bg-slate-200">
+                                <i data-lucide="check" class="w-6 h-6"></i>
+                            </div>
+                        </label>
+                    </div>`;
+            }
+
+            const imageBtn = ex.image ? 
+                `<button onclick="WorkoutPage.viewImage('${ex.image}')" class="w-9 h-9 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 transition-colors">
+                    <i data-lucide="image" class="w-5 h-5"></i>
+                </button>` : '';
+
+            return `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 bg-white border-b border-slate-100 flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg leading-tight">${ex.exercise}</h3>
+                            ${ex.note ? `<p class="text-xs text-slate-500 mt-1 bg-slate-50 px-2 py-1 rounded-lg inline-block border border-slate-100">💡 ${ex.note}</p>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            ${imageBtn}
+                            <button onclick="WorkoutPage.addSet('${day}', '${ex.exercise}')" class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50/50 space-y-2">
+                        ${setsHtml}
+                        ${this.setCounts[exKey] > 1 ? `<div class="text-right"><button onclick="WorkoutPage.removeLastSet('${day}', '${ex.exercise}')" class="text-[10px] text-red-400 hover:text-red-600 font-bold px-2 py-1">Xóa Set Cuối</button></div>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+        
+        lucide.createIcons();
+        this.updateProgressUI();
+    },
+
+    adjustVal(id, delta) {
+        const input = document.getElementById(id);
+        let val = parseFloat(input.value) || 0;
+        val += delta;
+        if (val < 0) val = 0;
+        input.value = val;
+        input.dispatchEvent(new Event('input'));
+    },
+
+    saveTemp(key) {
+        const w = document.getElementById(`w-${key}`).value;
+        const r = document.getElementById(`r-${key}`).value;
+        if (!this.progress[key]) this.progress[key] = {};
+        this.progress[key].weight = w;
+        this.progress[key].reps = r;
+        
+        const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+        Utils.storage.set(storageKey, this.progress);
+    },
+
+    toggleSet(key, exName, setNum) {
+        const w = document.getElementById(`w-${key}`).value;
+        const r = document.getElementById(`r-${key}`).value;
+        const row = document.getElementById(`row-${key}`);
+
+        if (!w || !r || w == 0 || r == 0) {
+            Toast.error('Hãy nhập số Kg và Reps thực tế!');
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            checkbox.checked = false;
+            return;
+        }
+
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+            row.classList.add('set-done');
+            this.progress[key] = { weight: w, reps: r, checked: true, exercise: exName, setNum };
+            this.startTimer();
+        } else {
+            row.classList.remove('set-done');
+            if (this.progress[key]) this.progress[key].checked = false;
+        }
+        
+        const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+        Utils.storage.set(storageKey, this.progress);
+        this.updateProgressUI();
+    },
+
+    addSet(day, exName) {
+        this.setCounts[`${day}_${exName}`]++;
+        this.renderExercises(day);
+    },
+
+    removeLastSet(day, exName) {
+        const exKey = `${day}_${exName}`;
+        const count = this.setCounts[exKey];
+        if (count <= 1) return;
+        
+        if (confirm("Xóa set cuối cùng?")) {
+            const key = `${exKey}_set${count}`;
+            delete this.progress[key];
+            this.setCounts[exKey]--;
+            
+            const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+            Utils.storage.set(storageKey, this.progress);
+            this.renderExercises(day);
+        }
+    },
+
+    updateProgressUI() {
+        const doneSets = Object.values(this.progress).filter(i => i.checked).length;
+        const totalSets = document.querySelectorAll('.set-row').length || 1;
+        
+        document.getElementById('selectedCount').innerText = doneSets;
+        document.getElementById('btnFinish').disabled = doneSets === 0;
+        
+        const percent = Math.min((doneSets / totalSets) * 100, 100);
+        const progressBar = document.getElementById('total-progress');
+        progressBar.style.width = `${percent}%`;
+        
+        if (percent === 100) {
+            progressBar.classList.replace('bg-blue-600', 'bg-green-500');
+        }
+    },
+
+    startTimer() {
+        const modal = document.getElementById('rest-timer-modal');
+        modal.classList.remove('hidden');
+        this.timeLeft = 60;
+        this.updateTimerDisplay();
+        
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => {
+            this.timeLeft--;
+            this.updateTimerDisplay();
+            if (this.timeLeft <= 0) this.stopTimer();
+        }, 1000);
+    },
+
+    updateTimerDisplay() {
+        document.getElementById('timer-count').innerText = this.timeLeft;
+    },
+
+    addTime(sec) {
+        this.timeLeft += sec;
+        this.updateTimerDisplay();
+    },
+
+    stopTimer() {
+        clearInterval(this.timerInterval);
+        document.getElementById('rest-timer-modal').classList.add('hidden');
+    },
+
+    viewImage(url) {
+        const modal = document.getElementById('modal-image');
+        const img = document.getElementById('img-preview');
+        img.src = url;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    closeImageModal() {
+        document.getElementById('modal-image').classList.add('hidden');
+        document.getElementById('modal-image').classList.remove('flex');
+    },
+
+    resetProgress() {
+        if (confirm("Xóa hết dữ liệu đang nhập?")) {
+            const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+            Utils.storage.remove(storageKey);
+            this.progress = {};
+            this.setCounts = {};
+            this.renderExercises(this.currentTab);
+            this.updateProgressUI();
+        }
+    },
+
+    async finishWorkout() {
+        const logs = Object.values(this.progress)
+            .filter(item => item.checked)
+            .map(item => ({
+                exercise: item.exercise,
+                weight: item.weight,
+                reps: item.reps
+            }));
+        
+        if (logs.length === 0) {
+            Toast.error('Chưa tập bài nào!');
+            return;
+        }
+        
+        if (!confirm(`Hoàn thành và lưu ${logs.length} sets tập?`)) return;
+
+        const btn = document.getElementById('btnFinish');
+        btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> Đang lưu...';
+        btn.disabled = true;
+        
+        try {
+            await WorkoutService.logWorkout(this.user.id, logs);
+            await WorkoutService.deductSession(this.user.id);
+            
+            const storageKey = `pt_progress_v4_pro_${this.user.id}`;
+            Utils.storage.remove(storageKey);
+            this.progress = {};
+            this.setCounts = {};
+            
+            Toast.success('Đã lưu buổi tập!');
+            
+            // Refresh user data
+            const userResult = await API.login(this.user.email || '', '');
+            if (userResult.success) {
+                Utils.storage.set(CONFIG.STORAGE_KEYS.USER, userResult.user);
+            }
+            
+            document.querySelector("button[onclick*='showHistory']").click();
+        } catch (error) {
+            Toast.error('Lỗi: ' + error.message);
+        } finally {
+            btn.innerHTML = '<span>Lưu Buổi Tập</span> <i data-lucide="check" class="w-5 h-5"></i>';
+            btn.disabled = false;
+            this.updateProgressUI();
+        }
+    },
+
+    async showHistory(btn) {
+        this.currentTab = "HISTORY";
+        
+        document.querySelectorAll('#tabs button').forEach(b => {
+            b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 active:scale-95';
+        });
+        
+        btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 flex items-center gap-1 transform scale-105 transition-transform';
+        
+        document.getElementById('workout-view').classList.add('hidden');
+        document.getElementById('floating-action').classList.add('translate-y-[150%]');
+        
+        const histView = document.getElementById('history-view');
+        histView.classList.remove('hidden');
+        histView.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i> Đang tải lịch sử...</div>';
+        lucide.createIcons();
+
+        try {
+            const result = await WorkoutService.getHistory(this.user.id);
+            
+            if (result.success && Object.keys(result.data).length > 0) {
+                const dates = Object.keys(result.data).sort((a, b) => 
+                    new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'))
+                );
+                
+                histView.innerHTML = dates.map(date => `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+                            <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                <i data-lucide="calendar-check" class="w-4 h-4 text-green-500"></i> ${date}
+                            </span>
+                            <span class="text-[10px] text-slate-500 bg-white border px-2 py-1 rounded-lg font-bold">
+                                ${result.data[date].length} sets
+                            </span>
+                        </div>
+                        <div class="divide-y divide-slate-50">
+                            ${result.data[date].map(l => `
+                                <div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50">
+                                    <span class="font-medium text-slate-700 line-clamp-1">${l.exercise}</span>
+                                    <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold text-xs border border-blue-100 whitespace-nowrap">
+                                        ${l.weight}kg x ${l.reps}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                histView.innerHTML = '<div class="text-center text-slate-400 mt-10"><p>Chưa có lịch sử tập luyện.</p></div>';
+            }
+        } catch (error) {
+            histView.innerHTML = '<div class="text-center text-red-400 mt-10"><p>Lỗi tải lịch sử.</p></div>';
+            Toast.error('Lỗi: ' + error.message);
+        }
+        
+        lucide.createIcons();
+    }
+};
+
+window.WorkoutPage = WorkoutPage;
+

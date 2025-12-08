@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify RLS Fixed</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #ddd;
+        }
+        .success { border-left-color: #22c55e; background: #f0fdf4; }
+        .error { border-left-color: #ef4444; background: #fef2f2; }
+        .warning { border-left-color: #f59e0b; background: #fef3c7; }
+        .info { border-left-color: #3b82f6; background: #eff6ff; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        h1 { color: #1e293b; }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Verify RLS Status</h1>
+        
+        <div id="status" class="test-item info">Testing...</div>
+        
+        <h2>Test Results:</h2>
+        <div id="results"></div>
+        
+        <button onclick="runTests()">🔄 Run Tests</button>
+        <button onclick="testLogin()">🔐 Test Login</button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://opjagtkygfgiokuaveje.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wamFndGt5Z2ZnaW9rdWF2ZWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNTc3NzgsImV4cCI6MjA4MDczMzc3OH0.Hoembak7nFXUQ4ZhETnvJg2OETkPibkU1YJbxlrqKtM';
+
+        let supabase = null;
+
+        function init() {
+            if (window.supabase && !supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        }
+
+        async function runTests() {
+            const statusEl = document.getElementById('status');
+            const resultsEl = document.getElementById('results');
+            
+            statusEl.textContent = 'Running tests...';
+            statusEl.className = 'test-item info';
+            resultsEl.innerHTML = '';
+
+            init();
+
+            const tests = [];
+
+            // Test 1: Query users
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id, email, role')
+                    .limit(5);
+
+                if (error) {
+                    if (error.message.includes('infinite recursion')) {
+                        tests.push({
+                            name: 'Query Users',
+                            status: 'error',
+                            message: '❌ RLS Recursion Error - Cần fix!'
+                        });
+                    } else {
+                        tests.push({
+                            name: 'Query Users',
+                            status: 'error',
+                            message: `❌ Error: ${error.message}`
+                        });
+                    }
+                } else {
+                    tests.push({
+                        name: 'Query Users',
+                        status: 'success',
+                        message: `✅ OK - Found ${data.length} users`
+                    });
+                }
+            } catch (e) {
+                tests.push({
+                    name: 'Query Users',
+                    status: 'error',
+                    message: `❌ Exception: ${e.message}`
+                });
+            }
+
+            // Test 2: Query exercises
+            try {
+                const { data, error } = await supabase
+                    .from('exercise_library')
+                    .select('id, name')
+                    .limit(5);
+
+                if (error) {
+                    tests.push({
+                        name: 'Query Exercises',
+                        status: 'error',
+                        message: `❌ Error: ${error.message}`
+                    });
+                } else {
+                    tests.push({
+                        name: 'Query Exercises',
+                        status: 'success',
+                        message: `✅ OK - Found ${data.length} exercises`
+                    });
+                }
+            } catch (e) {
+                tests.push({
+                    name: 'Query Exercises',
+                    status: 'error',
+                    message: `❌ Exception: ${e.message}`
+                });
+            }
+
+            // Test 3: Query foods
+            try {
+                const { data, error } = await supabase
+                    .from('food_library')
+                    .select('id, name')
+                    .limit(5);
+
+                if (error) {
+                    tests.push({
+                        name: 'Query Foods',
+                        status: 'error',
+                        message: `❌ Error: ${error.message}`
+                    });
+                } else {
+                    tests.push({
+                        name: 'Query Foods',
+                        status: 'success',
+                        message: `✅ OK - Found ${data.length} foods`
+                    });
+                }
+            } catch (e) {
+                tests.push({
+                    name: 'Query Foods',
+                    status: 'error',
+                    message: `❌ Exception: ${e.message}`
+                });
+            }
+
+            // Display results
+            let html = '';
+            let allSuccess = true;
+            
+            tests.forEach(test => {
+                if (test.status === 'error') allSuccess = false;
+                html += `<div class="test-item ${test.status === 'success' ? 'success' : 'error'}">
+                    <strong>${test.name}:</strong> ${test.message}
+                </div>`;
+            });
+
+            resultsEl.innerHTML = html;
+
+            if (allSuccess) {
+                statusEl.textContent = '✅ All tests passed! RLS seems to be working.';
+                statusEl.className = 'test-item success';
+            } else {
+                statusEl.textContent = '❌ Some tests failed. Check results below.';
+                statusEl.className = 'test-item error';
+            }
+        }
+
+        async function testLogin() {
+            init();
+            
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Loading API functions...';
+            statusEl.className = 'test-item info';
+
+            // Load API functions
+            if (!window.supabaseAPI) {
+                // Load config first
+                if (!window.supabaseClient) {
+                    const configScript = document.createElement('script');
+                    configScript.src = 'config-supabase.js';
+                    document.head.appendChild(configScript);
+                    await new Promise((resolve, reject) => {
+                        configScript.onload = () => setTimeout(resolve, 500);
+                        configScript.onerror = reject;
+                        setTimeout(reject, 5000);
+                    });
+                }
+
+                // Load API
+                const apiScript = document.createElement('script');
+                apiScript.src = 'supabase/api.js';
+                document.head.appendChild(apiScript);
+                await new Promise((resolve, reject) => {
+                    apiScript.onload = () => setTimeout(resolve, 500);
+                    apiScript.onerror = reject;
+                    setTimeout(reject, 5000);
+                });
+
+                // Wait for API to be available
+                let retries = 0;
+                while (!window.supabaseAPI && retries < 10) {
+                    await new Promise(r => setTimeout(r, 200));
+                    retries++;
+                }
+
+                if (!window.supabaseAPI) {
+                    statusEl.innerHTML = '❌ API functions không load được. Kiểm tra file supabase/api.js';
+                    statusEl.className = 'test-item error';
+                    return;
+                }
+            }
+
+            statusEl.textContent = 'Testing login...';
+            statusEl.className = 'test-item info';
+
+            try {
+                if (!window.supabaseAPI || !window.supabaseAPI.login) {
+                    throw new Error('supabaseAPI.login không tồn tại');
+                }
+
+                const result = await window.supabaseAPI.login('student1@test.com', '123456');
+                
+                if (result.success) {
+                    statusEl.innerHTML = `
+                        ✅ Login Success!<br>
+                        User: ${result.user.name}<br>
+                        Role: ${result.user.role}<br>
+                        Sessions: ${result.user.sessionLeft}
+                    `;
+                    statusEl.className = 'test-item success';
+                } else {
+                    statusEl.innerHTML = `❌ Login Failed: ${result.message}`;
+                    statusEl.className = 'test-item error';
+                }
+            } catch (e) {
+                statusEl.innerHTML = `❌ Error: ${e.message}<br><br>Kiểm tra:<br>- File supabase/api.js đã load chưa?<br>- Browser console có lỗi gì không?`;
+                statusEl.className = 'test-item error';
+                console.error('Login error:', e);
+            }
+        }
+
+        // Auto run on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.supabase) {
+                    init();
+                    runTests();
+                } else {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+                    script.onload = () => {
+                        init();
+                        setTimeout(runTests, 500);
+                    };
+                    document.head.appendChild(script);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,29 @@
+# Supabase sensitive data
+# Note: config-supabase.js contains credentials but is needed for deployment
+# In production, use environment variables or separate config file
+config.js
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+

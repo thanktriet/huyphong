@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase API Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #ddd;
+        }
+        .success { border-left-color: #22c55e; background: #f0fdf4; }
+        .error { border-left-color: #ef4444; background: #fef2f2; }
+        .warning { border-left-color: #f59e0b; background: #fef3c7; }
+        .info { border-left-color: #3b82f6; background: #eff6ff; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        h1 { color: #1e293b; }
+        h2 { color: #475569; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Test Supabase API Access với Anon Key</h1>
+        
+        <div class="info">
+            <strong>ℹ️ Lưu ý:</strong> Anon Key chỉ có quyền hạn chế. Không thể chạy SQL tùy ý hoặc sửa RLS policies.
+        </div>
+
+        <h2>1. Test Basic Connection</h2>
+        <div id="test1" class="test-item">Testing...</div>
+        <button onclick="test1()">Test Connection</button>
+
+        <h2>2. Test Query Data</h2>
+        <div id="test2" class="test-item">Ready...</div>
+        <button onclick="test2()">Test Query Users</button>
+
+        <h2>3. Test Insert Data</h2>
+        <div id="test3" class="test-item">Ready...</div>
+        <button onclick="test3()">Test Insert (sẽ fail nếu RLS chặn)</button>
+
+        <h2>4. Test RLS Policy Access</h2>
+        <div id="test4" class="test-item">Ready...</div>
+        <button onclick="test4()">Check RLS Status</button>
+
+        <h2>5. Thử Fix RLS (Có thể fail)</h2>
+        <div id="test5" class="test-item">Ready...</div>
+        <button onclick="test5()">Try Fix RLS via API</button>
+
+        <h2>6. Alternative: Direct SQL via REST</h2>
+        <div id="test6" class="test-item">Ready...</div>
+        <button onclick="test6()">Try SQL via REST API</button>
+
+        <h2>Kết Quả Tổng Hợp</h2>
+        <div id="summary" class="test-item info">
+            Chạy các tests trên để xem kết quả...
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://opjagtkygfgiokuaveje.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wamFndGt5Z2ZnaW9rdWF2ZWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNTc3NzgsImV4cCI6MjA4MDczMzc3OH0.Hoembak7nFXUQ4ZhETnvJg2OETkPibkU1YJbxlrqKtM';
+
+        let supabase = null;
+
+        function initSupabase() {
+            if (!window.supabase) {
+                return false;
+            }
+            if (!supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return true;
+        }
+
+        async function test1() {
+            const el = document.getElementById('test1');
+            el.textContent = 'Testing connection...';
+            el.className = 'test-item';
+
+            try {
+                if (!initSupabase()) {
+                    el.textContent = '❌ Supabase library not loaded';
+                    el.className = 'test-item error';
+                    return;
+                }
+
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                
+                if (error) {
+                    el.innerHTML = `❌ Error: ${error.message}`;
+                    el.className = 'test-item error';
+                } else {
+                    el.innerHTML = `✅ Connection OK!<br>Can query data successfully.`;
+                    el.className = 'test-item success';
+                }
+            } catch (e) {
+                el.innerHTML = `❌ Exception: ${e.message}`;
+                el.className = 'test-item error';
+            }
+        }
+
+        async function test2() {
+            const el = document.getElementById('test2');
+            el.textContent = 'Querying users...';
+            el.className = 'test-item';
+
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id, email, role')
+                    .limit(5);
+
+                if (error) {
+                    el.innerHTML = `❌ Query Error: ${error.message}`;
+                    el.className = 'test-item error';
+                } else {
+                    el.innerHTML = `✅ Query Success!<br>Found ${data.length} users<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    el.className = 'test-item success';
+                }
+            } catch (e) {
+                el.innerHTML = `❌ Exception: ${e.message}`;
+                el.className = 'test-item error';
+            }
+        }
+
+        async function test3() {
+            const el = document.getElementById('test3');
+            el.textContent = 'Trying to insert...';
+            el.className = 'test-item';
+
+            try {
+                // Thử insert một test record (sẽ bị rollback)
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert({
+                        id: 'TEST_' + Date.now(),
+                        email: 'test@example.com',
+                        password: 'test',
+                        name: 'Test User',
+                        role: 'Student'
+                    })
+                    .select();
+
+                if (error) {
+                    el.innerHTML = `❌ Insert Failed (Expected): ${error.message}<br>Anon key không có quyền insert hoặc RLS chặn.`;
+                    el.className = 'test-item warning';
+                } else {
+                    el.innerHTML = `⚠️ Insert Success (Unexpected!)<br>RLS có thể chưa được setup đúng.`;
+                    el.className = 'test-item warning';
+                }
+            } catch (e) {
+                el.innerHTML = `❌ Exception: ${e.message}`;
+                el.className = 'test-item error';
+            }
+        }
+
+        async function test4() {
+            const el = document.getElementById('test4');
+            el.textContent = 'Checking RLS...';
+            el.className = 'test-item';
+
+            try {
+                // Thử query với different scenarios
+                const tests = [];
+                
+                // Test 1: Simple select
+                const { data: d1, error: e1 } = await supabase.from('users').select('id').limit(1);
+                tests.push(`Select: ${e1 ? '❌ ' + e1.message : '✅ OK'}`);
+
+                // Test 2: Check if recursion error
+                if (e1 && e1.message.includes('infinite recursion')) {
+                    tests.push('⚠️ RLS Recursion Error Detected!');
+                }
+
+                el.innerHTML = tests.join('<br>');
+                el.className = e1 ? 'test-item error' : 'test-item success';
+            } catch (e) {
+                el.innerHTML = `❌ Exception: ${e.message}`;
+                el.className = 'test-item error';
+            }
+        }
+
+        async function test5() {
+            const el = document.getElementById('test5');
+            el.textContent = 'Trying to fix RLS via API...';
+            el.className = 'test-item warning';
+
+            try {
+                // Anon key KHÔNG THỂ chạy SQL tùy ý
+                // Nhưng có thể thử dùng PostgREST functions nếu có
+                el.innerHTML = `
+                    ❌ Không thể fix RLS qua Anon Key<br>
+                    <strong>Lý do:</strong><br>
+                    - Anon key chỉ có quyền query/insert/update data<br>
+                    - Không thể chạy DDL (DROP/CREATE POLICY)<br>
+                    - Cần Service Role Key hoặc SQL Editor<br><br>
+                    <strong>Giải pháp:</strong> Chạy SQL trong Supabase SQL Editor
+                `;
+                el.className = 'test-item error';
+            } catch (e) {
+                el.innerHTML = `❌ Exception: ${e.message}`;
+                el.className = 'test-item error';
+            }
+        }
+
+        async function test6() {
+            const el = document.getElementById('test6');
+            el.textContent = 'Trying SQL via REST...';
+            el.className = 'test-item';
+
+            try {
+                // Thử gọi RPC function (nếu có)
+                const { data, error } = await supabase.rpc('exec_sql', {
+                    query: 'DROP POLICY IF EXISTS "PT can manage users" ON users;'
+                });
+
+                if (error) {
+                    el.innerHTML = `
+                        ❌ Không thể chạy SQL qua REST API<br>
+                        Error: ${error.message}<br><br>
+                        <strong>Kết luận:</strong> Anon key không đủ quyền để sửa RLS policies.<br>
+                        Cần chạy SQL trực tiếp trong Supabase SQL Editor.
+                    `;
+                    el.className = 'test-item error';
+                } else {
+                    el.innerHTML = `✅ Success! (Unexpected - có thể có RPC function đặc biệt)`;
+                    el.className = 'test-item success';
+                }
+            } catch (e) {
+                el.innerHTML = `
+                    ❌ Exception: ${e.message}<br><br>
+                    <strong>Kết luận:</strong> Anon key không thể chạy SQL tùy ý.<br>
+                    Cần dùng Supabase SQL Editor với quyền admin.
+                `;
+                el.className = 'test-item error';
+            }
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            summary.innerHTML = `
+                <strong>📊 Tóm Tắt:</strong><br>
+                - Anon Key: Có thể query data, nhưng KHÔNG thể sửa RLS policies<br>
+                - Để fix RLS: Cần chạy SQL trong Supabase SQL Editor<br>
+                - File fix: supabase/fix-rls-simple.sql
+            `;
+        }
+
+        // Auto init
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.supabase) {
+                    initSupabase();
+                    updateSummary();
+                } else {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+                    script.onload = () => {
+                        initSupabase();
+                        updateSummary();
+                    };
+                    document.head.appendChild(script);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+

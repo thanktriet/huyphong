@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Supabase API Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="../config-supabase.js"></script>
+</head>
+<body>
+    <h1>Supabase API Example</h1>
+    
+    <script>
+        // Đợi API load xong
+        async function testAPI() {
+            // Đợi callAPI function sẵn sàng
+            while (!window.callAPI) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log('Testing API...');
+            
+            // Test login
+            const loginResult = await callAPI('login', {
+                email: 'test@example.com',
+                password: '123456'
+            });
+            console.log('Login:', loginResult);
+            
+            // Test get exercises
+            const exercises = await callAPI('get_all_exercises');
+            console.log('Exercises:', exercises);
+            
+            // Test get foods
+            const foods = await callAPI('get_all_foods');
+            console.log('Foods:', foods);
+        }
+        
+        // Chạy test sau 2 giây (đợi scripts load)
+        setTimeout(testAPI, 2000);
+    </script>
+</body>
+</html>
+

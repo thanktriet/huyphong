@@ -7,9 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
-    </script>
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/services/nutrition.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+    <script src="js/ui/loader.js"></script>
+    <script src="js/pages/nutrition.page.js"></script>
+    <script src="supabase/api.js"></script>
 
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -35,7 +42,7 @@
             </h1>
             <p class="text-xs text-slate-400 mt-0.5" id="currentDate">...</p>
         </div>
-        <button onclick="hardRefresh()" class="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-green-600" title="Làm mới dữ liệu"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+        <button onclick="NutritionPage.hardRefresh()" class="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-green-600" title="Làm mới dữ liệu"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
     </div>
 
     <div class="max-w-md mx-auto px-5 mt-6 space-y-8">
@@ -76,8 +83,8 @@
             <div class="flex items-center justify-between">
                 <h2 class="font-bold text-slate-800 text-base">Thêm Bữa Ăn</h2>
                 <div class="flex bg-slate-100 p-1 rounded-xl">
-                    <button onclick="switchInputMode('search')" id="tab-search" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all">Tìm Món</button>
-                    <button onclick="switchInputMode('manual')" id="tab-manual" class="px-3 py-1.5 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-600 transition-all">Nhập Nhanh</button>
+                    <button onclick="NutritionPage.switchInputMode('search')" id="tab-search" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all">Tìm Món</button>
+                    <button onclick="NutritionPage.switchInputMode('manual')" id="tab-manual" class="px-3 py-1.5 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-600 transition-all">Nhập Nhanh</button>
                 </div>
             </div>
 
@@ -97,13 +104,13 @@
                 <div>
                     <label class="text-[11px] font-bold text-slate-400 uppercase mb-1.5 block">Chọn Bữa</label>
                     <div class="grid grid-cols-4 gap-2">
-                        <button onclick="selectManMeal(this, 'Sáng')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Sáng</button>
-                        <button onclick="selectManMeal(this, 'Trưa')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Trưa</button>
-                        <button onclick="selectManMeal(this, 'Tối')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Tối</button>
-                        <button onclick="selectManMeal(this, 'Phụ')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500 active">Phụ</button>
+                        <button onclick="NutritionPage.selectManMeal(this, 'Sáng')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Sáng</button>
+                        <button onclick="NutritionPage.selectManMeal(this, 'Trưa')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Trưa</button>
+                        <button onclick="NutritionPage.selectManMeal(this, 'Tối')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500">Tối</button>
+                        <button onclick="NutritionPage.selectManMeal(this, 'Phụ')" class="meal-btn-man bg-slate-50 border p-2 rounded-lg text-xs font-bold text-slate-500 active">Phụ</button>
                     </div>
                 </div>
-                <button onclick="addManualFood()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition-transform active:scale-95">Lưu Bữa Ăn</button>
+                <button onclick="NutritionPage.addManualFood()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition-transform active:scale-95">Lưu Bữa Ăn</button>
             </div>
         </div>
 
@@ -128,25 +135,25 @@
             <div class="mb-6">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 text-center">Bữa ăn</label>
                 <div class="grid grid-cols-4 gap-2">
-                    <button onclick="selectMeal(this, 'Sáng')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Sáng</button>
-                    <button onclick="selectMeal(this, 'Trưa')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Trưa</button>
-                    <button onclick="selectMeal(this, 'Tối')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Tối</button>
-                    <button onclick="selectMeal(this, 'Phụ')" class="meal-btn bg-green-50 border-2 border-green-500 p-2 rounded-xl text-xs font-bold text-green-700 active">Phụ</button>
+                    <button onclick="NutritionPage.selectMeal(this, 'Sáng')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Sáng</button>
+                    <button onclick="NutritionPage.selectMeal(this, 'Trưa')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Trưa</button>
+                    <button onclick="NutritionPage.selectMeal(this, 'Tối')" class="meal-btn bg-slate-50 border-2 border-transparent p-2 rounded-xl text-xs font-bold text-slate-500">Tối</button>
+                    <button onclick="NutritionPage.selectMeal(this, 'Phụ')" class="meal-btn bg-green-50 border-2 border-green-500 p-2 rounded-xl text-xs font-bold text-green-700 active">Phụ</button>
                 </div>
             </div>
 
             <div class="mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 text-center">Khối lượng (g)</label>
                 <div class="flex items-center gap-3">
-                    <button onclick="adjAmount(-50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">-</button>
+                    <button onclick="NutritionPage.adjAmount(-50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">-</button>
                     <input id="input-amount" type="number" value="100" class="flex-1 h-12 bg-white border-2 border-green-500 rounded-xl text-center font-black text-green-600 text-2xl outline-none">
-                    <button onclick="adjAmount(50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">+</button>
+                    <button onclick="NutritionPage.adjAmount(50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">+</button>
                 </div>
             </div>
             
             <div class="grid grid-cols-2 gap-3">
-                <button onclick="closeModal()" class="py-3.5 rounded-xl font-bold text-slate-500 bg-slate-100">Hủy bỏ</button>
-                <button onclick="confirmAddFood()" class="py-3.5 rounded-xl font-bold text-white bg-green-600 shadow-lg shadow-green-200">Thêm Vào</button>
+                <button onclick="NutritionPage.closeModal()" class="py-3.5 rounded-xl font-bold text-slate-500 bg-slate-100">Hủy bỏ</button>
+                <button onclick="NutritionPage.confirmAddFood()" class="py-3.5 rounded-xl font-bold text-white bg-green-600 shadow-lg shadow-green-200">Thêm Vào</button>
             </div>
         </div>
     </div>
@@ -242,7 +249,7 @@
             if(list.length === 0) { container.innerHTML = '<div class="text-center text-slate-400 py-8 text-xs">Không tìm thấy món nào.</div>'; return; }
             const displayList = list.slice(0, 50);
             container.innerHTML = displayList.map((f, i) => `
-                <div class="food-item p-3 bg-white border border-slate-100 rounded-2xl flex justify-between items-center cursor-pointer hover:border-green-500 hover:shadow-sm mb-2" onclick='openModal(${JSON.stringify(f)})'>
+                <div class="food-item p-3 bg-white border border-slate-100 rounded-2xl flex justify-between items-center cursor-pointer hover:border-green-500 hover:shadow-sm mb-2" onclick='NutritionPage.openModal(${JSON.stringify(f)})'>
                     <div>
                         <div class="font-bold text-slate-700 text-sm">${f.name}</div>
                         <div class="text-xs text-slate-500 mt-0.5 flex gap-2 font-medium">
@@ -328,7 +335,7 @@
             
             // Gửi lên Server (Gửi dữ liệu thô để Server tự tính và lưu)
             await callAPI('log_meal', { 
-                userId: USER.id, 
+                userId: user.id, 
                 name: SELECTED_FOOD.name, 
                 amount: amt, 
                 baseCal: baseCal, 

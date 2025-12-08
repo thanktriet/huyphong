@@ -55,8 +55,8 @@
         </div>
 
         <div class="flex p-1 bg-slate-200/60 rounded-xl backdrop-blur-sm sticky top-[72px] z-10">
-            <button onclick="switchTab('upcoming')" id="tab-upcoming" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-blue-600 shadow-sm transition-all">Sắp tới</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">Lịch sử</button>
+            <button onclick="SchedulePage.switchTab('upcoming')" id="tab-upcoming" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-blue-600 shadow-sm transition-all">Sắp tới</button>
+            <button onclick="SchedulePage.switchTab('history')" id="tab-history" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">Lịch sử</button>
         </div>
 
         <div id="schedule-list" class="pl-2 pt-2 pb-20">
@@ -78,218 +78,32 @@
             <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors">
                 <i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Lịch</span>
             </a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors">
+            <button onclick="AuthService.logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors">
                 <i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span>
             </button>
         </div>
     </div>
 
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/services/calendar.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+    <script src="js/ui/loader.js"></script>
+    <script src="js/pages/schedule.page.js"></script>
+    <script src="supabase/api.js"></script>
+
     <script>
-        // CONFIG
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
         lucide.createIcons();
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
         
-        const user = JSON.parse(localStorage.getItem('pt_user'));
-        if (!user) window.location.href = 'login.html';
-
-        const CACHE_KEY = `pt_schedule_${user.id}`;
-        let ALL_EVENTS = JSON.parse(localStorage.getItem(CACHE_KEY)) || [];
-        let CURRENT_TAB = 'upcoming';
-
-        async function callAPI(action, data={}) {
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) });
-                return await res.json();
-            } catch(e) { return { success: false }; }
-        }
-        function showToast(msg, type='success') {
-            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
-            document.getElementById('toast-container').appendChild(t); lucide.createIcons(); setTimeout(() => t.remove(), 3000);
-        }
-
-        async function init() {
-            // 1. Render Cache
-            if(ALL_EVENTS.length > 0) { renderHeroCard(); renderList(); }
-
-            // 2. Fetch New Data
-            const res = await callAPI('get_schedule');
-            if (res.success) {
-                const myEvents = res.data.filter(e => e.userId === user.id);
-                ALL_EVENTS = myEvents.sort((a,b) => new Date(a.date+'T'+a.time) - new Date(b.date+'T'+b.time));
-                localStorage.setItem(CACHE_KEY, JSON.stringify(ALL_EVENTS));
-                renderHeroCard();
-                renderList();
-            } else {
-                if(ALL_EVENTS.length === 0) document.getElementById('schedule-list').innerHTML = '<p class="text-center text-slate-400 py-10">Không tải được lịch.</p>';
-            }
-        }
-
-        // 1. HERO CARD (BUỔI TẬP KẾ TIẾP)
-        function renderHeroCard() {
-            const container = document.getElementById('next-session-container');
-            const now = new Date();
-            
-            // Tìm buổi tập Sắp tới gần nhất
-            const nextEvent = ALL_EVENTS.find(e => {
-                const t = new Date(e.date + 'T' + e.time);
-                return e.status === 'Upcoming' && t > now;
-            });
-
-            if (nextEvent) {
-                const d = new Date(nextEvent.date);
-                const dateStr = d.toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'numeric'});
-                const timeStr = nextEvent.time.length > 8 ? nextEvent.time.substring(11, 16) : nextEvent.time;
-
-                container.innerHTML = `
-                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 shadow-xl shadow-blue-200 text-white relative overflow-hidden hero-active">
-                    <i data-lucide="alarm-clock" class="absolute right-[-15px] bottom-[-15px] w-40 h-40 text-white opacity-5 rotate-12"></i>
-                    
-                    <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="bg-white/20 text-blue-50 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide backdrop-blur-sm">Buổi tập tiếp theo</span>
-                        </div>
-                        
-                        <div class="flex items-end gap-4 mb-4">
-                            <div class="bg-white text-blue-700 p-3 rounded-2xl shadow-lg min-w-[80px] text-center">
-                                <span class="block text-3xl font-black leading-none tracking-tighter">${timeStr}</span>
-                                <span class="text-[10px] font-bold uppercase text-blue-400">Giờ tập</span>
-                            </div>
-                            <div>
-                                <h2 class="text-2xl font-bold capitalize leading-tight">${dateStr}</h2>
-                                <p class="text-sm text-blue-100 flex items-center gap-1.5 mt-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Phòng tập</p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2">
-                             <button class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 px-4 rounded-xl border border-white/10 transition-colors w-full">Nhắn tin PT</button>
-                        </div>
-                    </div>
-                </div>`;
-            } else {
-                container.innerHTML = `
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center">
-                    <div class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i data-lucide="calendar-check" class="w-8 h-8 text-slate-300"></i>
-                    </div>
-                    <h3 class="font-bold text-slate-700">Chưa có lịch mới</h3>
-                    <p class="text-xs text-slate-400 mt-1 max-w-[200px] mx-auto">Hãy liên hệ với PT của bạn để sắp xếp buổi tập tiếp theo nhé.</p>
-                </div>`;
-            }
-            lucide.createIcons();
-        }
-
-        // 2. TIMELINE LIST
-        function renderList() {
-            const container = document.getElementById('schedule-list');
-            container.innerHTML = '';
-            const now = new Date();
-
-            let filtered = [];
-            if (CURRENT_TAB === 'upcoming') {
-                filtered = ALL_EVENTS.filter(e => {
-                    const t = new Date(e.date + 'T' + e.time);
-                    return e.status === 'Upcoming' && t >= now.setHours(0,0,0,0);
-                });
-            } else {
-                filtered = ALL_EVENTS.filter(e => {
-                    const t = new Date(e.date + 'T' + e.time);
-                    return e.status !== 'Upcoming' || t < now;
-                }).reverse();
-            }
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-10 text-sm opacity-60">Danh sách trống.</div>';
-                return;
-            }
-
-            let currentMonth = '';
-            filtered.forEach(e => {
-                const d = new Date(e.date);
-                const mStr = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
-                
-                if (mStr !== currentMonth) {
-                    currentMonth = mStr;
-                    container.innerHTML += `<div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 mt-2 pl-1">${currentMonth}</div>`;
-                }
-
-                const timeStr = e.time.length > 8 ? e.time.substring(11, 16) : e.time;
-                let stt = 'Sắp tới', ic = 'clock', cl = 'upcoming', txtCl = 'text-blue-600';
-                
-                if (e.status === 'Completed') { stt='Đã tập'; ic='check-circle-2'; cl=''; txtCl='text-slate-500'; }
-                if (e.status === 'Cancelled') { stt='Đã hủy'; ic='x-circle'; cl=''; txtCl='text-red-500 line-through'; }
-                
-                // Check missed
-                if (e.status === 'Upcoming' && new Date(e.date+'T'+e.time) < new Date()) {
-                    stt = 'Chưa check-in'; ic = 'alert-circle'; txtCl = 'text-orange-500'; cl='';
-                }
-
-                // Cancel Button (Chỉ hiện cho lịch sắp tới)
-                let actionBtn = '';
-                if (e.status === 'Upcoming' && new Date(e.date+'T'+e.time) > new Date()) {
-                    actionBtn = `<button onclick="cancelSession('${e.id}')" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>`;
-                }
-
-                const html = `
-                <div class="timeline-item ${cl} pb-6 group">
-                    <div class="timeline-dot"></div>
-                    <div class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center hover:border-blue-200 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="text-center min-w-[45px]">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${d.toLocaleDateString('vi-VN',{weekday:'short'})}</div>
-                                <div class="text-xl font-black text-slate-700 leading-none">${d.getDate()}</div>
-                            </div>
-                            <div class="w-px h-8 bg-slate-100"></div>
-                            <div>
-                                <div class="font-bold text-lg ${e.status==='Cancelled'?'text-slate-400 line-through':'text-slate-800'} font-mono tracking-tight">${timeStr}</div>
-                                <div class="text-xs font-medium flex items-center gap-1.5 ${txtCl}">
-                                    <i data-lucide="${ic}" class="w-3.5 h-3.5"></i> ${stt}
-                                </div>
-                            </div>
-                        </div>
-                        ${actionBtn}
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-            lucide.createIcons();
-        }
-
-        // Actions
-        function switchTab(tab) {
-            CURRENT_TAB = tab;
-            const btnUp = document.getElementById('tab-upcoming');
-            const btnHis = document.getElementById('tab-history');
-            if(tab==='upcoming') {
-                btnUp.className="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-blue-600 shadow-sm transition-all";
-                btnHis.className="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
-            } else {
-                btnUp.className="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
-                btnHis.className="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all";
-            }
-            renderList();
-        }
-
-        async function cancelSession(id) {
-            if(confirm("Bạn có chắc muốn hủy buổi tập này không?")) {
-                const res = await callAPI('cancel_session', {bookingId: id});
-                if(res.success) {
-                    showToast("Đã hủy lịch thành công");
-                    // Update local state & UI immediately
-                    const idx = ALL_EVENTS.findIndex(e => e.id === id);
-                    if(idx !== -1) ALL_EVENTS[idx].status = 'Cancelled';
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(ALL_EVENTS));
-                    renderList();
-                    renderHeroCard();
-                } else {
-                    showToast("Lỗi khi hủy lịch", "error");
-                }
-            }
-        }
-
-        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
-
-        init();
+        // Initialize page
+        (async function() {
+            await API.init();
+            await SchedulePage.init();
+        })();
     </script>
 </body>
 </html>

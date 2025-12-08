@@ -84,22 +84,24 @@
         </div>
     </div>
 
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <!-- supabase/api.js will be loaded by API.init() -->
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+
     <script>
         lucide.createIcons();
-
-        // ⚠️ API GỐC CỦA BẠN (KHÔNG ĐỔI)
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn');
             const msg = document.getElementById('msg');
-            const msgText = document.getElementById('msg-text'); // Lấy thêm span text để gán nội dung
+            const msgText = document.getElementById('msg-text');
             
-            // Lưu nội dung nút cũ
             const originalBtnContent = btn.innerHTML;
-
-            // Hiệu ứng loading đẹp hơn
             btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang xử lý...`; 
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
@@ -109,34 +111,35 @@
             const password = document.getElementById('password').value;
 
             try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', data: { email, password } })
-                });
-                const result = await res.json();
+                // Đợi API init
+                await API.init();
+                
+                const result = await AuthService.login(email, password);
 
                 if (result.success) {
-                    // Lưu thông tin user
-                    localStorage.setItem('pt_user', JSON.stringify(result.user));
-                    window.location.href = 'index.html';
+                    Toast.success('Đăng nhập thành công!');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 500);
                 } else {
-                    // Hiển thị lỗi
-                    if(msgText) msgText.innerText = result.message;
-                    else msg.innerText = result.message; // Fallback nếu không tìm thấy span
-                    
+                    const errorMsg = result.message || 'Đăng nhập thất bại';
+                    if(msgText) msgText.innerText = errorMsg;
+                    else msg.innerText = errorMsg;
                     msg.classList.remove('hidden');
+                    Toast.error(errorMsg);
                 }
             } catch (err) {
-                if(msgText) msgText.innerText = "Lỗi kết nối Server! Vui lòng thử lại.";
-                else msg.innerText = "Lỗi kết nối Server!";
-                
+                const errorMsg = err.message || "Lỗi kết nối Server! Vui lòng thử lại.";
+                if(msgText) msgText.innerText = errorMsg;
+                else msg.innerText = errorMsg;
                 msg.classList.remove('hidden');
+                Toast.error(errorMsg);
+                console.error('Login error:', err);
             } finally {
-                // Reset nút bấm
                 btn.innerHTML = originalBtnContent;
                 btn.disabled = false;
                 btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                lucide.createIcons(); // Re-render icon trong nút bấm
+                lucide.createIcons();
             }
         });
     </script>

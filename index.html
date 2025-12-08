@@ -87,34 +87,42 @@
         </div>
     </div>
 
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+    <script src="supabase/api.js"></script>
+
     <script>
         lucide.createIcons();
         
-        // 1. Kiểm tra đăng nhập
-        const userJson = localStorage.getItem('pt_user');
-        if (!userJson) {
-            window.location.href = 'login.html';
-        } else {
-            const user = JSON.parse(userJson);
+        // Initialize
+        (async function init() {
+            // Check auth
+            if (!AuthService.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = AuthService.getCurrentUser();
             
-            // 2. Hiển thị thông tin cơ bản
+            // Display user info
             document.getElementById('userName').innerText = user.name;
-            document.getElementById('userAvatar').innerText = user.name.charAt(0);
+            document.getElementById('userAvatar').innerText = user.name.charAt(0).toUpperCase();
             
-            // 3. LOGIC GÓI TẬP (FIX LỖI NGÀY)
+            // Package info
             const sessionEl = document.getElementById('sessionLeft');
             const packageInfo = document.getElementById('packageInfo');
             const today = new Date().toISOString().slice(0,10);
 
-            // Kiểm tra xem user có ngày hết hạn không và ngày đó có hợp lệ không
-            // Backend trả về: "dd/mm/yyyy" hoặc "---"
             let isMonthly = false;
             
             if (user.expiryDate && user.expiryDate !== '---') {
-                // Chuyển đổi định dạng dd/mm/yyyy sang yyyy-mm-dd để so sánh
                 const parts = user.expiryDate.split('/');
                 if (parts.length === 3) {
-                    const expiryIso = `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-mm-dd
+                    const expiryIso = `${parts[2]}-${parts[1]}-${parts[0]}`;
                     if (expiryIso >= today) {
                         isMonthly = true;
                     }
@@ -122,7 +130,6 @@
             }
 
             if (isMonthly) {
-                // Gói Tháng
                 packageInfo.innerHTML = `
                     <p class="text-blue-100 text-sm font-medium relative z-10">Trạng thái gói</p>
                     <h2 class="text-2xl font-bold relative z-10 mt-1">Gói Tháng</h2>
@@ -131,20 +138,18 @@
                     </div>`;
                 lucide.createIcons();
             } else {
-                // Gói Buổi
                 sessionEl.innerText = user.sessionLeft || 0;
             }
 
-            // 4. HIỆN NÚT ADMIN
-            if (user.role === 'PT' || user.role === 'Admin') {
+            // Show admin button
+            if (AuthService.isAdmin()) {
                 document.getElementById('btnAdmin').classList.remove('hidden');
             }
-        }
+        })();
 
         function logout() { 
             if(confirm('Bạn muốn đăng xuất?')) { 
-                localStorage.removeItem('pt_user'); 
-                window.location.href='login.html'; 
+                AuthService.logout();
             } 
         }
     </script>

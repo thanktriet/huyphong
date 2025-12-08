@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Test - Supabase Connection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        .success { background: #d1fae5; border-color: #10b981; }
+        .error { background: #fee2e2; border-color: #ef4444; }
+        .info { background: #dbeafe; border-color: #3b82f6; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        h1 { color: #1e293b; }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Quick Test - Supabase Connection</h1>
+        
+        <div id="status" class="test-result info">Initializing...</div>
+        
+        <h2>Test Results:</h2>
+        <div id="results"></div>
+        
+        <button onclick="runAllTests()">🔄 Run All Tests</button>
+        <button onclick="testLogin()">🔐 Test Login</button>
+        <button onclick="openLoginPage()">🚀 Open Login Page</button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://opjagtkygfgiokuaveje.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wamFndGt5Z2ZnaW9rdWF2ZWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNTc3NzgsImV4cCI6MjA4MDczMzc3OH0.Hoembak7nFXUQ4ZhETnvJg2OETkPibkU1YJbxlrqKtM';
+
+        let supabase = null;
+
+        function init() {
+            if (window.supabase && !supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                return true;
+            }
+            return false;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const el = document.getElementById('status');
+            el.textContent = message;
+            el.className = `test-result ${type}`;
+        }
+
+        function addResult(name, message, success) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${name}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            updateStatus('Running tests...', 'info');
+
+            if (!init()) {
+                updateStatus('❌ Supabase library not loaded', 'error');
+                return;
+            }
+
+            const tests = [];
+
+            // Test 1: Connection
+            try {
+                const { data, error } = await supabase.from('users').select('id').limit(1);
+                if (error) {
+                    tests.push({ name: 'Connection', success: false, msg: error.message });
+                } else {
+                    tests.push({ name: 'Connection', success: true, msg: 'OK' });
+                }
+            } catch (e) {
+                tests.push({ name: 'Connection', success: false, msg: e.message });
+            }
+
+            // Test 2: Query Users
+            try {
+                const { data, error } = await supabase.from('users').select('id, email, role').limit(5);
+                if (error) {
+                    tests.push({ name: 'Query Users', success: false, msg: error.message });
+                } else {
+                    tests.push({ name: 'Query Users', success: true, msg: `Found ${data.length} users` });
+                }
+            } catch (e) {
+                tests.push({ name: 'Query Users', success: false, msg: e.message });
+            }
+
+            // Test 3: Query Exercises
+            try {
+                const { data, error } = await supabase.from('exercise_library').select('id, name').limit(5);
+                if (error) {
+                    tests.push({ name: 'Query Exercises', success: false, msg: error.message });
+                } else {
+                    tests.push({ name: 'Query Exercises', success: true, msg: `Found ${data.length} exercises` });
+                }
+            } catch (e) {
+                tests.push({ name: 'Query Exercises', success: false, msg: e.message });
+            }
+
+            // Test 4: Query Foods
+            try {
+                const { data, error } = await supabase.from('food_library').select('id, name').limit(5);
+                if (error) {
+                    tests.push({ name: 'Query Foods', success: false, msg: error.message });
+                } else {
+                    tests.push({ name: 'Query Foods', success: true, msg: `Found ${data.length} foods` });
+                }
+            } catch (e) {
+                tests.push({ name: 'Query Foods', success: false, msg: e.message });
+            }
+
+            // Display results
+            tests.forEach(test => {
+                addResult(test.name, test.msg, test.success);
+            });
+
+            const allSuccess = tests.every(t => t.success);
+            updateStatus(
+                allSuccess ? '✅ All tests passed!' : '❌ Some tests failed',
+                allSuccess ? 'success' : 'error'
+            );
+        }
+
+        async function testLogin() {
+            updateStatus('Testing login...', 'info');
+
+            // Load API
+            if (!window.supabaseAPI) {
+                const configScript = document.createElement('script');
+                configScript.src = 'config-supabase.js';
+                document.head.appendChild(configScript);
+                await new Promise(r => setTimeout(r, 500));
+
+                const apiScript = document.createElement('script');
+                apiScript.src = 'supabase/api.js';
+                document.head.appendChild(apiScript);
+                await new Promise(r => setTimeout(r, 500));
+
+                let retries = 0;
+                while (!window.supabaseAPI && retries < 20) {
+                    await new Promise(r => setTimeout(r, 100));
+                    retries++;
+                }
+            }
+
+            if (!window.supabaseAPI) {
+                updateStatus('❌ API not loaded', 'error');
+                return;
+            }
+
+            try {
+                const result = await window.supabaseAPI.login('student1@test.com', '123456');
+                
+                if (result.success) {
+                    updateStatus(
+                        `✅ Login Success!<br>User: ${result.user.name}<br>Role: ${result.user.role}`,
+                        'success'
+                    );
+                } else {
+                    updateStatus(`❌ Login Failed: ${result.message}`, 'error');
+                }
+            } catch (e) {
+                updateStatus(`❌ Error: ${e.message}`, 'error');
+            }
+        }
+
+        function openLoginPage() {
+            window.open('login.html', '_blank');
+        }
+
+        // Auto run on load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>
+

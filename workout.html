@@ -7,9 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
-    <script src="layout.js"></script>
+    <!-- Load Core System -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/services/workout.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+    <script src="js/ui/loader.js"></script>
+    <script src="js/pages/workout.page.js"></script>
+    <script src="supabase/api.js"></script>
 
     <style>
         /* Tiện ích */
@@ -44,7 +51,7 @@
                 </h1>
                 <p class="text-xs text-slate-500 font-medium" id="currentDate">...</p>
             </div>
-            <button onclick="resetProgress()" class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Làm mới">
+            <button onclick="WorkoutPage.resetProgress()" class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Làm mới">
                 <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
             </button>
         </div>
@@ -76,9 +83,9 @@
 
     </div>
 
-    <div id="modal-image" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200" onclick="closeImageModal()">
+    <div id="modal-image" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200" onclick="WorkoutPage.closeImageModal()">
         <div class="relative flex flex-col items-center" onclick="event.stopPropagation()">
-            <button onclick="closeImageModal()" class="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors">
+            <button onclick="WorkoutPage.closeImageModal()" class="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
             
@@ -99,8 +106,8 @@
             <p class="text-xs text-slate-500 mb-6">Thả lỏng cơ bắp và hít thở sâu</p>
             
             <div class="flex gap-3 justify-center">
-                <button onclick="addTime(10)" class="px-4 py-2 bg-slate-100 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-200">+10s</button>
-                <button onclick="stopTimer()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200">Tiếp tục</button>
+                <button onclick="WorkoutPage.addTime(10)" class="px-4 py-2 bg-slate-100 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-200">+10s</button>
+                <button onclick="WorkoutPage.stopTimer()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200">Tiếp tục</button>
             </div>
         </div>
     </div>
@@ -111,7 +118,7 @@
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hoàn thành</p>
                 <p class="text-lg font-bold leading-none"><span id="selectedCount" class="text-blue-400">0</span> <span class="text-sm text-slate-500 font-normal">sets</span></p>
             </div>
-            <button onclick="finishWorkout()" id="btnFinish" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:grayscale active:scale-95">
+            <button onclick="WorkoutPage.finishWorkout()" id="btnFinish" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:grayscale active:scale-95">
                 <span>Lưu Buổi Tập</span> <i data-lucide="check" class="w-5 h-5"></i>
             </button>
         </div>
@@ -123,257 +130,19 @@
             <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600"><i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Tập</span></a>
             <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Ăn</span></a>
             <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span></a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span></button>
+            <button onclick="AuthService.logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span></button>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIG & INIT ---
-        const API_URL = "https://script.google.com/macros/s/AKfycbyDv_79EPDM3BzzbYOXevQrocyh60o-qzU63U3N5p7gIuSD2tWhEVKnO1lR7qAJ6qsS/exec"; 
         lucide.createIcons();
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'numeric'});
         
-        const user = JSON.parse(localStorage.getItem('pt_user'));
-        if (!user) window.location.href = 'login.html';
-
-        const STORAGE_KEY = `pt_progress_v4_pro_${user.id}`; 
-        let PLANS = {}, PROGRESS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}, SET_COUNTS = {}, CURRENT_TAB = "";
-        let timerInterval = null, timeLeft = 60;
-
-        async function init() {
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_student_plan', data: { userId: user.id } }) });
-                const result = await res.json();
-                if(result.success && result.data && Object.keys(result.data).length > 0) {
-                    PLANS = result.data;
-                    renderTabs();
-                } else {
-                    document.getElementById('todo-list').innerHTML = `<div class="text-center text-slate-400 mt-10 flex flex-col items-center"><i data-lucide="calendar-off" class="w-12 h-12 mb-2 opacity-20"></i><p>Hôm nay nghỉ ngơi nhé!</p></div>`;
-                    lucide.createIcons();
-                }
-                updateProgressUI();
-            } catch(e) { alert("Lỗi tải dữ liệu: " + e); }
-        }
-
-        // --- 2. RENDER UI ---
-        function renderTabs() {
-            const days = Object.keys(PLANS);
-            const container = document.getElementById('tabs');
-            let html = days.map((day, i) => 
-                `<button onclick="switchTab('${day}', this)" class="px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border transition-all active:scale-95 ${i===0 ? 'tab-active' : 'bg-white text-slate-600 border-slate-200 shadow-sm'}">${day}</button>`
-            ).join('');
-            
-            html += `<button onclick="showHistory(this)" class="px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-500 border-slate-200 shadow-sm flex items-center gap-1 active:scale-95"><i data-lucide="history" class="w-4 h-4"></i> Lịch sử</button>`;
-            
-            container.innerHTML = html;
-            lucide.createIcons();
-            if(days.length > 0) switchTab(days[0], container.children[0]);
-        }
-
-        function switchTab(day, btn) {
-            CURRENT_TAB = day;
-            document.getElementById('history-view').classList.add('hidden');
-            document.getElementById('workout-view').classList.remove('hidden');
-            document.getElementById('floating-action').classList.remove('translate-y-[150%]'); // Hiện nút lưu
-            
-            document.querySelectorAll('#tabs button').forEach(b => {
-                b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 shadow-sm transition-all active:scale-95';
-            });
-            if(btn) btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border tab-active transition-all active:scale-95';
-
-            renderExercises(day);
-        }
-
-        function renderExercises(day) {
-            const list = document.getElementById('todo-list');
-            const exercises = PLANS[day] || [];
-            
-            list.innerHTML = exercises.map((ex, i) => {
-                const exKey = `${day}_${ex.exercise}`;
-                let maxSavedSet = 0;
-                Object.keys(PROGRESS).forEach(k => { if(k.startsWith(exKey+'_set')) { const num = parseInt(k.split('_set')[1]); if(num > maxSavedSet) maxSavedSet = num; } });
-                if (!SET_COUNTS[exKey]) SET_COUNTS[exKey] = Math.max(ex.sets, maxSavedSet);
-                
-                let setsHtml = '';
-                for(let s=1; s <= SET_COUNTS[exKey]; s++) {
-                    const key = `${exKey}_set${s}`, saved = PROGRESS[key] || {}, isChecked = saved.checked ? 'checked' : '', rowClass = saved.checked ? 'set-done' : 'bg-white';
-                    const wVal = saved.weight || '', rVal = saved.reps || ex.reps;
-
-                    setsHtml += `
-                    <div class="set-row flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 ${rowClass} mb-2.5 shadow-sm" id="row-${key}">
-                        <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 mr-1">${s}</div>
-                        <div class="flex-1 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
-                            <button onclick="adjustVal('w-${key}', -2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
-                            <input type="number" id="w-${key}" value="${wVal}" oninput="saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="kg">
-                            <button onclick="adjustVal('w-${key}', 2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
-                        </div>
-                        <div class="w-24 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
-                            <button onclick="adjustVal('r-${key}', -1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
-                            <input type="number" id="r-${key}" value="${rVal}" oninput="saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="reps">
-                            <button onclick="adjustVal('r-${key}', 1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
-                        </div>
-                        <label class="relative cursor-pointer ml-1">
-                            <input type="checkbox" ${isChecked} onchange="toggleSet('${key}', '${ex.exercise}', ${s})" class="sr-only peer">
-                            <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 peer-checked:bg-blue-600 peer-checked:text-white transition-all shadow-sm peer-checked:shadow-blue-200 hover:bg-slate-200"><i data-lucide="check" class="w-6 h-6"></i></div>
-                        </label>
-                    </div>`;
-                }
-
-                // NÚT XEM ẢNH (ICON TÍM)
-                const imageBtn = ex.image ? 
-                    `<button onclick="viewImage('${ex.image}')" class="w-9 h-9 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 transition-colors"><i data-lucide="image" class="w-5 h-5"></i></button>` : '';
-
-                return `
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="p-4 bg-white border-b border-slate-100 flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-lg leading-tight">${ex.exercise}</h3>
-                            ${ex.note ? `<p class="text-xs text-slate-500 mt-1 bg-slate-50 px-2 py-1 rounded-lg inline-block border border-slate-100">💡 ${ex.note}</p>` : ''}
-                        </div>
-                        <div class="flex gap-2">
-                             ${imageBtn}
-                             <button onclick="addSet('${day}', '${ex.exercise}')" class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-slate-50/50 space-y-2">
-                        ${setsHtml}
-                        ${SET_COUNTS[exKey] > 1 ? `<div class="text-right"><button onclick="removeLastSet('${day}', '${ex.exercise}')" class="text-[10px] text-red-400 hover:text-red-600 font-bold px-2 py-1">Xóa Set Cuối</button></div>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-            
-            lucide.createIcons();
-            updateProgressUI();
-        }
-
-        // --- 3. LOGIC TƯƠNG TÁC ---
-
-        // Modal Ảnh
-        function viewImage(url) {
-            const modal = document.getElementById('modal-image');
-            const img = document.getElementById('img-preview');
-            img.src = url;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-        function closeImageModal() {
-            document.getElementById('modal-image').classList.add('hidden');
-            document.getElementById('modal-image').classList.remove('flex');
-        }
-
-        function adjustVal(id, delta) {
-            const input = document.getElementById(id);
-            let val = parseFloat(input.value) || 0;
-            val += delta; if (val < 0) val = 0;
-            input.value = val;
-            input.dispatchEvent(new Event('input')); 
-        }
-
-        function saveTemp(key) {
-            const w = document.getElementById(`w-${key}`).value;
-            const r = document.getElementById(`r-${key}`).value;
-            if (!PROGRESS[key]) PROGRESS[key] = {};
-            PROGRESS[key].weight = w; PROGRESS[key].reps = r;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
-        }
-
-        function toggleSet(key, exName, setNum) {
-            const w = document.getElementById(`w-${key}`).value;
-            const r = document.getElementById(`r-${key}`).value;
-            const row = document.getElementById(`row-${key}`);
-
-            if (!w || !r || w==0 || r==0) { 
-                alert("Hãy nhập số Kg và Reps thực tế!"); 
-                const checkbox = row.querySelector('input[type="checkbox"]'); checkbox.checked = false; return; 
-            }
-
-            const checkbox = row.querySelector('input[type="checkbox"]');
-            if (checkbox.checked) {
-                row.classList.add('set-done');
-                PROGRESS[key] = { weight: w, reps: r, checked: true, exercise: exName, setNum };
-                startTimer();
-            } else {
-                row.classList.remove('set-done');
-                if(PROGRESS[key]) PROGRESS[key].checked = false;
-            }
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
-            updateProgressUI();
-        }
-
-        function addSet(day, exName) { SET_COUNTS[`${day}_${exName}`]++; renderExercises(day); }
-        function removeLastSet(day, exName) {
-            const exKey = `${day}_${exName}`;
-            const count = SET_COUNTS[exKey];
-            if(count <= 1) return;
-            if(confirm("Xóa set cuối cùng?")) {
-                const key = `${exKey}_set${count}`;
-                delete PROGRESS[key];
-                SET_COUNTS[exKey]--;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(PROGRESS));
-                renderExercises(day);
-            }
-        }
-
-        function updateProgressUI() {
-            const doneSets = Object.values(PROGRESS).filter(i => i.checked).length;
-            const totalSets = document.querySelectorAll('.set-row').length || 1;
-            document.getElementById('selectedCount').innerText = doneSets;
-            document.getElementById('btnFinish').disabled = doneSets === 0;
-            const percent = Math.min((doneSets / totalSets) * 100, 100);
-            document.getElementById('total-progress').style.width = `${percent}%`;
-            if(percent === 100) document.getElementById('total-progress').classList.replace('bg-blue-600', 'bg-green-500');
-        }
-
-        // --- 5. TIMER ---
-        function startTimer() {
-            const modal = document.getElementById('rest-timer-modal'); modal.classList.remove('hidden');
-            timeLeft = 60; updateTimerDisplay();
-            if(timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => { timeLeft--; updateTimerDisplay(); if(timeLeft <= 0) stopTimer(); }, 1000);
-        }
-        function updateTimerDisplay() { document.getElementById('timer-count').innerText = timeLeft; }
-        function addTime(sec) { timeLeft += sec; updateTimerDisplay(); }
-        function stopTimer() { clearInterval(timerInterval); document.getElementById('rest-timer-modal').classList.add('hidden'); }
-
-        // --- 6. SUBMIT & HISTORY ---
-        function resetProgress() { if(confirm("Xóa hết dữ liệu đang nhập?")) { localStorage.removeItem(STORAGE_KEY); PROGRESS = {}; SET_COUNTS = {}; renderExercises(CURRENT_TAB); updateProgressUI(); } }
-
-        async function finishWorkout() {
-            const logs = Object.values(PROGRESS).filter(item => item.checked).map(item => ({exercise: item.exercise, weight: item.weight, reps: item.reps}));
-            if (logs.length === 0) return alert("Chưa tập bài nào!");
-            if (!confirm(`Hoàn thành và lưu ${logs.length} sets tập?`)) return;
-
-            const btn = document.getElementById('btnFinish'); btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i> Đang lưu...'; btn.disabled = true;
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_workout', data: { userId: user.id, logs } }) });
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deduct_session', data: { userId: user.id } }) });
-                localStorage.removeItem(STORAGE_KEY); PROGRESS = {}; SET_COUNTS = {};
-                document.querySelector("button[onclick='showHistory(this)']").click();
-            } catch(e) { alert("Lỗi: " + e); }
-            btn.innerHTML = '<span>Lưu Buổi Tập</span> <i data-lucide="check" class="w-5 h-5"></i>'; btn.disabled = false; updateProgressUI();
-        }
-
-        async function showHistory(btn) {
-            CURRENT_TAB = "HISTORY";
-            document.querySelectorAll('#tabs button').forEach(b => b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 active:scale-95');
-            btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 flex items-center gap-1 transform scale-105 transition-transform';
-            document.getElementById('workout-view').classList.add('hidden'); document.getElementById('floating-action').classList.add('translate-y-[150%]');
-            const histView = document.getElementById('history-view'); histView.classList.remove('hidden');
-            histView.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i> Đang tải lịch sử...</div>';
-            lucide.createIcons();
-
-            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_workout_history', data: { userId: user.id } }) });
-            const result = await res.json();
-            if(result.success && Object.keys(result.data).length > 0) {
-                const dates = Object.keys(result.data).sort((a,b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-')));
-                histView.innerHTML = dates.map(date => `
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"><div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center"><span class="font-bold text-slate-700 text-sm flex items-center gap-2"><i data-lucide="calendar-check" class="w-4 h-4 text-green-500"></i> ${date}</span><span class="text-[10px] text-slate-500 bg-white border px-2 py-1 rounded-lg font-bold">${result.data[date].length} sets</span></div><div class="divide-y divide-slate-50">${result.data[date].map(l => `<div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50"><span class="font-medium text-slate-700 line-clamp-1">${l.exercise}</span><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold text-xs border border-blue-100 whitespace-nowrap">${l.weight}kg x ${l.reps}</span></div>`).join('')}</div></div>`).join('');
-            } else histView.innerHTML = '<div class="text-center text-slate-400 mt-10"><p>Chưa có lịch sử tập luyện.</p></div>';
-            lucide.createIcons();
-        }
-
-        function logout() { if(confirm('Đăng xuất?')) { localStorage.removeItem('pt_user'); window.location.href='login.html'; } }
-        init();
+        // Initialize page
+        (async function() {
+            await API.init();
+            await WorkoutPage.init();
+        })();
     </script>
 </body>
 </html>
