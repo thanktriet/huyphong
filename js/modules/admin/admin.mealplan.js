@@ -14,19 +14,27 @@ const AdminMealPlan = {
             this.userId = userId;
         }
         
+        if (!this.userId) {
+            this.renderEmpty();
+            this.hideTargets();
+            return;
+        }
+        
         // Get Monday of current week
         const today = new Date();
         const day = today.getDay();
         const diff = today.getDate() - day + (day === 0 ? -6 : 1);
         this.currentWeekStart = new Date(today.setDate(diff));
         
-        if (this.userId) {
+        try {
             await this.loadStudentData();
             await this.loadFoods();
             await this.loadMealPlan();
             this.renderTargets();
             this.render();
-        } else {
+        } catch (error) {
+            console.error('Error initializing meal plan:', error);
+            Toast.error('Lỗi tải meal plan');
             this.renderEmpty();
         }
     },
