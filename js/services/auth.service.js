@@ -5,15 +5,13 @@
 const AuthService = {
     // Get current user
     getCurrentUser() {
-        // Ensure CONFIG is available
-        if (typeof CONFIG === 'undefined' && typeof window.CONFIG !== 'undefined') {
-            window.CONFIG = window.CONFIG;
-        }
-        if (typeof CONFIG === 'undefined') {
-            console.error('CONFIG is not defined. Make sure js/core/config.js is loaded first.');
+        // Use window.CONFIG if CONFIG is not defined
+        const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
+        if (!config.STORAGE_KEYS) {
+            console.error('CONFIG is not properly initialized. Make sure js/core/config.js is loaded first.');
             return null;
         }
-        return Utils.storage.get(CONFIG.STORAGE_KEYS.USER);
+        return Utils.storage.get(config.STORAGE_KEYS.USER);
     },
 
     // Check if user is logged in
@@ -39,7 +37,10 @@ const AuthService = {
             const result = await API.login(email, password);
             
             if (result.success) {
-                Utils.storage.set(CONFIG.STORAGE_KEYS.USER, result.user);
+                const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
+                if (config.STORAGE_KEYS) {
+                    Utils.storage.set(config.STORAGE_KEYS.USER, result.user);
+                }
                 Utils.cache.clear(); // Clear cache on login
                 return result;
             }
@@ -52,7 +53,10 @@ const AuthService = {
 
     // Logout
     logout() {
-        Utils.storage.remove(CONFIG.STORAGE_KEYS.USER);
+        const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
+        if (config.STORAGE_KEYS) {
+            Utils.storage.remove(config.STORAGE_KEYS.USER);
+        }
         Utils.cache.clear();
         window.location.href = 'login.html';
     },
