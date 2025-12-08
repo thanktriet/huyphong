@@ -91,20 +91,36 @@
     <script src="js/core/config.js"></script>
     <script src="js/core/utils.js"></script>
     <script src="js/core/api.js"></script>
+    <!-- supabase/api.js will be loaded by API.init() -->
     <script src="js/services/auth.service.js"></script>
     <script src="js/ui/toast.js"></script>
-    <script src="supabase/api.js"></script>
 
     <script>
         lucide.createIcons();
         
-        // Initialize
+        // Initialize - Wait for scripts to load
         (async function init() {
-            // Check auth
-            if (!AuthService.isAuthenticated()) {
-                window.location.href = 'login.html';
-                return;
-            }
+            try {
+                // Wait for CONFIG to be available
+                if (typeof CONFIG === 'undefined') {
+                    await new Promise(resolve => {
+                        const checkConfig = setInterval(() => {
+                            if (typeof CONFIG !== 'undefined') {
+                                clearInterval(checkConfig);
+                                resolve();
+                            }
+                        }, 50);
+                    });
+                }
+                
+                // Initialize API (this will load supabase/api.js)
+                await API.init();
+                
+                // Check auth
+                if (!AuthService.isAuthenticated()) {
+                    window.location.href = 'login.html';
+                    return;
+                }
 
             const user = AuthService.getCurrentUser();
             

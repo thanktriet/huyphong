@@ -5,6 +5,14 @@
 const AuthService = {
     // Get current user
     getCurrentUser() {
+        // Ensure CONFIG is available
+        if (typeof CONFIG === 'undefined' && typeof window.CONFIG !== 'undefined') {
+            window.CONFIG = window.CONFIG;
+        }
+        if (typeof CONFIG === 'undefined') {
+            console.error('CONFIG is not defined. Make sure js/core/config.js is loaded first.');
+            return null;
+        }
         return Utils.storage.get(CONFIG.STORAGE_KEYS.USER);
     },
 
