@@ -144,6 +144,18 @@
             const config = window.SUPABASE_CONFIG;
             const origin = window.location.origin;
 
+            // Kiểm tra anon key
+            if (!config.SUPABASE_ANON_KEY || config.SUPABASE_ANON_KEY === 'Not set') {
+                resultsDiv.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <h3 class="font-bold text-red-900 mb-2">❌ Thiếu Anon Key</h3>
+                        <p class="text-red-700 text-sm mb-2">Supabase Anon Key chưa được cấu hình hoặc không hợp lệ.</p>
+                        <p class="text-sm text-slate-600">Vui lòng kiểm tra file <code class="bg-white px-1 rounded">js/core/config.js</code></p>
+                    </div>
+                `;
+                return;
+            }
+
             try {
                 // Test 1: Simple OPTIONS request (preflight)
                 const test1 = await testPreflight(config.SUPABASE_URL);
@@ -256,12 +268,22 @@
 
         async function testAPIRequest(url, anonKey) {
             try {
+                // Kiểm tra anon key
+                if (!anonKey || anonKey === 'Not set' || anonKey.length < 50) {
+                    return {
+                        success: false,
+                        message: '❌ Anon Key không hợp lệ hoặc chưa được cấu hình',
+                        details: `Anon Key: ${anonKey ? anonKey.substring(0, 20) + '...' : 'undefined'}`
+                    };
+                }
+
                 const response = await fetch(`${url}/rest/v1/users?select=count`, {
                     method: 'GET',
                     headers: {
-                        'apikey': anonKey,
-                        'Authorization': `Bearer ${anonKey}`,
-                        'Content-Type': 'application/json'
+                        'apikey': anonKey,  // ⚠️ BẮT BUỘC
+                        'Authorization': `Bearer ${anonKey}`,  // ⚠️ BẮT BUỘC
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
                     }
                 });
 
@@ -269,14 +291,29 @@
                     const data = await response.json();
                     return {
                         success: true,
-                        message: `✅ API request thành công! CORS hoạt động bình thường. (Count: ${data.length || 0})`,
+                        message: `✅ API request thành công! CORS hoạt động bình thường. (Count: ${Array.isArray(data) ? data.length : 'N/A'})`,
                         details: `Status: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`
                     };
                 } else {
                     const errorText = await response.text();
+                    let errorMessage = `❌ API request thất bại. Status: ${response.status}`;
+                    
+                    // Parse error message
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.message) {
+                            errorMessage = `❌ ${errorJson.message}`;
+                            if (errorJson.message.includes('API key')) {
+                                errorMessage += '\n\n⚠️ Lỗi: Thiếu hoặc sai API key. Kiểm tra SUPABASE_ANON_KEY trong config.js';
+                            }
+                        }
+                    } catch (e) {
+                        // Not JSON, use text as is
+                    }
+                    
                     return {
                         success: false,
-                        message: `❌ API request thất bại. Status: ${response.status}`,
+                        message: errorMessage,
                         details: errorText
                     };
                 }
