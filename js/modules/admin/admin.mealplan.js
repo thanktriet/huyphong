@@ -7,6 +7,7 @@ const AdminMealPlan = {
     currentWeekStart: null,
     foods: [],
     mealPlan: {},
+    studentData: null,
 
     async init(userId = null) {
         if (userId) {
@@ -20,11 +21,24 @@ const AdminMealPlan = {
         this.currentWeekStart = new Date(today.setDate(diff));
         
         if (this.userId) {
+            await this.loadStudentData();
             await this.loadFoods();
             await this.loadMealPlan();
+            this.renderTargets();
             this.render();
         } else {
             this.renderEmpty();
+        }
+    },
+
+    async loadStudentData() {
+        try {
+            const result = await AdminService.getStudents(false);
+            if (result.success) {
+                this.studentData = result.data.find(s => s.id === this.userId);
+            }
+        } catch (error) {
+            console.error('Error loading student data:', error);
         }
     },
 
@@ -34,6 +48,7 @@ const AdminMealPlan = {
         
         if (!userId) {
             this.renderEmpty();
+            this.hideTargets();
             return;
         }
         
@@ -44,6 +59,66 @@ const AdminMealPlan = {
         const container = document.getElementById('mealplan-container');
         if (!container) return;
         container.innerHTML = '<div class="text-center text-slate-400 py-10">Chọn học viên để tạo meal plan</div>';
+    },
+
+    hideTargets() {
+        const targetsSection = document.getElementById('mealplan-targets-section');
+        if (targetsSection) {
+            targetsSection.classList.add('hidden');
+        }
+    },
+
+    renderTargets() {
+        if (!this.studentData) return;
+
+        const targetsSection = document.getElementById('mealplan-targets-section');
+        if (!targetsSection) return;
+
+        targetsSection.classList.remove('hidden');
+
+        // Safe parse for target values
+        const parseTarget = (val, defaultValue = 0) => {
+            if (val === null || val === undefined || val === '') return defaultValue;
+            const parsed = parseFloat(val);
+            return isNaN(parsed) ? defaultValue : parsed;
+        };
+
+        document.getElementById('mealplan-target-calories').value = parseTarget(this.studentData.targetCalories, 2000);
+        document.getElementById('mealplan-target-protein').value = parseTarget(this.studentData.targetProtein, 0);
+        document.getElementById('mealplan-target-carb').value = parseTarget(this.studentData.targetCarb, 0);
+        document.getElementById('mealplan-target-fat').value = parseTarget(this.studentData.targetFat, 0);
+    },
+
+    async saveTargets() {
+        if (!this.userId) {
+            Toast.error('Chưa chọn học viên');
+            return;
+        }
+
+        const targets = {
+            calories: parseFloat(document.getElementById('mealplan-target-calories').value) || 2000,
+            protein: parseFloat(document.getElementById('mealplan-target-protein').value) || 0,
+            carb: parseFloat(document.getElementById('mealplan-target-carb').value) || 0,
+            fat: parseFloat(document.getElementById('mealplan-target-fat').value) || 0
+        };
+
+        try {
+            Loader.show();
+            const result = await AdminService.setUserTargets(this.userId, targets);
+            
+            if (result.success) {
+                Toast.success("Đã cập nhật mục tiêu");
+                // Reload student data
+                await this.loadStudentData();
+                this.renderTargets();
+            } else {
+                Toast.error(result.message || 'Lỗi cập nhật');
+            }
+        } catch (error) {
+            Toast.error('Lỗi: ' + error.message);
+        } finally {
+            Loader.hide();
+        }
     },
 
     async loadFoods() {

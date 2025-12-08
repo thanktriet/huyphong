@@ -47,9 +47,6 @@ const AdminStudents = {
                         <button onclick="AdminStudents.openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button>
                     </div>
                     <div class="flex gap-1 justify-end">
-                        <button onclick="AdminStudents.openSetTargets('${st.id}','${st.name}')" class="bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100" title="Mục tiêu Calories">🎯</button>
-                    </div>
-                    <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.openEdit('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
                             <i data-lucide="edit-2" class="w-3 h-3"></i>
                         </button>
@@ -243,65 +240,6 @@ const AdminStudents = {
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     },
 
-    openSetTargets(id, name) {
-        const student = this.students.find(s => s.id === id);
-        if (!student) {
-            Toast.error('Không tìm thấy học viên');
-            return;
-        }
-
-        try {
-            document.getElementById('target-st-id').value = id;
-            document.getElementById('target-st-name').textContent = name;
-            
-            // Safe access with fallback values
-            const targetCal = (student.targetCalories !== undefined && student.targetCalories !== null) 
-                ? parseFloat(student.targetCalories) : 2000;
-            const targetPro = (student.targetProtein !== undefined && student.targetProtein !== null) 
-                ? parseFloat(student.targetProtein) : 0;
-            const targetCarb = (student.targetCarb !== undefined && student.targetCarb !== null) 
-                ? parseFloat(student.targetCarb) : 0;
-            const targetFat = (student.targetFat !== undefined && student.targetFat !== null) 
-                ? parseFloat(student.targetFat) : 0;
-            
-            document.getElementById('target-calories').value = isNaN(targetCal) ? 2000 : targetCal;
-            document.getElementById('target-protein').value = isNaN(targetPro) ? 0 : targetPro;
-            document.getElementById('target-carb').value = isNaN(targetCarb) ? 0 : targetCarb;
-            document.getElementById('target-fat').value = isNaN(targetFat) ? 0 : targetFat;
-            
-            AdminCalendar.toggleModal('modal-set-targets');
-        } catch (error) {
-            console.error('Error opening set targets:', error);
-            Toast.error('Lỗi mở form đặt mục tiêu');
-        }
-    },
-
-    async submitSetTargets() {
-        const id = document.getElementById('target-st-id').value;
-        const targets = {
-            calories: parseFloat(document.getElementById('target-calories').value) || 2000,
-            protein: parseFloat(document.getElementById('target-protein').value) || 0,
-            carb: parseFloat(document.getElementById('target-carb').value) || 0,
-            fat: parseFloat(document.getElementById('target-fat').value) || 0
-        };
-
-        try {
-            Loader.show();
-            const result = await AdminService.setUserTargets(id, targets);
-            
-            if (result.success) {
-                Toast.success("Đã cập nhật mục tiêu");
-                AdminCalendar.toggleModal('modal-set-targets');
-                await this.init();
-            } else {
-                Toast.error(result.message || 'Lỗi cập nhật');
-            }
-        } catch (error) {
-            Toast.error('Lỗi: ' + error.message);
-        } finally {
-            Loader.hide();
-        }
-    }
 };
 
 window.AdminStudents = AdminStudents;
