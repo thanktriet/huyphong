@@ -55,12 +55,28 @@ const AdminMealPlan = {
                 
                 // Ensure studentData has target properties with defaults
                 if (this.studentData) {
-                    this.studentData.targetCalories = this.studentData.targetCalories ?? 2000;
-                    this.studentData.targetProtein = this.studentData.targetProtein ?? 0;
-                    this.studentData.targetCarb = this.studentData.targetCarb ?? 0;
-                    this.studentData.targetFat = this.studentData.targetFat ?? 0;
+                    // Comprehensive validation for each property
+                    this.studentData.targetCalories = (this.studentData.targetCalories !== undefined && this.studentData.targetCalories !== null) 
+                        ? parseFloat(this.studentData.targetCalories) || 2000 
+                        : 2000;
+                    this.studentData.targetProtein = (this.studentData.targetProtein !== undefined && this.studentData.targetProtein !== null) 
+                        ? parseFloat(this.studentData.targetProtein) || 0 
+                        : 0;
+                    this.studentData.targetCarb = (this.studentData.targetCarb !== undefined && this.studentData.targetCarb !== null) 
+                        ? parseFloat(this.studentData.targetCarb) || 0 
+                        : 0;
+                    this.studentData.targetFat = (this.studentData.targetFat !== undefined && this.studentData.targetFat !== null) 
+                        ? parseFloat(this.studentData.targetFat) || 0 
+                        : 0;
                 } else {
                     console.warn(`Student with id ${this.userId} not found`);
+                    // Initialize with defaults if student not found
+                    this.studentData = {
+                        targetCalories: 2000,
+                        targetProtein: 0,
+                        targetCarb: 0,
+                        targetFat: 0
+                    };
                 }
             } else {
                 console.warn('Failed to load students:', result.message);
@@ -127,11 +143,15 @@ const AdminMealPlan = {
             return isNaN(parsed) ? defaultValue : parsed;
         };
 
-        // Safe access with nullish coalescing
-        const targetCal = this.studentData.targetCalories ?? 2000;
-        const targetPro = this.studentData.targetProtein ?? 0;
-        const targetCarb = this.studentData.targetCarb ?? 0;
-        const targetFat = this.studentData.targetFat ?? 0;
+        // Safe access with comprehensive checks
+        const targetCal = (this.studentData && this.studentData.targetCalories !== undefined && this.studentData.targetCalories !== null) 
+            ? this.studentData.targetCalories : 2000;
+        const targetPro = (this.studentData && this.studentData.targetProtein !== undefined && this.studentData.targetProtein !== null) 
+            ? this.studentData.targetProtein : 0;
+        const targetCarb = (this.studentData && this.studentData.targetCarb !== undefined && this.studentData.targetCarb !== null) 
+            ? this.studentData.targetCarb : 0;
+        const targetFat = (this.studentData && this.studentData.targetFat !== undefined && this.studentData.targetFat !== null) 
+            ? this.studentData.targetFat : 0;
 
         const calInput = document.getElementById('mealplan-target-calories');
         const proInput = document.getElementById('mealplan-target-protein');
