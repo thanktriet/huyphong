@@ -141,7 +141,8 @@ class APIClient {
             } catch (error) {
                 lastError = error;
                 if (i < retry) {
-                    await new Promise(r => setTimeout(r, CONFIG.API_RETRY_DELAY * (i + 1)));
+                    const retryDelay = config.API_RETRY_DELAY || 1000;
+                    await new Promise(r => setTimeout(r, retryDelay * (i + 1)));
                 }
             }
         }
