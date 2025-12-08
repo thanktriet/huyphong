@@ -527,7 +527,7 @@ const AdminMealPlan = {
             }
 
             const weekStartStr = this.getWeekStartStr();
-            const user = AuthService.getUser();
+            const user = AuthService.getCurrentUser();
             const result = await AdminService.createMealPlan(
                 this.userId,
                 weekStartStr,
