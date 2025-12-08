@@ -1026,20 +1026,40 @@ async function getBodyHistory(userId) {
 
 async function setUserTargets(userId, targets) {
     try {
+        if (!userId) {
+            return { success: false, message: 'User ID is required' };
+        }
+
+        if (!targets || typeof targets !== 'object') {
+            return { success: false, message: 'Targets object is required' };
+        }
+
+        // Safe parse with defaults - handle undefined/null
+        const updateData = {
+            target_calories: targets.calories !== undefined && targets.calories !== null 
+                ? parseFloat(targets.calories) || 2000 
+                : 2000,
+            target_protein: targets.protein !== undefined && targets.protein !== null 
+                ? parseFloat(targets.protein) || 0 
+                : 0,
+            target_carb: targets.carb !== undefined && targets.carb !== null 
+                ? parseFloat(targets.carb) || 0 
+                : 0,
+            target_fat: targets.fat !== undefined && targets.fat !== null 
+                ? parseFloat(targets.fat) || 0 
+                : 0
+        };
+
         const { error } = await getSupabase()
             .from('users')
-            .update({
-                target_calories: parseFloat(targets.calories) || 2000,
-                target_protein: parseFloat(targets.protein) || 0,
-                target_carb: parseFloat(targets.carb) || 0,
-                target_fat: parseFloat(targets.fat) || 0
-            })
+            .update(updateData)
             .eq('id', userId);
 
         if (error) throw error;
         return { success: true };
     } catch (error) {
-        return { success: false, message: error.message };
+        console.error('Error in setUserTargets:', error);
+        return { success: false, message: error.message || 'Failed to update targets' };
     }
 }
 
