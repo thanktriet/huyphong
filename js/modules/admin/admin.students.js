@@ -48,7 +48,6 @@ const AdminStudents = {
                     </div>
                     <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.openSetTargets('${st.id}','${st.name}')" class="bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100" title="Mục tiêu Calories">🎯</button>
-                        <button onclick="AdminStudents.openMealPlan('${st.id}','${st.name}')" class="bg-orange-50 text-orange-600 px-2 py-1 rounded border text-xs font-bold hover:bg-orange-100" title="Meal Plan">🍽️</button>
                     </div>
                     <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.openEdit('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
@@ -233,11 +232,14 @@ const AdminStudents = {
         const planStudent = document.getElementById('plan-student');
         const bkStudent = document.getElementById('bk-student');
         const assignStudents = document.getElementById('assign-students');
+        const mealplanStudent = document.getElementById('mealplan-student-select');
         
         if (planStudent) planStudent.innerHTML = optsNormal;
         if (bkStudent) bkStudent.innerHTML = '<option value="">-- Chọn --</option>' + 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         if (assignStudents) assignStudents.innerHTML = 
+            this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        if (mealplanStudent) mealplanStudent.innerHTML = '<option value="">-- Chọn Học Viên --</option>' + 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     },
 
@@ -279,13 +281,6 @@ const AdminStudents = {
         } finally {
             Loader.hide();
         }
-    },
-
-    openMealPlan(id, name) {
-        document.getElementById('meal-plan-st-id').value = id;
-        document.getElementById('meal-plan-st-name').textContent = name;
-        AdminCalendar.toggleModal('modal-meal-plan');
-        AdminMealPlan.init(id);
     }
 };
 

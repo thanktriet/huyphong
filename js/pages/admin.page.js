@@ -110,6 +110,14 @@ const AdminPage = {
                 await AdminPlans.save();
             });
         }
+
+        // Meal Plan student select
+        const mealplanSelect = document.getElementById('mealplan-student-select');
+        if (mealplanSelect) {
+            mealplanSelect.addEventListener('change', async () => {
+                await AdminMealPlan.onStudentSelect();
+            });
+        }
     },
 
     switchTab(name, btn) {
@@ -133,6 +141,8 @@ const AdminPage = {
             AdminFoods.init();
         } else if (name === 'builder') {
             AdminPlans.init();
+        } else if (name === 'mealplan') {
+            AdminMealPlan.init();
         }
     },
 

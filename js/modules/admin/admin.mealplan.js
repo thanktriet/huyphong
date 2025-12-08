@@ -8,17 +8,42 @@ const AdminMealPlan = {
     foods: [],
     mealPlan: {},
 
-    async init(userId) {
-        this.userId = userId;
+    async init(userId = null) {
+        if (userId) {
+            this.userId = userId;
+        }
+        
         // Get Monday of current week
         const today = new Date();
         const day = today.getDay();
         const diff = today.getDate() - day + (day === 0 ? -6 : 1);
         this.currentWeekStart = new Date(today.setDate(diff));
         
-        await this.loadFoods();
-        await this.loadMealPlan();
-        this.render();
+        if (this.userId) {
+            await this.loadFoods();
+            await this.loadMealPlan();
+            this.render();
+        } else {
+            this.renderEmpty();
+        }
+    },
+
+    async onStudentSelect() {
+        const select = document.getElementById('mealplan-student-select');
+        const userId = select.value;
+        
+        if (!userId) {
+            this.renderEmpty();
+            return;
+        }
+        
+        await this.init(userId);
+    },
+
+    renderEmpty() {
+        const container = document.getElementById('mealplan-container');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center text-slate-400 py-10">Chọn học viên để tạo meal plan</div>';
     },
 
     async loadFoods() {
@@ -74,25 +99,25 @@ const AdminMealPlan = {
         weekEndDate.setDate(weekEndDate.getDate() + 6);
 
         let html = `
-            <div class="mb-4 flex justify-between items-center">
+            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                     <div class="text-sm text-slate-400">Tuần từ ${weekStartDate.toLocaleDateString('vi-VN')} đến ${weekEndDate.toLocaleDateString('vi-VN')}</div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="AdminMealPlan.prevWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm">← Tuần trước</button>
-                    <button onclick="AdminMealPlan.nextWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm">Tuần sau →</button>
-                    <button onclick="AdminMealPlan.savePlan()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">💾 Lưu Plan</button>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="AdminMealPlan.prevWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm hover:bg-slate-200">← Tuần trước</button>
+                    <button onclick="AdminMealPlan.nextWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm hover:bg-slate-200">Tuần sau →</button>
+                    <button onclick="AdminMealPlan.savePlan()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">💾 Lưu Plan</button>
                 </div>
             </div>
-            <div class="grid grid-cols-7 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
         `;
 
         // Render 7 days
         for (let day = 0; day < 7; day++) {
             const dayMeals = this.mealPlan[day] || [];
             html += `
-                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                    <div class="font-bold text-sm mb-2 text-center text-slate-700">${this.getDayName(day)}</div>
+                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 min-h-[200px]">
+                    <div class="font-bold text-sm mb-3 text-center text-slate-700 sticky top-0 bg-slate-50 py-1">${this.getDayName(day)}</div>
                     <div class="space-y-2" id="day-${day}-meals">
             `;
 
