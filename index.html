@@ -161,6 +161,10 @@
             if (AuthService.isAdmin()) {
                 document.getElementById('btnAdmin').classList.remove('hidden');
             }
+            } catch (error) {
+                console.error('Init error:', error);
+                Toast.error('Lỗi khởi tạo: ' + error.message);
+            }
         })();
 
         function logout() { 
