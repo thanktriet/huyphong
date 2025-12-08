@@ -67,7 +67,10 @@ const AdminMealPlan = {
 
     renderEmpty() {
         const container = document.getElementById('mealplan-container');
-        if (!container) return;
+        if (!container) {
+            console.error('mealplan-container element not found');
+            return;
+        }
         container.innerHTML = '<div class="text-center text-slate-400 py-10">Chọn học viên để tạo meal plan</div>';
     },
 
@@ -175,8 +178,11 @@ const AdminMealPlan = {
     },
 
     render() {
-        const container = document.getElementById('meal-plan-container');
-        if (!container) return;
+        const container = document.getElementById('mealplan-container');
+        if (!container) {
+            console.error('mealplan-container element not found');
+            return;
+        }
 
         const weekStartStr = this.getWeekStartStr();
         const weekStartDate = new Date(this.currentWeekStart);
