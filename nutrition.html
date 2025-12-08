@@ -182,12 +182,34 @@
             await Promise.all([loadFoodDB(), loadStats()]);
         }
         
-        // --- API CALLER ---
+        // --- API CALLER (Fallback) ---
         async function callAPI(action, data={}) {
-            try { 
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({action, data}) }); 
-                return await res.json(); 
-            } catch(e) { return { success: false }; }
+            try {
+                // Đợi API init
+                await API.init();
+                
+                // Dùng API.call với mapping
+                const actionMap = {
+                    'get_all_foods': 'getAllFoods',
+                    'get_daily_macros': 'getDailyMacros',
+                    'log_meal': 'logMeal'
+                };
+                
+                const mappedAction = actionMap[action] || action;
+                
+                if (mappedAction === 'getAllFoods') {
+                    return await API.getAllFoods(true);
+                } else if (mappedAction === 'getDailyMacros') {
+                    return await API.getDailyMacros(data.userId);
+                } else if (mappedAction === 'logMeal') {
+                    return await API.call('logMeal', data);
+                } else {
+                    return await API.call(mappedAction, data);
+                }
+            } catch(e) {
+                console.error('API call error:', e);
+                return { success: false, message: e.message };
+            }
         }
         function showToast(msg, type='success') {
             const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" class="w-5 ${type==='success'?'text-green-600':'text-red-600'}"></i><span>${msg}</span>`;
@@ -196,8 +218,54 @@
 
         // --- LOADERS ---
         async function loadFoodDB() {
-            const res = await callAPI('get_all_foods');
-            if(res.success) { FOOD_DB = res.data; renderFoodList(FOOD_DB); }
+            try {
+                // Kiểm tra cache trước
+                const cacheKey = 'food_db_cache';
+                const cached = localStorage.getItem(cacheKey);
+                const cacheTime = localStorage.getItem(cacheKey + '_time');
+                
+                // Nếu có cache và chưa quá 5 phút, dùng cache
+                if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 5 * 60 * 1000) {
+                    FOOD_DB = JSON.parse(cached);
+                    renderFoodList(FOOD_DB);
+                    // Load từ server ở background để update cache
+                    loadFoodDBFromServer();
+                    return;
+                }
+                
+                // Load từ server
+                await loadFoodDBFromServer();
+            } catch (error) {
+                console.error('Load food DB error:', error);
+                document.getElementById('food-list').innerHTML = '<div class="text-center text-red-400 py-8 text-xs">Lỗi tải dữ liệu. Vui lòng thử lại.</div>';
+            }
+        }
+        
+        async function loadFoodDBFromServer() {
+            // Đợi API init
+            await API.init();
+            
+            // Dùng API.getAllFoods với cache
+            const res = await API.getAllFoods(true); // useCache = true
+            if(res.success && res.data) {
+                FOOD_DB = res.data;
+                
+                // Lưu vào localStorage cache
+                const cacheKey = 'food_db_cache';
+                localStorage.setItem(cacheKey, JSON.stringify(FOOD_DB));
+                localStorage.setItem(cacheKey + '_time', Date.now().toString());
+                
+                renderFoodList(FOOD_DB);
+            } else {
+                // Fallback: thử dùng callAPI cũ
+                const resOld = await callAPI('get_all_foods');
+                if(resOld.success) {
+                    FOOD_DB = resOld.data;
+                    renderFoodList(FOOD_DB);
+                } else {
+                    document.getElementById('food-list').innerHTML = '<div class="text-center text-slate-400 py-8 text-xs">Không tải được dữ liệu.</div>';
+                }
+            }
         }
         async function loadStats() {
             const res = await callAPI('get_daily_macros', { userId: user.id });
