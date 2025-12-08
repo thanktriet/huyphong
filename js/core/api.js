@@ -163,7 +163,12 @@ class APIClient {
 
     // Convenience methods
     async login(email, password) {
-        return this.call('login', { email, password });
+        await this.init();
+        // Call login directly with 2 parameters (not via call() which passes object)
+        if (!this.api || !this.api.login) {
+            throw new Error('Supabase API not initialized. Please call API.init() first.');
+        }
+        return await this.api.login(email, password);
     }
 
     async getAllExercises(useCache = true) {
