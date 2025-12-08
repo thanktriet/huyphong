@@ -50,11 +50,25 @@ const AdminMealPlan = {
     async loadStudentData() {
         try {
             const result = await AdminService.getStudents(false);
-            if (result.success) {
+            if (result.success && result.data) {
                 this.studentData = result.data.find(s => s.id === this.userId);
+                
+                // Ensure studentData has target properties with defaults
+                if (this.studentData) {
+                    this.studentData.targetCalories = this.studentData.targetCalories ?? 2000;
+                    this.studentData.targetProtein = this.studentData.targetProtein ?? 0;
+                    this.studentData.targetCarb = this.studentData.targetCarb ?? 0;
+                    this.studentData.targetFat = this.studentData.targetFat ?? 0;
+                } else {
+                    console.warn(`Student with id ${this.userId} not found`);
+                }
+            } else {
+                console.warn('Failed to load students:', result.message);
+                this.studentData = null;
             }
         } catch (error) {
             console.error('Error loading student data:', error);
+            this.studentData = null;
         }
     },
 
@@ -92,6 +106,7 @@ const AdminMealPlan = {
     renderTargets() {
         if (!this.studentData) {
             console.warn('No student data to render targets');
+            this.hideTargets();
             return;
         }
 
@@ -105,26 +120,47 @@ const AdminMealPlan = {
 
         // Safe parse for target values
         const parseTarget = (val, defaultValue = 0) => {
-            if (val === null || val === undefined || val === '') return defaultValue;
+            if (val === null || val === undefined || val === '' || val === 'null' || val === 'undefined') {
+                return defaultValue;
+            }
             const parsed = parseFloat(val);
             return isNaN(parsed) ? defaultValue : parsed;
         };
 
-        // Safe access with fallback
-        const targetCal = this.studentData?.targetCalories !== undefined ? this.studentData.targetCalories : 2000;
-        const targetPro = this.studentData?.targetProtein !== undefined ? this.studentData.targetProtein : 0;
-        const targetCarb = this.studentData?.targetCarb !== undefined ? this.studentData.targetCarb : 0;
-        const targetFat = this.studentData?.targetFat !== undefined ? this.studentData.targetFat : 0;
+        // Safe access with nullish coalescing
+        const targetCal = this.studentData.targetCalories ?? 2000;
+        const targetPro = this.studentData.targetProtein ?? 0;
+        const targetCarb = this.studentData.targetCarb ?? 0;
+        const targetFat = this.studentData.targetFat ?? 0;
 
         const calInput = document.getElementById('mealplan-target-calories');
         const proInput = document.getElementById('mealplan-target-protein');
         const carbInput = document.getElementById('mealplan-target-carb');
         const fatInput = document.getElementById('mealplan-target-fat');
 
-        if (calInput) calInput.value = parseTarget(targetCal, 2000);
-        if (proInput) proInput.value = parseTarget(targetPro, 0);
-        if (carbInput) carbInput.value = parseTarget(targetCarb, 0);
-        if (fatInput) fatInput.value = parseTarget(targetFat, 0);
+        if (calInput) {
+            calInput.value = parseTarget(targetCal, 2000);
+        } else {
+            console.error('mealplan-target-calories input not found');
+        }
+        
+        if (proInput) {
+            proInput.value = parseTarget(targetPro, 0);
+        } else {
+            console.error('mealplan-target-protein input not found');
+        }
+        
+        if (carbInput) {
+            carbInput.value = parseTarget(targetCarb, 0);
+        } else {
+            console.error('mealplan-target-carb input not found');
+        }
+        
+        if (fatInput) {
+            fatInput.value = parseTarget(targetFat, 0);
+        } else {
+            console.error('mealplan-target-fat input not found');
+        }
     },
 
     async saveTargets() {
