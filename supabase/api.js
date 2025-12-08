@@ -890,19 +890,33 @@ async function getDailyMacros(userId) {
         if (mealError) throw mealError;
 
         // Get user targets
-        const { data: userData, error: userError } = await getSupabase()
-            .from('users')
-            .select('target_calories, target_protein, target_carb, target_fat')
-            .eq('id', userId)
-            .single();
+        let targets = {
+            calories: 2000,
+            protein: 0,
+            carb: 0,
+            fat: 0
+        };
+        
+        try {
+            const { data: userData, error: userError } = await getSupabase()
+                .from('users')
+                .select('target_calories, target_protein, target_carb, target_fat')
+                .eq('id', userId)
+                .single();
+
+            if (!userError && userData) {
+                targets = {
+                    calories: parseFloat(userData.target_calories) || 2000,
+                    protein: parseFloat(userData.target_protein) || 0,
+                    carb: parseFloat(userData.target_carb) || 0,
+                    fat: parseFloat(userData.target_fat) || 0
+                };
+            }
+        } catch (targetError) {
+            console.warn('Error loading user targets, using defaults:', targetError);
+        }
 
         let totals = { cal: 0, pro: 0, carb: 0, fat: 0, list: [] };
-        let targets = {
-            calories: parseFloat(userData?.target_calories) || 2000,
-            protein: parseFloat(userData?.target_protein) || 0,
-            carb: parseFloat(userData?.target_carb) || 0,
-            fat: parseFloat(userData?.target_fat) || 0
-        };
 
         mealData.forEach(meal => {
             totals.cal += parseFloat(meal.calories) || 0;
