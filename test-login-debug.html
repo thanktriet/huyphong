@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/core/config.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/services/auth.service.js"></script>
+    <script src="js/ui/toast.js"></script>
+</head>
+<body class="bg-slate-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">🔍 Debug Login</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <h2 class="font-bold mb-2">1. Kiểm tra CONFIG</h2>
+                <pre id="config-check" class="bg-slate-50 p-3 rounded text-sm"></pre>
+            </div>
+            
+            <div>
+                <h2 class="font-bold mb-2">2. Kiểm tra API Init</h2>
+                <button onclick="testAPIInit()" class="bg-blue-600 text-white px-4 py-2 rounded">Test API.init()</button>
+                <pre id="api-init-check" class="bg-slate-50 p-3 rounded text-sm mt-2"></pre>
+            </div>
+            
+            <div>
+                <h2 class="font-bold mb-2">3. Test Login</h2>
+                <div class="flex gap-2 mb-2">
+                    <input type="email" id="test-email" placeholder="Email" class="border p-2 rounded flex-1" value="admin@huyphong.com">
+                    <input type="password" id="test-password" placeholder="Password" class="border p-2 rounded flex-1" value="123456">
+                    <button onclick="testLogin()" class="bg-green-600 text-white px-4 py-2 rounded">Test Login</button>
+                </div>
+                <pre id="login-result" class="bg-slate-50 p-3 rounded text-sm"></pre>
+            </div>
+            
+            <div>
+                <h2 class="font-bold mb-2">4. Test Supabase Direct Query</h2>
+                <button onclick="testSupabaseDirect()" class="bg-purple-600 text-white px-4 py-2 rounded">Test Direct Query</button>
+                <pre id="supabase-result" class="bg-slate-50 p-3 rounded text-sm mt-2"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check CONFIG
+        const configCheck = document.getElementById('config-check');
+        configCheck.textContent = JSON.stringify({
+            CONFIG: typeof CONFIG !== 'undefined' ? '✅ Defined' : '❌ Undefined',
+            windowCONFIG: typeof window.CONFIG !== 'undefined' ? '✅ Defined' : '❌ Undefined',
+            SUPABASE_URL: typeof CONFIG !== 'undefined' ? CONFIG.SUPABASE_URL : (window.CONFIG?.SUPABASE_URL || 'N/A'),
+            SUPABASE_ANON_KEY: typeof CONFIG !== 'undefined' ? CONFIG.SUPABASE_ANON_KEY?.substring(0, 20) + '...' : (window.CONFIG?.SUPABASE_ANON_KEY?.substring(0, 20) + '...' || 'N/A')
+        }, null, 2);
+
+        async function testAPIInit() {
+            const resultEl = document.getElementById('api-init-check');
+            resultEl.textContent = 'Đang kiểm tra...';
+            
+            try {
+                await API.init();
+                resultEl.textContent = JSON.stringify({
+                    status: '✅ Success',
+                    supabaseClient: window.supabaseClient ? '✅ Initialized' : '❌ Not initialized',
+                    supabaseAPI: window.supabaseAPI ? '✅ Loaded' : '❌ Not loaded',
+                    API: typeof API !== 'undefined' ? '✅ Available' : '❌ Not available'
+                }, null, 2);
+            } catch (error) {
+                resultEl.textContent = JSON.stringify({
+                    status: '❌ Error',
+                    error: error.message,
+                    stack: error.stack
+                }, null, 2);
+            }
+        }
+
+        async function testLogin() {
+            const resultEl = document.getElementById('login-result');
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            resultEl.textContent = 'Đang test login...';
+            
+            try {
+                await API.init();
+                const result = await AuthService.login(email, password);
+                resultEl.textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                resultEl.textContent = JSON.stringify({
+                    success: false,
+                    error: error.message,
+                    stack: error.stack
+                }, null, 2);
+            }
+        }
+
+        async function testSupabaseDirect() {
+            const resultEl = document.getElementById('supabase-result');
+            resultEl.textContent = 'Đang test direct query...';
+            
+            try {
+                await API.init();
+                
+                if (!window.supabaseClient) {
+                    resultEl.textContent = '❌ Supabase client not initialized';
+                    return;
+                }
+                
+                // Test query users table
+                const { data, error } = await window.supabaseClient
+                    .from('users')
+                    .select('id, email, name, role, status')
+                    .limit(5);
+                
+                resultEl.textContent = JSON.stringify({
+                    status: error ? '❌ Error' : '✅ Success',
+                    error: error ? error.message : null,
+                    data: data,
+                    count: data?.length || 0
+                }, null, 2);
+            } catch (error) {
+                resultEl.textContent = JSON.stringify({
+                    status: '❌ Exception',
+                    error: error.message,
+                    stack: error.stack
+                }, null, 2);
+            }
+        }
+
+        // Auto check on load
+        window.addEventListener('load', () => {
+            testAPIInit();
+        });
+    </script>
+</body>
+</html>
+
