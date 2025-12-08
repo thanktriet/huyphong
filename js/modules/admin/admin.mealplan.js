@@ -47,11 +47,13 @@ const AdminMealPlan = {
         const userId = select.value;
         
         if (!userId) {
+            this.userId = null;
             this.renderEmpty();
             this.hideTargets();
             return;
         }
         
+        this.userId = userId;
         await this.init(userId);
     },
 
