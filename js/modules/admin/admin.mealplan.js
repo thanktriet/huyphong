@@ -1,0 +1,229 @@
+// =======================================================
+// ADMIN MEAL PLAN MODULE
+// =======================================================
+
+const AdminMealPlan = {
+    userId: null,
+    currentWeekStart: null,
+    foods: [],
+    mealPlan: {},
+
+    async init(userId) {
+        this.userId = userId;
+        // Get Monday of current week
+        const today = new Date();
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        this.currentWeekStart = new Date(today.setDate(diff));
+        
+        await this.loadFoods();
+        await this.loadMealPlan();
+        this.render();
+    },
+
+    async loadFoods() {
+        try {
+            const result = await AdminService.getFoods(true);
+            if (result.success) {
+                this.foods = result.data || [];
+            }
+        } catch (error) {
+            Toast.error('Lỗi tải kho món ăn');
+        }
+    },
+
+    async loadMealPlan() {
+        try {
+            const weekStartStr = this.currentWeekStart.toISOString().split('T')[0];
+            const result = await AdminService.getMealPlan(this.userId, weekStartStr);
+            if (result.success) {
+                this.mealPlan = result.data || {};
+            }
+        } catch (error) {
+            Toast.error('Lỗi tải meal plan');
+        }
+    },
+
+    getWeekStartStr() {
+        return this.currentWeekStart.toISOString().split('T')[0];
+    },
+
+    getDayName(dayOfWeek) {
+        const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+        return days[dayOfWeek];
+    },
+
+    getMealTypeName(type) {
+        const types = {
+            'Sáng': '🌅 Sáng',
+            'Trưa': '☀️ Trưa',
+            'Tối': '🌙 Tối',
+            'Phụ': '🍎 Phụ',
+            'Tiệc': '🎉 Tiệc'
+        };
+        return types[type] || type;
+    },
+
+    render() {
+        const container = document.getElementById('meal-plan-container');
+        if (!container) return;
+
+        const weekStartStr = this.getWeekStartStr();
+        const weekStartDate = new Date(this.currentWeekStart);
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+        let html = `
+            <div class="mb-4 flex justify-between items-center">
+                <div>
+                    <div class="text-sm text-slate-400">Tuần từ ${weekStartDate.toLocaleDateString('vi-VN')} đến ${weekEndDate.toLocaleDateString('vi-VN')}</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="AdminMealPlan.prevWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm">← Tuần trước</button>
+                    <button onclick="AdminMealPlan.nextWeek()" class="bg-slate-100 px-3 py-1 rounded text-sm">Tuần sau →</button>
+                    <button onclick="AdminMealPlan.savePlan()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">💾 Lưu Plan</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 gap-2">
+        `;
+
+        // Render 7 days
+        for (let day = 0; day < 7; day++) {
+            const dayMeals = this.mealPlan[day] || [];
+            html += `
+                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                    <div class="font-bold text-sm mb-2 text-center text-slate-700">${this.getDayName(day)}</div>
+                    <div class="space-y-2" id="day-${day}-meals">
+            `;
+
+            // Render meals for each meal type
+            const mealTypes = ['Sáng', 'Trưa', 'Tối', 'Phụ'];
+            mealTypes.forEach(mealType => {
+                const meals = dayMeals.filter(m => m.mealType === mealType);
+                html += `
+                    <div class="bg-white rounded p-2 border border-slate-200">
+                        <div class="text-xs font-bold text-slate-500 mb-1">${this.getMealTypeName(mealType)}</div>
+                        <div class="space-y-1" id="day-${day}-${mealType}">
+                `;
+
+                if (meals.length > 0) {
+                    meals.forEach(meal => {
+                        html += `
+                            <div class="text-xs bg-blue-50 p-1 rounded flex justify-between items-center" data-meal-id="${meal.id}">
+                                <span class="truncate flex-1">${meal.foodName}</span>
+                                <button onclick="AdminMealPlan.removeMeal('${meal.id}')" class="text-red-500 ml-1">×</button>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += `
+                        </div>
+                        <button onclick="AdminMealPlan.addMeal(${day}, '${mealType}')" class="text-xs text-blue-600 mt-1 w-full hover:bg-blue-50 rounded py-1">+ Thêm</button>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+        lucide.createIcons();
+    },
+
+    async addMeal(dayOfWeek, mealType) {
+        // Simple prompt for now - can be enhanced with modal
+        const foodName = prompt('Tên món ăn:');
+        if (!foodName) return;
+
+        // Try to find food in library
+        const food = this.foods.find(f => f.name.toLowerCase().includes(foodName.toLowerCase()));
+        
+        const meal = {
+            dayOfWeek: dayOfWeek,
+            mealType: mealType,
+            foodId: food?.id || null,
+            foodName: foodName,
+            amount: 100,
+            calories: food ? parseFloat(food.calories) : 0,
+            protein: food ? parseFloat(food.protein) : 0,
+            carb: food ? parseFloat(food.carb) : 0,
+            fat: food ? parseFloat(food.fat) : 0
+        };
+
+        if (!this.mealPlan[dayOfWeek]) {
+            this.mealPlan[dayOfWeek] = [];
+        }
+        this.mealPlan[dayOfWeek].push(meal);
+        this.render();
+    },
+
+    async removeMeal(mealId) {
+        for (let day in this.mealPlan) {
+            this.mealPlan[day] = this.mealPlan[day].filter(m => m.id !== mealId);
+        }
+        this.render();
+    },
+
+    async prevWeek() {
+        this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
+        await this.loadMealPlan();
+        this.render();
+    },
+
+    async nextWeek() {
+        this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
+        await this.loadMealPlan();
+        this.render();
+    },
+
+    async savePlan() {
+        try {
+            Loader.show();
+            
+            // Flatten meal plan to array
+            const meals = [];
+            for (let day in this.mealPlan) {
+                this.mealPlan[day].forEach(meal => {
+                    meals.push({
+                        dayOfWeek: parseInt(day),
+                        mealType: meal.mealType,
+                        foodId: meal.foodId,
+                        foodName: meal.foodName,
+                        amount: meal.amount || 100,
+                        calories: meal.calories || 0,
+                        protein: meal.protein || 0,
+                        carb: meal.carb || 0,
+                        fat: meal.fat || 0
+                    });
+                });
+            }
+
+            const weekStartStr = this.getWeekStartStr();
+            const user = AuthService.getUser();
+            const result = await AdminService.createMealPlan(
+                this.userId,
+                weekStartStr,
+                meals,
+                user?.id || null
+            );
+
+            if (result.success) {
+                Toast.success('Đã lưu meal plan');
+            } else {
+                Toast.error(result.message || 'Lỗi lưu meal plan');
+            }
+        } catch (error) {
+            Toast.error('Lỗi: ' + error.message);
+        } finally {
+            Loader.hide();
+        }
+    }
+};
+
+window.AdminMealPlan = AdminMealPlan;
+

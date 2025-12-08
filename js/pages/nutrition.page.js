@@ -62,11 +62,34 @@ const NutritionPage = {
     renderStats() {
         const cleanNum = (n) => (isNaN(n) || n > 10000) ? 0 : Math.round(n);
         
+        // Get targets and progress from data
+        const targets = this.data.targets || { calories: 2000, protein: 0, carb: 0, fat: 0 };
+        const progress = this.data.progress || { calories: 0, protein: 0, carb: 0, fat: 0 };
+        
+        // Update values
         document.getElementById('val-cal').innerText = cleanNum(this.data.cal);
         document.getElementById('val-pro').innerText = cleanNum(this.data.pro);
         document.getElementById('val-carb').innerText = cleanNum(this.data.carb);
         document.getElementById('val-fat').innerText = cleanNum(this.data.fat);
-        document.getElementById('bar-cal').style.width = Math.min((cleanNum(this.data.cal) / 2000) * 100, 100) + '%';
+        
+        // Update targets
+        document.getElementById('target-cal').innerText = cleanNum(targets.calories);
+        document.getElementById('target-pro').innerText = cleanNum(targets.protein);
+        document.getElementById('target-carb').innerText = cleanNum(targets.carb);
+        document.getElementById('target-fat').innerText = cleanNum(targets.fat);
+        
+        // Update progress bars
+        const calProgress = targets.calories > 0 ? Math.min((cleanNum(this.data.cal) / targets.calories) * 100, 100) : 0;
+        const proProgress = targets.protein > 0 ? Math.min((cleanNum(this.data.pro) / targets.protein) * 100, 100) : 0;
+        const carbProgress = targets.carb > 0 ? Math.min((cleanNum(this.data.carb) / targets.carb) * 100, 100) : 0;
+        const fatProgress = targets.fat > 0 ? Math.min((cleanNum(this.data.fat) / targets.fat) * 100, 100) : 0;
+        
+        document.getElementById('bar-cal').style.width = calProgress + '%';
+        document.getElementById('bar-pro').style.width = proProgress + '%';
+        document.getElementById('bar-carb').style.width = carbProgress + '%';
+        document.getElementById('bar-fat').style.width = fatProgress + '%';
+        
+        document.getElementById('progress-cal').innerText = Math.round(calProgress) + '%';
         document.getElementById('log-count').innerText = `${this.data.list.length} món`;
         
         // Group by meal
@@ -313,6 +336,87 @@ const NutritionPage = {
         const cacheKey = `pt_nutri_v4_${this.user.id}`;
         Utils.storage.remove(cacheKey);
         window.location.reload();
+    },
+
+    async showMealPlan() {
+        // Get Monday of current week
+        const today = new Date();
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        const weekStart = new Date(today.setDate(diff));
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+
+        try {
+            Loader.show();
+            const result = await NutritionService.getMealPlan(this.user.id, weekStartStr);
+            
+            if (result.success && result.data) {
+                this.renderMealPlanModal(result.data, weekStartStr);
+            } else {
+                Toast.info('Chưa có meal plan cho tuần này');
+            }
+        } catch (error) {
+            Toast.error('Lỗi tải meal plan');
+        } finally {
+            Loader.hide();
+        }
+    },
+
+    renderMealPlanModal(planData, weekStartStr) {
+        const weekStart = new Date(weekStartStr);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+        const mealTypes = ['Sáng', 'Trưa', 'Tối', 'Phụ'];
+        
+        let html = `
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">Meal Plan - ${weekStart.toLocaleDateString('vi-VN')} đến ${weekEnd.toLocaleDateString('vi-VN')}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-slate-400"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="space-y-4">
+        `;
+
+        for (let day = 0; day < 7; day++) {
+            const dayMeals = planData[day] || [];
+            if (dayMeals.length === 0) continue;
+
+            html += `
+                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                    <div class="font-bold text-sm mb-2 text-slate-700">${days[day]}</div>
+                    <div class="space-y-2">
+            `;
+
+            mealTypes.forEach(mealType => {
+                const meals = dayMeals.filter(m => m.mealType === mealType);
+                if (meals.length > 0) {
+                    html += `
+                        <div class="bg-white rounded p-2 border border-slate-200">
+                            <div class="text-xs font-bold text-slate-500 mb-1">${mealType}</div>
+                            <div class="space-y-1">
+                    `;
+                    meals.forEach(meal => {
+                        html += `
+                            <div class="text-xs bg-blue-50 p-2 rounded flex justify-between items-center">
+                                <span>${meal.foodName}</span>
+                                <span class="text-green-600 font-bold">${Math.round(meal.calories)} kcal</span>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                }
+            });
+
+            html += `</div></div>`;
+        }
+
+        html += `</div></div></div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        lucide.createIcons();
     }
 };
 

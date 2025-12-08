@@ -166,7 +166,11 @@ async function getAllStudents() {
                 status: s.status,
                 sessionLeft: s.session_left || 0,
                 expiryDate: expiryDate,
-                isExpired: isExpired
+                isExpired: isExpired,
+                targetCalories: parseFloat(s.target_calories) || 2000,
+                targetProtein: parseFloat(s.target_protein) || 0,
+                targetCarb: parseFloat(s.target_carb) || 0,
+                targetFat: parseFloat(s.target_fat) || 0
             };
         });
 
@@ -869,17 +873,31 @@ async function getDailyMacros(userId) {
     try {
         const today = new Date().toISOString().split('T')[0];
         
-        const { data, error } = await getSupabase()
+        // Get meal logs
+        const { data: mealData, error: mealError } = await getSupabase()
             .from('meal_logs')
             .select('*')
             .eq('user_id', userId)
             .eq('date', today);
 
-        if (error) throw error;
+        if (mealError) throw mealError;
+
+        // Get user targets
+        const { data: userData, error: userError } = await getSupabase()
+            .from('users')
+            .select('target_calories, target_protein, target_carb, target_fat')
+            .eq('id', userId)
+            .single();
 
         let totals = { cal: 0, pro: 0, carb: 0, fat: 0, list: [] };
+        let targets = {
+            calories: parseFloat(userData?.target_calories) || 2000,
+            protein: parseFloat(userData?.target_protein) || 0,
+            carb: parseFloat(userData?.target_carb) || 0,
+            fat: parseFloat(userData?.target_fat) || 0
+        };
 
-        data.forEach(meal => {
+        mealData.forEach(meal => {
             totals.cal += parseFloat(meal.calories) || 0;
             totals.pro += parseFloat(meal.protein) || 0;
             totals.carb += parseFloat(meal.carb) || 0;
@@ -890,6 +908,15 @@ async function getDailyMacros(userId) {
                 cal: parseFloat(meal.calories) || 0
             });
         });
+
+        // Add targets and progress
+        totals.targets = targets;
+        totals.progress = {
+            calories: targets.calories > 0 ? Math.min((totals.cal / targets.calories) * 100, 100) : 0,
+            protein: targets.protein > 0 ? Math.min((totals.pro / targets.protein) * 100, 100) : 0,
+            carb: targets.carb > 0 ? Math.min((totals.carb / targets.carb) * 100, 100) : 0,
+            fat: targets.fat > 0 ? Math.min((totals.fat / targets.fat) * 100, 100) : 0
+        };
 
         return { success: true, data: totals };
     } catch (error) {
@@ -973,6 +1000,253 @@ async function getBodyHistory(userId) {
 }
 
 // =======================================================
+// TARGET CALORIES MANAGEMENT
+// =======================================================
+
+async function setUserTargets(userId, targets) {
+    try {
+        const { error } = await getSupabase()
+            .from('users')
+            .update({
+                target_calories: parseFloat(targets.calories) || 2000,
+                target_protein: parseFloat(targets.protein) || 0,
+                target_carb: parseFloat(targets.carb) || 0,
+                target_fat: parseFloat(targets.fat) || 0
+            })
+            .eq('id', userId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+async function getUserTargets(userId) {
+    try {
+        const { data, error } = await getSupabase()
+            .from('users')
+            .select('target_calories, target_protein, target_carb, target_fat')
+            .eq('id', userId)
+            .single();
+
+        if (error) throw error;
+
+        return {
+            success: true,
+            data: {
+                calories: parseFloat(data.target_calories) || 2000,
+                protein: parseFloat(data.target_protein) || 0,
+                carb: parseFloat(data.target_carb) || 0,
+                fat: parseFloat(data.target_fat) || 0
+            }
+        };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+// =======================================================
+// MEAL PLANNING
+// =======================================================
+
+// Helper: Get Monday of a week
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.setDate(diff));
+}
+
+async function createMealPlan(userId, weekStartDate, meals, createdBy = null) {
+    try {
+        // Validate weekStartDate is Monday
+        const weekStart = new Date(weekStartDate);
+        if (weekStart.getDay() !== 1) {
+            return { success: false, message: 'weekStartDate must be a Monday' };
+        }
+
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        
+        // Delete existing plan for this week
+        await getSupabase()
+            .from('meal_plans')
+            .delete()
+            .eq('user_id', userId)
+            .eq('week_start_date', weekStartStr);
+
+        // Insert new meals
+        const mealsToInsert = meals.map(meal => ({
+            user_id: userId,
+            week_start_date: weekStartStr,
+            day_of_week: meal.dayOfWeek, // 0-6 (Monday-Sunday)
+            meal_type: meal.mealType,
+            food_id: meal.foodId || null,
+            food_name: meal.foodName,
+            amount: parseFloat(meal.amount) || 100,
+            calories: parseFloat(meal.calories) || 0,
+            protein: parseFloat(meal.protein) || 0,
+            carb: parseFloat(meal.carb) || 0,
+            fat: parseFloat(meal.fat) || 0,
+            created_by: createdBy || null
+        }));
+
+        const { error } = await getSupabase()
+            .from('meal_plans')
+            .insert(mealsToInsert);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+async function getMealPlan(userId, weekStartDate) {
+    try {
+        const weekStart = new Date(weekStartDate);
+        if (weekStart.getDay() !== 1) {
+            // Auto-correct to Monday
+            const day = weekStart.getDay();
+            const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+            weekStart.setDate(diff);
+        }
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+
+        const { data, error } = await getSupabase()
+            .from('meal_plans')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('week_start_date', weekStartStr)
+            .order('day_of_week', { ascending: true })
+            .order('meal_type', { ascending: true });
+
+        if (error) throw error;
+
+        // Group by day
+        const planByDay = {};
+        data.forEach(meal => {
+            const day = meal.day_of_week;
+            if (!planByDay[day]) {
+                planByDay[day] = [];
+            }
+            planByDay[day].push({
+                id: meal.id,
+                mealType: meal.meal_type,
+                foodId: meal.food_id,
+                foodName: meal.food_name,
+                amount: parseFloat(meal.amount) || 100,
+                calories: parseFloat(meal.calories) || 0,
+                protein: parseFloat(meal.protein) || 0,
+                carb: parseFloat(meal.carb) || 0,
+                fat: parseFloat(meal.fat) || 0
+            });
+        });
+
+        return { success: true, data: planByDay, weekStartDate: weekStartStr };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+async function copyMealPlanDay(userId, fromDate, toDate) {
+    try {
+        // Get source week
+        const fromWeekStart = getWeekStart(fromDate);
+        const fromWeekStr = fromWeekStart.toISOString().split('T')[0];
+        const fromDayOfWeek = new Date(fromDate).getDay() === 0 ? 6 : new Date(fromDate).getDay() - 1;
+
+        // Get target week
+        const toWeekStart = getWeekStart(toDate);
+        const toWeekStr = toWeekStart.toISOString().split('T')[0];
+        const toDayOfWeek = new Date(toDate).getDay() === 0 ? 6 : new Date(toDate).getDay() - 1;
+
+        // Get source meals
+        const { data: sourceMeals, error: fetchError } = await getSupabase()
+            .from('meal_plans')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('week_start_date', fromWeekStr)
+            .eq('day_of_week', fromDayOfWeek);
+
+        if (fetchError) throw fetchError;
+
+        if (!sourceMeals || sourceMeals.length === 0) {
+            return { success: false, message: 'No meals found for source day' };
+        }
+
+        // Delete existing meals for target day
+        await getSupabase()
+            .from('meal_plans')
+            .delete()
+            .eq('user_id', userId)
+            .eq('week_start_date', toWeekStr)
+            .eq('day_of_week', toDayOfWeek);
+
+        // Copy meals
+        const mealsToInsert = sourceMeals.map(meal => ({
+            user_id: userId,
+            week_start_date: toWeekStr,
+            day_of_week: toDayOfWeek,
+            meal_type: meal.meal_type,
+            food_id: meal.food_id,
+            food_name: meal.food_name,
+            amount: meal.amount,
+            calories: meal.calories,
+            protein: meal.protein,
+            carb: meal.carb,
+            fat: meal.fat,
+            created_by: meal.created_by
+        }));
+
+        const { error: insertError } = await getSupabase()
+            .from('meal_plans')
+            .insert(mealsToInsert);
+
+        if (insertError) throw insertError;
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+async function updateMealPlanItem(planId, data) {
+    try {
+        const updateData = {};
+        if (data.foodName !== undefined) updateData.food_name = data.foodName;
+        if (data.amount !== undefined) updateData.amount = parseFloat(data.amount);
+        if (data.calories !== undefined) updateData.calories = parseFloat(data.calories);
+        if (data.protein !== undefined) updateData.protein = parseFloat(data.protein);
+        if (data.carb !== undefined) updateData.carb = parseFloat(data.carb);
+        if (data.fat !== undefined) updateData.fat = parseFloat(data.fat);
+
+        const { error } = await getSupabase()
+            .from('meal_plans')
+            .update(updateData)
+            .eq('id', planId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+async function deleteMealPlanItem(planId) {
+    try {
+        const { error } = await getSupabase()
+            .from('meal_plans')
+            .delete()
+            .eq('id', planId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+// =======================================================
 // EXPORT API FUNCTIONS
 // =======================================================
 
@@ -1027,6 +1301,17 @@ window.supabaseAPI = {
     
     // Body Tracking
     logBodyStats,
-    getBodyHistory
+    getBodyHistory,
+    
+    // Target Calories
+    setUserTargets,
+    getUserTargets,
+    
+    // Meal Planning
+    createMealPlan,
+    getMealPlan,
+    copyMealPlanDay,
+    updateMealPlanItem,
+    deleteMealPlanItem
 };
 

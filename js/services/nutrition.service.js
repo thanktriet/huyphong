@@ -46,6 +46,40 @@ const NutritionService = {
         } catch (error) {
             return Utils.handleError(error, 'NutritionService.getHistory');
         }
+    },
+
+    // Meal Planning
+    async getMealPlan(userId, weekStartDate) {
+        try {
+            return await API.getMealPlan(userId, weekStartDate);
+        } catch (error) {
+            return Utils.handleError(error, 'NutritionService.getMealPlan');
+        }
+    },
+
+    async createMealPlan(userId, weekStartDate, meals, createdBy = null) {
+        try {
+            return await API.createMealPlan(userId, weekStartDate, meals, createdBy);
+        } catch (error) {
+            return Utils.handleError(error, 'NutritionService.createMealPlan');
+        }
+    },
+
+    async copyMealPlanDay(userId, fromDate, toDate) {
+        try {
+            return await API.copyMealPlanDay(userId, fromDate, toDate);
+        } catch (error) {
+            return Utils.handleError(error, 'NutritionService.copyMealPlanDay');
+        }
+    },
+
+    // Target Calories
+    async getTargets(userId) {
+        try {
+            return await API.getUserTargets(userId);
+        } catch (error) {
+            return Utils.handleError(error, 'NutritionService.getTargets');
+        }
     }
 };
 

@@ -99,6 +99,24 @@ async function callAPI(action, data = {}) {
             case 'get_body_history':
                 return await api.getBodyHistory(data.userId);
 
+            // Target Calories
+            case 'set_user_targets':
+                return await api.setUserTargets(data.userId, data.targets);
+            case 'get_user_targets':
+                return await api.getUserTargets(data.userId);
+
+            // Meal Planning
+            case 'create_meal_plan':
+                return await api.createMealPlan(data.userId, data.weekStartDate, data.meals, data.createdBy);
+            case 'get_meal_plan':
+                return await api.getMealPlan(data.userId, data.weekStartDate);
+            case 'copy_meal_plan_day':
+                return await api.copyMealPlanDay(data.userId, data.fromDate, data.toDate);
+            case 'update_meal_plan_item':
+                return await api.updateMealPlanItem(data.planId, data);
+            case 'delete_meal_plan_item':
+                return await api.deleteMealPlanItem(data.planId);
+
             default:
                 return { success: false, message: 'Invalid action: ' + action };
         }

@@ -248,6 +248,36 @@ class APIClient {
     async adminDeletePlan(planId) {
         return this.call('adminDeletePlan', { planId });
     }
+
+    // Target Calories
+    async setUserTargets(userId, targets) {
+        return this.call('setUserTargets', { userId, targets });
+    }
+
+    async getUserTargets(userId) {
+        return this.call('getUserTargets', { userId });
+    }
+
+    // Meal Planning
+    async createMealPlan(userId, weekStartDate, meals, createdBy = null) {
+        return this.call('createMealPlan', { userId, weekStartDate, meals, createdBy });
+    }
+
+    async getMealPlan(userId, weekStartDate) {
+        return this.call('getMealPlan', { userId, weekStartDate });
+    }
+
+    async copyMealPlanDay(userId, fromDate, toDate) {
+        return this.call('copyMealPlanDay', { userId, fromDate, toDate });
+    }
+
+    async updateMealPlanItem(planId, data) {
+        return this.call('updateMealPlanItem', { planId, ...data });
+    }
+
+    async deleteMealPlanItem(planId) {
+        return this.call('deleteMealPlanItem', { planId });
+    }
 }
 
 // Create singleton instance

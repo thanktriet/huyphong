@@ -95,6 +95,36 @@ const AdminService = {
         } catch (error) {
             return Utils.handleError(error, 'AdminService.assignTemplate');
         }
+    },
+
+    // Set user targets
+    async setUserTargets(userId, targets) {
+        try {
+            const result = await API.setUserTargets(userId, targets);
+            if (result.success) {
+                Utils.cache.clear('students');
+            }
+            return result;
+        } catch (error) {
+            return Utils.handleError(error, 'AdminService.setUserTargets');
+        }
+    },
+
+    // Meal Planning
+    async createMealPlan(userId, weekStartDate, meals, createdBy = null) {
+        try {
+            return await API.createMealPlan(userId, weekStartDate, meals, createdBy);
+        } catch (error) {
+            return Utils.handleError(error, 'AdminService.createMealPlan');
+        }
+    },
+
+    async getMealPlan(userId, weekStartDate) {
+        try {
+            return await API.getMealPlan(userId, weekStartDate);
+        } catch (error) {
+            return Utils.handleError(error, 'AdminService.getMealPlan');
+        }
     }
 };
 

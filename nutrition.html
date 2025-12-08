@@ -53,28 +53,41 @@
                     <p class="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1">Calories Hôm Nay</p>
                     <div class="flex items-baseline gap-1">
                         <span class="text-4xl font-black text-slate-800 tracking-tight" id="val-cal">0</span>
-                        <span class="text-sm text-slate-400 font-semibold">/ 2000</span>
+                        <span class="text-sm text-slate-400 font-semibold">/ <span id="target-cal">2000</span></span>
                     </div>
                 </div>
                 <div class="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i data-lucide="flame" class="w-7 h-7 fill-current"></i></div>
             </div>
             
-            <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-6 border border-slate-100">
+            <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 border border-slate-100 relative">
                 <div id="bar-cal" class="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                <div id="progress-cal" class="absolute top-0 right-2 text-xs font-bold text-slate-600 h-full flex items-center">0%</div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-3 gap-3 mb-4">
                 <div class="macro-card bg-red-50/80 p-3 rounded-2xl border border-red-100 text-center">
                     <p class="text-[10px] text-red-400 font-bold uppercase tracking-wider mb-1">Protein</p>
                     <p class="text-xl font-black text-red-600"><span id="val-pro">0</span><span class="text-xs font-medium ml-0.5">g</span></p>
+                    <p class="text-[9px] text-red-300 mt-1">/ <span id="target-pro">0</span>g</p>
+                    <div class="w-full bg-red-100 h-1.5 rounded-full overflow-hidden mt-1">
+                        <div id="bar-pro" class="h-full bg-red-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
                 </div>
                 <div class="macro-card bg-orange-50/80 p-3 rounded-2xl border border-orange-100 text-center">
                     <p class="text-[10px] text-orange-400 font-bold uppercase tracking-wider mb-1">Carbs</p>
                     <p class="text-xl font-black text-orange-600"><span id="val-carb">0</span><span class="text-xs font-medium ml-0.5">g</span></p>
+                    <p class="text-[9px] text-orange-300 mt-1">/ <span id="target-carb">0</span>g</p>
+                    <div class="w-full bg-orange-100 h-1.5 rounded-full overflow-hidden mt-1">
+                        <div id="bar-carb" class="h-full bg-orange-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
                 </div>
                 <div class="macro-card bg-yellow-50/80 p-3 rounded-2xl border border-yellow-100 text-center">
                     <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1">Fat</p>
                     <p class="text-xl font-black text-yellow-600"><span id="val-fat">0</span><span class="text-xs font-medium ml-0.5">g</span></p>
+                    <p class="text-[9px] text-yellow-400 mt-1">/ <span id="target-fat">0</span>g</p>
+                    <div class="w-full bg-yellow-100 h-1.5 rounded-full overflow-hidden mt-1">
+                        <div id="bar-fat" class="h-full bg-yellow-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -82,9 +95,12 @@
         <div class="space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="font-bold text-slate-800 text-base">Thêm Bữa Ăn</h2>
-                <div class="flex bg-slate-100 p-1 rounded-xl">
-                    <button onclick="NutritionPage.switchInputMode('search')" id="tab-search" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all">Tìm Món</button>
-                    <button onclick="NutritionPage.switchInputMode('manual')" id="tab-manual" class="px-3 py-1.5 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-600 transition-all">Nhập Nhanh</button>
+                <div class="flex gap-2">
+                    <button onclick="NutritionPage.showMealPlan()" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-all">📋 Meal Plan</button>
+                    <div class="flex bg-slate-100 p-1 rounded-xl">
+                        <button onclick="NutritionPage.switchInputMode('search')" id="tab-search" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-white shadow-sm text-slate-800 transition-all">Tìm Món</button>
+                        <button onclick="NutritionPage.switchInputMode('manual')" id="tab-manual" class="px-3 py-1.5 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-600 transition-all">Nhập Nhanh</button>
+                    </div>
                 </div>
             </div>
 

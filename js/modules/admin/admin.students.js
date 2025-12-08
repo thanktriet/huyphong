@@ -47,6 +47,10 @@ const AdminStudents = {
                         <button onclick="AdminStudents.openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button>
                     </div>
                     <div class="flex gap-1 justify-end">
+                        <button onclick="AdminStudents.openSetTargets('${st.id}','${st.name}')" class="bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100" title="Mục tiêu Calories">🎯</button>
+                        <button onclick="AdminStudents.openMealPlan('${st.id}','${st.name}')" class="bg-orange-50 text-orange-600 px-2 py-1 rounded border text-xs font-bold hover:bg-orange-100" title="Meal Plan">🍽️</button>
+                    </div>
+                    <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.openEdit('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
                             <i data-lucide="edit-2" class="w-3 h-3"></i>
                         </button>
@@ -235,6 +239,53 @@ const AdminStudents = {
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         if (assignStudents) assignStudents.innerHTML = 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    },
+
+    openSetTargets(id, name) {
+        const student = this.students.find(s => s.id === id);
+        if (!student) return;
+
+        document.getElementById('target-st-id').value = id;
+        document.getElementById('target-st-name').textContent = name;
+        document.getElementById('target-calories').value = student.targetCalories || 2000;
+        document.getElementById('target-protein').value = student.targetProtein || 0;
+        document.getElementById('target-carb').value = student.targetCarb || 0;
+        document.getElementById('target-fat').value = student.targetFat || 0;
+        AdminCalendar.toggleModal('modal-set-targets');
+    },
+
+    async submitSetTargets() {
+        const id = document.getElementById('target-st-id').value;
+        const targets = {
+            calories: parseFloat(document.getElementById('target-calories').value) || 2000,
+            protein: parseFloat(document.getElementById('target-protein').value) || 0,
+            carb: parseFloat(document.getElementById('target-carb').value) || 0,
+            fat: parseFloat(document.getElementById('target-fat').value) || 0
+        };
+
+        try {
+            Loader.show();
+            const result = await AdminService.setUserTargets(id, targets);
+            
+            if (result.success) {
+                Toast.success("Đã cập nhật mục tiêu");
+                AdminCalendar.toggleModal('modal-set-targets');
+                await this.init();
+            } else {
+                Toast.error(result.message || 'Lỗi cập nhật');
+            }
+        } catch (error) {
+            Toast.error('Lỗi: ' + error.message);
+        } finally {
+            Loader.hide();
+        }
+    },
+
+    openMealPlan(id, name) {
+        document.getElementById('meal-plan-st-id').value = id;
+        document.getElementById('meal-plan-st-name').textContent = name;
+        AdminCalendar.toggleModal('modal-meal-plan');
+        AdminMealPlan.init(id);
     }
 };
 
