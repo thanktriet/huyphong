@@ -158,6 +158,13 @@ async function getAllStudents() {
                 isExpired = expiry < today;
             }
 
+            // Safe parse for target values (handle null/undefined)
+            const parseTarget = (val, defaultValue = 0) => {
+                if (val === null || val === undefined || val === '') return defaultValue;
+                const parsed = parseFloat(val);
+                return isNaN(parsed) ? defaultValue : parsed;
+            };
+
             return {
                 id: s.id,
                 name: s.name,
@@ -167,10 +174,10 @@ async function getAllStudents() {
                 sessionLeft: s.session_left || 0,
                 expiryDate: expiryDate,
                 isExpired: isExpired,
-                targetCalories: parseFloat(s.target_calories) || 2000,
-                targetProtein: parseFloat(s.target_protein) || 0,
-                targetCarb: parseFloat(s.target_carb) || 0,
-                targetFat: parseFloat(s.target_fat) || 0
+                targetCalories: parseTarget(s.target_calories, 2000),
+                targetProtein: parseTarget(s.target_protein, 0),
+                targetCarb: parseTarget(s.target_carb, 0),
+                targetFat: parseTarget(s.target_fat, 0)
             };
         });
 

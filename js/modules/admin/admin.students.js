@@ -245,15 +245,35 @@ const AdminStudents = {
 
     openSetTargets(id, name) {
         const student = this.students.find(s => s.id === id);
-        if (!student) return;
+        if (!student) {
+            Toast.error('Không tìm thấy học viên');
+            return;
+        }
 
-        document.getElementById('target-st-id').value = id;
-        document.getElementById('target-st-name').textContent = name;
-        document.getElementById('target-calories').value = student.targetCalories || 2000;
-        document.getElementById('target-protein').value = student.targetProtein || 0;
-        document.getElementById('target-carb').value = student.targetCarb || 0;
-        document.getElementById('target-fat').value = student.targetFat || 0;
-        AdminCalendar.toggleModal('modal-set-targets');
+        try {
+            document.getElementById('target-st-id').value = id;
+            document.getElementById('target-st-name').textContent = name;
+            
+            // Safe access with fallback values
+            const targetCal = (student.targetCalories !== undefined && student.targetCalories !== null) 
+                ? parseFloat(student.targetCalories) : 2000;
+            const targetPro = (student.targetProtein !== undefined && student.targetProtein !== null) 
+                ? parseFloat(student.targetProtein) : 0;
+            const targetCarb = (student.targetCarb !== undefined && student.targetCarb !== null) 
+                ? parseFloat(student.targetCarb) : 0;
+            const targetFat = (student.targetFat !== undefined && student.targetFat !== null) 
+                ? parseFloat(student.targetFat) : 0;
+            
+            document.getElementById('target-calories').value = isNaN(targetCal) ? 2000 : targetCal;
+            document.getElementById('target-protein').value = isNaN(targetPro) ? 0 : targetPro;
+            document.getElementById('target-carb').value = isNaN(targetCarb) ? 0 : targetCarb;
+            document.getElementById('target-fat').value = isNaN(targetFat) ? 0 : targetFat;
+            
+            AdminCalendar.toggleModal('modal-set-targets');
+        } catch (error) {
+            console.error('Error opening set targets:', error);
+            Toast.error('Lỗi mở form đặt mục tiêu');
+        }
     },
 
     async submitSetTargets() {
