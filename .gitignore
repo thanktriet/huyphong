@@ -5,6 +5,13 @@
 # Only ignore the old config.js in root, not js/core/config.js
 /config.js
 
+# Service Role Key files (contains secret keys - DO NOT COMMIT)
+fix-supabase-rls.js
+supabase/migrate-data.js
+*.env
+.env.local
+.env
+
 # OS files
 .DS_Store
 .DS_Store?
