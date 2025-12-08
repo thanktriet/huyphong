@@ -128,12 +128,36 @@ class APIClient {
         let lastError;
         for (let i = 0; i <= retry; i++) {
             try {
-                const result = await Promise.race([
-                    this.api[action](data),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Request timeout')), timeout)
-                    )
-                ]);
+                // Call the API function - handle both direct function calls and data object
+                let apiFunction = this.api[action];
+                if (!apiFunction) {
+                    throw new Error(`API function '${action}' not found`);
+                }
+                
+                // If function expects separate parameters, extract them from data
+                let result;
+                if (action === 'login' && typeof apiFunction === 'function') {
+                    // Login expects (email, password) as separate params
+                    const email = data.email || (typeof data === 'string' ? data : null);
+                    const password = data.password || (data && typeof data === 'object' ? data.password : null);
+                    if (!email || !password) {
+                        throw new Error('Login requires email and password');
+                    }
+                    result = await Promise.race([
+                        apiFunction(email, password),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Request timeout')), timeout)
+                        )
+                    ]);
+                } else {
+                    // Other functions expect data object
+                    result = await Promise.race([
+                        apiFunction(data),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Request timeout')), timeout)
+                        )
+                    ]);
+                }
 
                 // Cache result
                 if (useCache && cacheKey && result.success) {
