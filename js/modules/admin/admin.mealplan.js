@@ -30,7 +30,15 @@ const AdminMealPlan = {
             await this.loadStudentData();
             await this.loadFoods();
             await this.loadMealPlan();
-            this.renderTargets();
+            
+            // Only render targets if student data is loaded
+            if (this.studentData) {
+                this.renderTargets();
+            } else {
+                console.warn('Student data not loaded, hiding targets section');
+                this.hideTargets();
+            }
+            
             this.render();
         } catch (error) {
             console.error('Error initializing meal plan:', error);
@@ -82,10 +90,16 @@ const AdminMealPlan = {
     },
 
     renderTargets() {
-        if (!this.studentData) return;
+        if (!this.studentData) {
+            console.warn('No student data to render targets');
+            return;
+        }
 
         const targetsSection = document.getElementById('mealplan-targets-section');
-        if (!targetsSection) return;
+        if (!targetsSection) {
+            console.warn('mealplan-targets-section element not found');
+            return;
+        }
 
         targetsSection.classList.remove('hidden');
 
@@ -96,10 +110,21 @@ const AdminMealPlan = {
             return isNaN(parsed) ? defaultValue : parsed;
         };
 
-        document.getElementById('mealplan-target-calories').value = parseTarget(this.studentData.targetCalories, 2000);
-        document.getElementById('mealplan-target-protein').value = parseTarget(this.studentData.targetProtein, 0);
-        document.getElementById('mealplan-target-carb').value = parseTarget(this.studentData.targetCarb, 0);
-        document.getElementById('mealplan-target-fat').value = parseTarget(this.studentData.targetFat, 0);
+        // Safe access with fallback
+        const targetCal = this.studentData?.targetCalories !== undefined ? this.studentData.targetCalories : 2000;
+        const targetPro = this.studentData?.targetProtein !== undefined ? this.studentData.targetProtein : 0;
+        const targetCarb = this.studentData?.targetCarb !== undefined ? this.studentData.targetCarb : 0;
+        const targetFat = this.studentData?.targetFat !== undefined ? this.studentData.targetFat : 0;
+
+        const calInput = document.getElementById('mealplan-target-calories');
+        const proInput = document.getElementById('mealplan-target-protein');
+        const carbInput = document.getElementById('mealplan-target-carb');
+        const fatInput = document.getElementById('mealplan-target-fat');
+
+        if (calInput) calInput.value = parseTarget(targetCal, 2000);
+        if (proInput) proInput.value = parseTarget(targetPro, 0);
+        if (carbInput) carbInput.value = parseTarget(targetCarb, 0);
+        if (fatInput) fatInput.value = parseTarget(targetFat, 0);
     },
 
     async saveTargets() {
@@ -108,11 +133,22 @@ const AdminMealPlan = {
             return;
         }
 
+        // Safe get input values
+        const calInput = document.getElementById('mealplan-target-calories');
+        const proInput = document.getElementById('mealplan-target-protein');
+        const carbInput = document.getElementById('mealplan-target-carb');
+        const fatInput = document.getElementById('mealplan-target-fat');
+
+        if (!calInput || !proInput || !carbInput || !fatInput) {
+            Toast.error('Không tìm thấy các trường nhập liệu');
+            return;
+        }
+
         const targets = {
-            calories: parseFloat(document.getElementById('mealplan-target-calories').value) || 2000,
-            protein: parseFloat(document.getElementById('mealplan-target-protein').value) || 0,
-            carb: parseFloat(document.getElementById('mealplan-target-carb').value) || 0,
-            fat: parseFloat(document.getElementById('mealplan-target-fat').value) || 0
+            calories: parseFloat(calInput.value) || 2000,
+            protein: parseFloat(proInput.value) || 0,
+            carb: parseFloat(carbInput.value) || 0,
+            fat: parseFloat(fatInput.value) || 0
         };
 
         try {
@@ -128,7 +164,8 @@ const AdminMealPlan = {
                 Toast.error(result.message || 'Lỗi cập nhật');
             }
         } catch (error) {
-            Toast.error('Lỗi: ' + error.message);
+            console.error('Error saving targets:', error);
+            Toast.error('Lỗi: ' + (error.message || 'Không thể lưu mục tiêu'));
         } finally {
             Loader.hide();
         }
