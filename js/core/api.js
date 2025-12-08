@@ -187,11 +187,20 @@ class APIClient {
 
     async getStudentPlan(userId, useCache = true) {
         await this.init();
-        // Call directly to avoid wrapper issues
+        // Call directly to avoid wrapper issues with parameter passing
         if (!this.api || !this.api.getStudentPlan) {
             throw new Error('Supabase API not initialized');
         }
-        return await this.api.getStudentPlan(userId);
+        // getStudentPlan expects userId directly, not as object
+        const result = await this.api.getStudentPlan(userId);
+        
+        // Apply cache if needed
+        if (useCache && result.success) {
+            const cacheKey = `plan_${userId}`;
+            Utils.cache.set(cacheKey, result);
+        }
+        
+        return result;
     }
 
     async getDailyMacros(userId) {
