@@ -27,12 +27,19 @@ class APIClient {
                 
                 // Initialize Supabase client
                 if (!window.supabaseClient) {
+                    // Get CONFIG (with fallback)
+                    const config = typeof CONFIG !== 'undefined' ? CONFIG : (window.CONFIG || {});
+                    
+                    if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                        throw new Error('CONFIG not properly initialized. SUPABASE_URL or SUPABASE_ANON_KEY is missing. Make sure js/core/config.js is loaded before js/core/api.js');
+                    }
+                    
                     if (window.initSupabaseClient) {
                         window.initSupabaseClient();
                     } else {
                         window.supabaseClient = window.supabase.createClient(
-                            CONFIG.SUPABASE_URL,
-                            CONFIG.SUPABASE_ANON_KEY,
+                            config.SUPABASE_URL,
+                            config.SUPABASE_ANON_KEY,
                             {
                                 auth: {
                                     persistSession: false,
