@@ -2,7 +2,7 @@
   "name": "PT Manager - Personal Trainer Management",
   "short_name": "PT Manager",
   "description": "Ứng dụng quản lý PT chuyên nghiệp với theo dõi tập luyện, dinh dưỡng và thể trạng",
-  "start_url": "/huyphong/",
+  "start_url": "/huyphong/index.html",
   "scope": "/huyphong/",
   "display": "standalone",
   "orientation": "portrait",

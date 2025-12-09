@@ -21,8 +21,14 @@ const PWARegister = {
 
     async register() {
         try {
-            const registration = await navigator.serviceWorker.register('/huyphong/sw.js', {
-                scope: '/huyphong/'
+            // Use relative path for better compatibility
+            const swPath = '/huyphong/sw.js';
+            const scope = '/huyphong/';
+            
+            console.log('[PWA Register] Registering service worker:', swPath);
+            
+            const registration = await navigator.serviceWorker.register(swPath, {
+                scope: scope
             });
 
             this.registration = registration;

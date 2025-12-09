@@ -7,10 +7,28 @@ const PWAInstall = {
     isInstalled: false,
 
     init() {
+        console.log('[PWA Install] Initializing...');
+        
         // Check if already installed
-        this.checkInstalled();
+        if (this.checkInstalled()) {
+            console.log('[PWA Install] Already installed');
+            return;
+        }
 
-        // Listen for beforeinstallprompt event
+        // Check if on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        console.log('[PWA Install] Device:', { isMobile, isIOS });
+
+        // For iOS, always show install button (manual install)
+        if (isIOS) {
+            console.log('[PWA Install] iOS detected - showing manual install button');
+            setTimeout(() => this.showInstallButton(), 1000); // Delay to ensure page is loaded
+            return;
+        }
+
+        // Listen for beforeinstallprompt event (Android Chrome/Edge)
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('[PWA] Install prompt available');
             e.preventDefault();
@@ -30,6 +48,16 @@ const PWAInstall = {
             }
         });
 
+        // For Android, also check after a delay (in case event fires late)
+        if (isMobile && !isIOS) {
+            setTimeout(() => {
+                if (!this.deferredPrompt && !this.isInstalled) {
+                    console.log('[PWA Install] No prompt after delay - showing manual install button');
+                    this.showInstallButton();
+                }
+            }, 2000);
+        }
+
         // Check installation status on load
         this.checkInstalled();
     },
@@ -47,28 +75,48 @@ const PWAInstall = {
     },
 
     showInstallButton() {
+        // Don't show if already installed
+        if (this.isInstalled) {
+            console.log('[PWA Install] Already installed, not showing button');
+            return;
+        }
+
         // Create or show install button
         let installBtn = document.getElementById('pwa-install-btn');
         
         if (!installBtn) {
             installBtn = document.createElement('button');
             installBtn.id = 'pwa-install-btn';
-            installBtn.className = 'fixed bottom-20 right-4 bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg z-50 flex items-center gap-2 hover:bg-blue-700 transition-colors';
+            // Mobile-friendly styling
+            installBtn.className = 'fixed bottom-20 right-4 bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg z-[100] flex items-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-bold';
+            installBtn.style.cssText = 'position: fixed; bottom: 5rem; right: 1rem; z-index: 100; min-width: 140px; min-height: 44px;';
             installBtn.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> <span>Cài đặt App</span>';
-            installBtn.onclick = () => this.promptInstall();
+            installBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.promptInstall();
+            };
             document.body.appendChild(installBtn);
+            
+            // Recreate icons after adding button
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                setTimeout(() => lucide.createIcons(), 100);
             }
+            
+            console.log('[PWA Install] Button created and shown');
         }
         
         installBtn.style.display = 'flex';
+        installBtn.style.visibility = 'visible';
+        installBtn.style.opacity = '1';
     },
 
     hideInstallButton() {
         const installBtn = document.getElementById('pwa-install-btn');
         if (installBtn) {
             installBtn.style.display = 'none';
+            installBtn.style.visibility = 'hidden';
+            console.log('[PWA Install] Button hidden');
         }
     },
 
