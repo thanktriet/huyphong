@@ -86,17 +86,33 @@ const AdminDashboard = {
             return;
         }
 
+        // Show loading immediately
         container.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải dữ liệu...</p></div>';
         lucide.createIcons();
 
-        // Add timeout fallback - always show result after 15 seconds
+        // Add timeout fallback - always show result after 10 seconds
+        let timeoutTriggered = false;
         const timeoutId = setTimeout(() => {
+            timeoutTriggered = true;
             console.warn('Dashboard loading timeout - showing fallback');
-            if (container.innerHTML.includes('animate-spin')) {
-                container.innerHTML = '<div class="text-center text-orange-400 py-10"><p>⏱️ Tải dữ liệu mất quá nhiều thời gian</p><p class="text-xs mt-2 text-slate-400">Vui lòng thử chọn học viên cụ thể hoặc làm mới trang</p></div>';
+            if (container && container.innerHTML.includes('animate-spin')) {
+                container.innerHTML = `
+                    <div class="text-center py-10">
+                        <div class="text-orange-400 mb-4">
+                            <i data-lucide="clock" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="font-bold">Tải dữ liệu mất quá nhiều thời gian</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600 space-y-2">
+                            <p>💡 <strong>Gợi ý:</strong></p>
+                            <p>• Chọn học viên cụ thể ở trên để xem chi tiết</p>
+                            <p>• Hoặc làm mới trang (F5)</p>
+                            <p>• Kiểm tra kết nối internet</p>
+                        </div>
+                    </div>
+                `;
                 lucide.createIcons();
             }
-        }, 15000);
+        }, 10000); // Reduced to 10 seconds
 
         try {
             console.log('Loading dashboard data, selectedStudentId:', this.selectedStudentId);
@@ -107,20 +123,51 @@ const AdminDashboard = {
                 console.log('Loading student stats for:', this.selectedStudentId);
                 await this.loadStudentStats(this.selectedStudentId);
             } else {
-                // Load overview for all students
+                // Load overview for all students - simplified version
                 console.log('Loading overview, students count:', this.students?.length || 0);
+                
+                // If no students, show immediately
+                if (!this.students || this.students.length === 0) {
+                    clearTimeout(timeoutId);
+                    container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có học viên nào</p><p class="text-xs mt-2">Vui lòng thêm học viên trong tab "Học Viên"</p></div>';
+                    lucide.createIcons();
+                    return;
+                }
+                
                 await this.loadOverview();
             }
             
-            clearTimeout(timeoutId);
+            if (!timeoutTriggered) {
+                clearTimeout(timeoutId);
+            }
             console.log('Dashboard data loaded successfully');
         } catch (error) {
-            clearTimeout(timeoutId);
+            if (!timeoutTriggered) {
+                clearTimeout(timeoutId);
+            }
             console.error('Error loading dashboard data:', error);
             console.error('Error stack:', error.stack);
-            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p><p class="text-xs mt-2">Vui lòng thử lại hoặc chọn học viên cụ thể</p></div>';
+            
+            // Always show error message
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-10">
+                        <div class="text-red-400 mb-4">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="font-bold">Lỗi tải dữ liệu</p>
+                            <p class="text-sm mt-2">${error.message || 'Unknown error'}</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600">
+                            <p>Vui lòng thử:</p>
+                            <p>• Chọn học viên cụ thể</p>
+                            <p>• Làm mới trang</p>
+                            <p>• Kiểm tra console (F12) để xem chi tiết lỗi</p>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
             Toast.error('Lỗi: ' + (error.message || 'Không thể tải dữ liệu'));
-            lucide.createIcons();
         }
     },
 
@@ -303,21 +350,30 @@ const AdminDashboard = {
 
             console.log('Waiting for all promises to settle...');
             
-            // Add overall timeout for all promises
+            // Add overall timeout for all promises - reduced to 8 seconds
             const overallTimeout = new Promise((resolve) => {
                 setTimeout(() => {
                     console.warn('Overall timeout reached, processing partial results');
                     resolve('timeout');
-                }, 12000); // 12 seconds total
+                }, 8000); // 8 seconds total
             });
             
+            console.log('Starting Promise.allSettled with timeout...');
             const resultsPromise = Promise.allSettled(promises);
             const raceResult = await Promise.race([resultsPromise, overallTimeout]);
             
             let results;
             if (raceResult === 'timeout') {
                 console.warn('Timeout - getting partial results');
-                results = await Promise.allSettled(promises.map(p => Promise.race([p, Promise.resolve({ status: 'rejected', reason: 'Timeout' })])));
+                // Cancel remaining promises and get what we have
+                results = await Promise.allSettled(
+                    promises.map(p => 
+                        Promise.race([
+                            p, 
+                            new Promise(resolve => setTimeout(() => resolve({ status: 'rejected', reason: 'Timeout' }), 100))
+                        ])
+                    )
+                );
             } else {
                 results = raceResult;
             }
