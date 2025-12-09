@@ -22,18 +22,43 @@ const AdminDashboard = {
 
     async init() {
         console.log('AdminDashboard.init() called');
+        const container = document.getElementById('dashboard-content');
+        
+        // Show loading immediately
+        if (container) {
+            container.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang khởi tạo...</p></div>';
+            lucide.createIcons();
+        }
+        
         try {
+            // Load students first
             await this.loadStudents();
             console.log('Students loaded:', this.students?.length || 0);
+            
+            // Setup event listeners
             this.setupEventListeners();
+            
+            // Load dashboard data
             await this.loadDashboardData();
         } catch (error) {
             console.error('Error in AdminDashboard.init():', error);
-            const container = document.getElementById('dashboard-content');
+            console.error('Error stack:', error.stack);
             if (container) {
-                container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi khởi tạo dashboard: ' + (error.message || 'Unknown error') + '</p></div>';
+                container.innerHTML = `
+                    <div class="text-center py-10">
+                        <div class="text-red-400 mb-4">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="font-bold">Lỗi khởi tạo dashboard</p>
+                            <p class="text-sm mt-2">${error.message || 'Unknown error'}</p>
+                        </div>
+                        <button onclick="if(typeof AdminDashboard !== 'undefined') AdminDashboard.init()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            Thử lại
+                        </button>
+                    </div>
+                `;
                 lucide.createIcons();
             }
+            Toast.error('Lỗi khởi tạo dashboard: ' + (error.message || 'Unknown error'));
         }
     },
 
@@ -350,12 +375,12 @@ const AdminDashboard = {
 
             console.log('Waiting for all promises to settle...');
             
-            // Add overall timeout for all promises - reduced to 8 seconds
+            // Add overall timeout for all promises - reduced to 6 seconds
             const overallTimeout = new Promise((resolve) => {
                 setTimeout(() => {
                     console.warn('Overall timeout reached, processing partial results');
                     resolve('timeout');
-                }, 8000); // 8 seconds total
+                }, 6000); // 6 seconds total
             });
             
             console.log('Starting Promise.allSettled with timeout...');
