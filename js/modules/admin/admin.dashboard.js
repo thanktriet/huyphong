@@ -21,20 +21,38 @@ const AdminDashboard = {
     },
 
     async init() {
-        await this.loadStudents();
-        this.setupEventListeners();
-        await this.loadDashboardData();
+        console.log('AdminDashboard.init() called');
+        try {
+            await this.loadStudents();
+            console.log('Students loaded:', this.students?.length || 0);
+            this.setupEventListeners();
+            await this.loadDashboardData();
+        } catch (error) {
+            console.error('Error in AdminDashboard.init():', error);
+            const container = document.getElementById('dashboard-content');
+            if (container) {
+                container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi khởi tạo dashboard: ' + (error.message || 'Unknown error') + '</p></div>';
+                lucide.createIcons();
+            }
+        }
     },
 
     async loadStudents() {
         try {
+            console.log('Loading students...');
             const result = await AdminService.getStudents(true);
+            console.log('Students result:', result);
             if (result.success && result.data) {
                 this.students = result.data;
+                console.log('Students loaded:', this.students.length);
                 this.renderStudentSelect();
+            } else {
+                console.warn('Failed to load students:', result.message);
+                this.students = [];
             }
         } catch (error) {
             console.error('Error loading students:', error);
+            this.students = [];
         }
     },
 
@@ -71,8 +89,18 @@ const AdminDashboard = {
         container.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải dữ liệu...</p></div>';
         lucide.createIcons();
 
+        // Add timeout fallback - always show result after 15 seconds
+        const timeoutId = setTimeout(() => {
+            console.warn('Dashboard loading timeout - showing fallback');
+            if (container.innerHTML.includes('animate-spin')) {
+                container.innerHTML = '<div class="text-center text-orange-400 py-10"><p>⏱️ Tải dữ liệu mất quá nhiều thời gian</p><p class="text-xs mt-2 text-slate-400">Vui lòng thử chọn học viên cụ thể hoặc làm mới trang</p></div>';
+                lucide.createIcons();
+            }
+        }, 15000);
+
         try {
             console.log('Loading dashboard data, selectedStudentId:', this.selectedStudentId);
+            console.log('Students available:', this.students?.length || 0);
             
             if (this.selectedStudentId) {
                 // Load data for specific student
@@ -84,9 +112,12 @@ const AdminDashboard = {
                 await this.loadOverview();
             }
             
+            clearTimeout(timeoutId);
             console.log('Dashboard data loaded successfully');
         } catch (error) {
+            clearTimeout(timeoutId);
             console.error('Error loading dashboard data:', error);
+            console.error('Error stack:', error.stack);
             container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p><p class="text-xs mt-2">Vui lòng thử lại hoặc chọn học viên cụ thể</p></div>';
             Toast.error('Lỗi: ' + (error.message || 'Không thể tải dữ liệu'));
             lucide.createIcons();
@@ -170,7 +201,8 @@ const AdminDashboard = {
             };
 
             if (!this.students || this.students.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có học viên nào</p></div>';
+                console.warn('No students available');
+                container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có học viên nào</p><p class="text-xs mt-2">Vui lòng thêm học viên trong tab "Học Viên"</p></div>';
                 lucide.createIcons();
                 return;
             }
@@ -270,8 +302,27 @@ const AdminDashboard = {
             });
 
             console.log('Waiting for all promises to settle...');
-            const results = await Promise.allSettled(promises);
-            console.log('All promises settled, processing results...');
+            
+            // Add overall timeout for all promises
+            const overallTimeout = new Promise((resolve) => {
+                setTimeout(() => {
+                    console.warn('Overall timeout reached, processing partial results');
+                    resolve('timeout');
+                }, 12000); // 12 seconds total
+            });
+            
+            const resultsPromise = Promise.allSettled(promises);
+            const raceResult = await Promise.race([resultsPromise, overallTimeout]);
+            
+            let results;
+            if (raceResult === 'timeout') {
+                console.warn('Timeout - getting partial results');
+                results = await Promise.allSettled(promises.map(p => Promise.race([p, Promise.resolve({ status: 'rejected', reason: 'Timeout' })])));
+            } else {
+                results = raceResult;
+            }
+            
+            console.log('All promises settled, processing results...', results.length);
 
             // Process results
             results.forEach((result, index) => {
