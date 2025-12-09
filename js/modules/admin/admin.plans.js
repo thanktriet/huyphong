@@ -124,13 +124,48 @@ const AdminPlans = {
     },
 
     fillDropdowns() {
-        if (!this.students) return;
+        console.log('AdminPlans.fillDropdowns() called, students:', this.students?.length || 0);
+        
+        if (!this.students || this.students.length === 0) {
+            console.warn('No students available in AdminPlans.fillDropdowns()');
+            // Still try to fill with empty state
+            const planStudent = document.getElementById('plan-student');
+            if (planStudent) planStudent.innerHTML = '<option value="">-- Chọn Học Viên --</option>';
+            
+            const assignStudents = document.getElementById('assign-students');
+            if (assignStudents) assignStudents.innerHTML = '<option value="">Chưa có học viên</option>';
+            return;
+        }
         
         const optsNormal = '<option value="">-- Chọn Học Viên --</option><option value="TEMPLATE" class="font-bold text-blue-600">★ LƯU LÀM MẪU</option>' + 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         
         const planStudent = document.getElementById('plan-student');
-        if (planStudent) planStudent.innerHTML = optsNormal;
+        if (planStudent) {
+            planStudent.innerHTML = optsNormal;
+            console.log('Filled plan-student dropdown');
+        }
+        
+        // Fill assign-students dropdown for "Giao Nhanh" section
+        const assignStudents = document.getElementById('assign-students');
+        if (assignStudents) {
+            assignStudents.innerHTML = this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            console.log('Filled assign-students dropdown with', this.students.length, 'students');
+        } else {
+            console.error('assign-students element not found!');
+        }
+        
+        // Fill assign-template dropdown
+        const templateSelect = document.getElementById('assign-template');
+        if (templateSelect) {
+            if (!this.templates || this.templates.length === 0) {
+                templateSelect.innerHTML = '<option value="">Chưa có mẫu</option>';
+            } else {
+                templateSelect.innerHTML = '<option value="">-- Chọn Mẫu --</option>' + 
+                    this.templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                console.log('Filled assign-template dropdown with', this.templates.length, 'templates');
+            }
+        }
     },
 
     async edit(planId) {
