@@ -224,26 +224,44 @@ const AdminDashboard = {
                 try {
                     console.log(`Loading stats for student ${index + 1}/${activeStudents.length}: ${student.name}`);
                     
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Timeout')), 10000)
-                    );
+                    // Create timeout wrapper
+                    const withTimeout = (promise, timeoutMs = 8000) => {
+                        return Promise.race([
+                            promise,
+                            new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+                            )
+                        ]);
+                    };
                     
-                    const [workoutResult, nutritionResult, bodyResult] = await Promise.race([
-                        Promise.all([
+                    const [workoutResult, nutritionResult, bodyResult] = await Promise.all([
+                        withTimeout(
                             API.getWorkoutHistory(student.id, true).catch(() => ({ success: false, data: null })),
+                            8000
+                        ).catch(() => {
+                            console.warn(`Timeout loading workout for student ${student.id}`);
+                            return { success: false, data: null };
+                        }),
+                        withTimeout(
                             API.getNutritionHistory(student.id, true).catch(() => ({ success: false, data: null })),
-                            API.getBodyHistory(student.id, true).catch(() => ({ success: false, data: null }))
-                        ]),
-                        timeoutPromise
-                    ]).catch(() => {
-                        console.warn(`Timeout loading stats for student ${student.id}`);
-                        return [{ success: false, data: null }, { success: false, data: null }, { success: false, data: null }];
-                    });
+                            8000
+                        ).catch(() => {
+                            console.warn(`Timeout loading nutrition for student ${student.id}`);
+                            return { success: false, data: null };
+                        }),
+                        withTimeout(
+                            API.getBodyHistory(student.id, true).catch(() => ({ success: false, data: null })),
+                            8000
+                        ).catch(() => {
+                            console.warn(`Timeout loading body stats for student ${student.id}`);
+                            return { success: false, data: null };
+                        })
+                    ]);
 
                     return {
-                        workout: workoutResult[0] || { success: false },
-                        nutrition: nutritionResult[1] || { success: false },
-                        body: bodyResult[2] || { success: false }
+                        workout: workoutResult || { success: false },
+                        nutrition: nutritionResult || { success: false },
+                        body: bodyResult || { success: false }
                     };
                 } catch (err) {
                     console.warn(`Error loading stats for student ${student.id}:`, err);
