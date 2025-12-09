@@ -193,7 +193,12 @@
                         AdminPlans.addRow(); // Init plan builder
                     }
                 } else {
-                    console.error('AdminPage is not defined');
+                    console.warn('AdminPage is not defined yet, will retry...');
+                    setTimeout(() => {
+                        if (typeof AdminPage !== 'undefined') {
+                            AdminPage.init();
+                        }
+                    }, 500);
                 }
             } catch (error) {
                 console.error('Init error:', error);
