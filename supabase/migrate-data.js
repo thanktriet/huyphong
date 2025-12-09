@@ -11,7 +11,11 @@
 // 5. Chạy từng function để migrate từng bảng
 
 const SUPABASE_URL = 'https://opjagtkygfgiokuaveje.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wamFndGt5Z2ZnaW9rdWF2ZWplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTE1Nzc3OCwiZXhwIjoyMDgwNzMzNzc4fQ.QTxv7SnfJaSm05UlHK-o9yQ-p9YTA7l9542Ye0lzMmM'; // Dùng service-role key cho migration
+// ⚠️ SECURITY: Service Role Key đã bị xóa khỏi code
+// Vui lòng set environment variable hoặc nhập trực tiếp khi chạy
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+// Hoặc nhập trực tiếp: const SUPABASE_SERVICE_KEY = 'YOUR_SERVICE_KEY_HERE';
+const SUPABASE_ANON_KEY = SUPABASE_SERVICE_KEY; // Dùng service-role key cho migration
 const SS_ID = "17O_fbyjwPG44ASzMXytNkwvtJQMHMiVdcdyVP14PsEE"; // Spreadsheet ID
 
 // =======================================================
@@ -22,8 +26,8 @@ function callSupabaseAPI(table, method, data) {
     const options = {
         method: method,
         headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=representation'
         }

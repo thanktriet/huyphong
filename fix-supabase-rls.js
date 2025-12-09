@@ -8,7 +8,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // ⚠️ LƯU Ý: Cần Service Role Key để chạy SQL
 // Lấy từ: Supabase Dashboard → Settings → API → service_role key
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wamFndGt5Z2ZnaW9rdWF2ZWplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTE1Nzc3OCwiZXhwIjoyMDgwNzMzNzc4fQ.QTxv7SnfJaSm05UlHK-o9yQ-p9YTA7l9542Ye0lzMmM';
+// ⚠️ SECURITY: Service Role Key đã bị xóa khỏi code
+// Vui lòng set environment variable hoặc nhập trực tiếp khi chạy
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+// Hoặc nhập trực tiếp: const SUPABASE_SERVICE_KEY = 'YOUR_SERVICE_KEY_HERE';
 
 async function runSQL(sql) {
     try {

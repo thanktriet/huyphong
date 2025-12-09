@@ -36,3 +36,47 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Test files (không cần trong production)
+test-*.html
+test-*.js
+*-test.html
+*-test.js
+quick-test*.html
+fix-supabase-auto.html
+verify-*.html
+test-cors.html
+test-supabase*.html
+test-login*.html
+test-api*.html
+test-connection.js
+
+# Documentation files (có thể archive)
+FIX-*.md
+TEST-*.md
+DEBUG-*.md
+URGENT-*.md
+HOW-TO-TEST*.md
+READY-TO-TEST.md
+START-HERE.md
+SETUP-NOW.md
+QUICK-START.md
+UPDATE-COMPLETE.md
+MIGRATION-COMPLETE.md
+ADMIN-UPDATE-COMPLETE.md
+COMPLETE-SYSTEM-CHECK.md
+DEPLOY-*.md
+GITHUB-PAGES-SETUP.md
+README-*.md
+!README.md
+WHY-*.md
+
+# Supabase test files
+supabase/example-usage.html
+supabase/quick-test.md
+supabase/test-credentials.md
+supabase/BUGS-FOUND.md
+supabase/FIXES-APPLIED.md
+supabase/RLS-NOTE.md
+supabase/QUICK-FIX-RLS.md
+supabase/migration-guide.md
+
