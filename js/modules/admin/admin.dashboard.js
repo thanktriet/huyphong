@@ -286,8 +286,8 @@ const AdminDashboard = {
                 }
             });
 
-            // Limit to first 10 active students to avoid timeout (reduced from 20)
-            const activeStudents = this.students.filter(s => s.status === 'Active').slice(0, 10);
+            // Limit to first 3 active students to avoid timeout (aggressive limit)
+            const activeStudents = this.students.filter(s => s.status === 'Active').slice(0, 3);
             
             console.log('Active students to process:', activeStudents.length);
             
