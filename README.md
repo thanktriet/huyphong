@@ -2,6 +2,12 @@
 
 Ứng dụng quản lý PT chuyên nghiệp với Supabase backend.
 
+## 🔒 Security Notice
+
+**⚠️ IMPORTANT**: Service Role Key đã bị commit vào git history. Vui lòng rotate key trong Supabase Dashboard ngay!
+
+Xem [SECURITY-CHECK.md](./SECURITY-CHECK.md) để biết thêm chi tiết.
+
 ## 🚀 Quick Start
 
 ### Local Development
