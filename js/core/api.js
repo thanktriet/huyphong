@@ -262,7 +262,11 @@ class APIClient {
 
     // Target Calories
     async setUserTargets(userId, targets) {
-        return this.call('setUserTargets', { userId, targets });
+        await this.init();
+        if (!this.api || !this.api.setUserTargets) {
+            throw new Error('Supabase API not initialized or setUserTargets function not found.');
+        }
+        return await this.api.setUserTargets(userId, targets);
     }
 
     async getUserTargets(userId) {
