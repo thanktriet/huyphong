@@ -159,7 +159,42 @@ const AdminDashboard = {
                     return;
                 }
                 
-                await this.loadOverview();
+                // Try to load overview with timeout protection
+                try {
+                    await Promise.race([
+                        this.loadOverview(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Overview timeout')), 8000))
+                    ]);
+                } catch (overviewError) {
+                    console.error('Overview loading error or timeout:', overviewError);
+                    // Show basic stats even if overview fails
+                    const activeCount = this.students.filter(s => s.status === 'Active').length;
+                    container.innerHTML = `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="bg-orange-100 p-2 rounded-lg">
+                                        <i data-lucide="users" class="w-5 h-5 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-orange-600 font-bold uppercase">Học Viên Active</div>
+                                        <div class="text-2xl font-black text-orange-700">${activeCount}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <p class="text-sm text-slate-600 text-center">
+                                <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                                Chọn học viên cụ thể ở trên để xem chi tiết thống kê
+                            </p>
+                            <p class="text-xs text-orange-400 text-center mt-2">
+                                ⚠️ Không thể tải thống kê tổng hợp. Vui lòng chọn học viên cụ thể.
+                            </p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                }
             }
             
             if (!timeoutTriggered) {
@@ -473,7 +508,7 @@ const AdminDashboard = {
                         <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
                         Chọn học viên ở trên để xem chi tiết
                     </p>
-                    ${stats.activeStudents > 20 ? '<p class="text-xs text-slate-400 text-center mt-2">* Chỉ hiển thị thống kê cho 20 học viên đầu tiên</p>' : ''}
+                    ${stats.activeStudents > 3 ? '<p class="text-xs text-slate-400 text-center mt-2">* Chỉ hiển thị thống kê cho 3 học viên đầu tiên</p>' : ''}
                 </div>
             `;
             lucide.createIcons();
