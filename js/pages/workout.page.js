@@ -95,11 +95,11 @@ const WorkoutPage = {
         document.getElementById('floating-action').classList.remove('translate-y-[150%]');
         
         document.querySelectorAll('#tabs button').forEach(b => {
-            b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 shadow-sm transition-all active:scale-95';
+            b.className = 'px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 shadow-sm transition-all active:scale-95 min-w-[90px]';
         });
         
         if (btn) {
-            btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border tab-active transition-all active:scale-95';
+            btn.className = 'px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border tab-active transition-all active:scale-95 min-w-[90px]';
         }
 
         this.renderExercises(day);
@@ -134,21 +134,21 @@ const WorkoutPage = {
                 const rVal = saved.reps || ex.reps;
 
                 setsHtml += `
-                    <div class="set-row flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 ${rowClass} mb-2.5 shadow-sm" id="row-${key}">
-                        <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 mr-1">${s}</div>
-                        <div class="flex-1 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
-                            <button onclick="WorkoutPage.adjustVal('w-${key}', -2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
-                            <input type="number" id="w-${key}" value="${wVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="kg">
-                            <button onclick="WorkoutPage.adjustVal('w-${key}', 2.5)" class="w-8 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
+                    <div class="set-row flex items-center gap-2 p-3 rounded-xl border border-slate-200 ${rowClass} mb-2.5 shadow-sm" id="row-${key}">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 mr-1 flex-shrink-0">${s}</div>
+                        <div class="flex-1 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-12">
+                            <button onclick="WorkoutPage.adjustVal('w-${key}', -2.5)" class="w-10 h-full bg-white text-slate-500 hover:bg-slate-100 border-r active:bg-slate-200 active:scale-95 transition-all font-bold text-lg">-</button>
+                            <input type="number" id="w-${key}" value="${wVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-base outline-none" placeholder="kg" min="0" step="0.5">
+                            <button onclick="WorkoutPage.adjustVal('w-${key}', 2.5)" class="w-10 h-full bg-white text-slate-500 hover:bg-slate-100 border-l active:bg-slate-200 active:scale-95 transition-all font-bold text-lg">+</button>
                         </div>
-                        <div class="w-24 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-10">
-                            <button onclick="WorkoutPage.adjustVal('r-${key}', -1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-r active:bg-slate-200">-</button>
-                            <input type="number" id="r-${key}" value="${rVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-sm outline-none" placeholder="reps">
-                            <button onclick="WorkoutPage.adjustVal('r-${key}', 1)" class="w-7 h-full bg-white text-slate-400 hover:bg-slate-100 border-l active:bg-slate-200">+</button>
+                        <div class="w-28 flex items-center bg-slate-50 rounded-lg border border-slate-200 overflow-hidden h-12 flex-shrink-0">
+                            <button onclick="WorkoutPage.adjustVal('r-${key}', -1)" class="w-9 h-full bg-white text-slate-500 hover:bg-slate-100 border-r active:bg-slate-200 active:scale-95 transition-all font-bold">-</button>
+                            <input type="number" id="r-${key}" value="${rVal}" oninput="WorkoutPage.saveTemp('${key}')" class="w-full bg-transparent text-center font-bold text-slate-800 text-base outline-none" placeholder="reps" min="0">
+                            <button onclick="WorkoutPage.adjustVal('r-${key}', 1)" class="w-9 h-full bg-white text-slate-500 hover:bg-slate-100 border-l active:bg-slate-200 active:scale-95 transition-all font-bold">+</button>
                         </div>
-                        <label class="relative cursor-pointer ml-1">
+                        <label class="relative cursor-pointer ml-1 flex-shrink-0">
                             <input type="checkbox" ${isChecked} onchange="WorkoutPage.toggleSet('${key}', '${ex.exercise}', ${s})" class="sr-only peer">
-                            <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 peer-checked:bg-blue-600 peer-checked:text-white transition-all shadow-sm peer-checked:shadow-blue-200 hover:bg-slate-200">
+                            <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 peer-checked:bg-blue-600 peer-checked:text-white transition-all shadow-sm peer-checked:shadow-blue-200 hover:bg-slate-200 active:scale-95">
                                 <i data-lucide="check" class="w-6 h-6"></i>
                             </div>
                         </label>
@@ -169,7 +169,7 @@ const WorkoutPage = {
                         </div>
                         <div class="flex gap-2">
                             ${imageBtn}
-                            <button onclick="WorkoutPage.addSet('${day}', '${ex.exercise}')" class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                            <button onclick="WorkoutPage.addSet('${day}', '${ex.exercise}')" class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors active:scale-95">
                                 <i data-lucide="plus" class="w-5 h-5"></i>
                             </button>
                         </div>
@@ -382,10 +382,10 @@ const WorkoutPage = {
         this.currentTab = "HISTORY";
         
         document.querySelectorAll('#tabs button').forEach(b => {
-            b.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 active:scale-95';
+            b.className = 'px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-white text-slate-600 border-slate-200 active:scale-95 min-w-[90px]';
         });
         
-        btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 flex items-center gap-1 transform scale-105 transition-transform';
+        btn.className = 'px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 flex items-center gap-1.5 transform scale-105 transition-transform min-w-[110px]';
         
         document.getElementById('workout-view').classList.add('hidden');
         const floatingAction = document.getElementById('floating-action');

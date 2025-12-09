@@ -18,6 +18,7 @@
     <script src="js/pages/nutrition.page.js"></script>
     <!-- supabase/api.js will be loaded by API.init() -->
 
+    <link rel="stylesheet" href="css/mobile.css">
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .macro-card { transition: transform 0.2s; } .macro-card:active { transform: scale(0.95); }
@@ -25,10 +26,18 @@
         .meal-header { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); z-index: 5; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
         
         /* TOAST */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        #toast-container { position: fixed; top: 20px; left: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast { background: white; padding: 12px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; pointer-events: auto; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
         @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            body { padding-bottom: 5.5rem; }
+            .max-w-md { max-width: 100%; }
+            #modal-amount { padding: 1rem; }
+            .modal-content { width: 100%; max-width: 100%; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 pb-28 font-sans text-slate-800">
@@ -126,10 +135,33 @@
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb"><div class="max-w-md mx-auto flex justify-around items-center h-16"><a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Home</span></a><a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Tập</span></a><a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-green-600"><i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Ăn</span></a><a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span></a><a href="profile.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600"><i data-lucide="user" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Tôi</span></a></div></div>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb bottom-nav">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="home" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="dumbbell" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Tập</span>
+            </a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-green-600 transition-colors active:bg-green-50 rounded-lg">
+                <i data-lucide="utensils" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-bold">Ăn</span>
+            </a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="calendar" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Lịch</span>
+            </a>
+            <a href="profile.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="user" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Tôi</span>
+            </a>
+        </div>
+    </div>
 
     <div id="modal-amount" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 animate-in fade-in duration-200 px-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 transform transition-all scale-100">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 transform transition-all scale-100 modal-content">
             <div class="text-center mb-4">
                 <h3 class="text-xl font-black text-slate-800 mb-1 leading-tight" id="modal-food-name">...</h3>
                 <p class="text-xs font-medium text-slate-400">100g = <span id="modal-food-cal">...</span> kcal</p>
@@ -148,9 +180,9 @@
             <div class="mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 text-center">Khối lượng (g)</label>
                 <div class="flex items-center gap-3">
-                    <button onclick="NutritionPage.adjAmount(-50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">-</button>
-                    <input id="input-amount" type="number" value="100" class="flex-1 h-12 bg-white border-2 border-green-500 rounded-xl text-center font-black text-green-600 text-2xl outline-none">
-                    <button onclick="NutritionPage.adjAmount(50)" class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold text-xl">+</button>
+                    <button onclick="NutritionPage.adjAmount(-50)" class="w-14 h-14 rounded-xl bg-white border-2 border-slate-200 text-slate-500 font-bold text-2xl active:bg-slate-50 active:scale-95 transition-all">-</button>
+                    <input id="input-amount" type="number" value="100" class="flex-1 h-14 bg-white border-2 border-green-500 rounded-xl text-center font-black text-green-600 text-2xl outline-none">
+                    <button onclick="NutritionPage.adjAmount(50)" class="w-14 h-14 rounded-xl bg-white border-2 border-slate-200 text-slate-500 font-bold text-2xl active:bg-slate-50 active:scale-95 transition-all">+</button>
                 </div>
             </div>
             

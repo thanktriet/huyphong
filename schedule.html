@@ -6,6 +6,7 @@
     <title>Lịch Trình - PT Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/mobile.css">
     <style>
         /* Tiện ích */
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -27,10 +28,14 @@
         .hero-active { animation: pulse-glow 2s infinite; }
 
         /* Toast */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        #toast-container { position: fixed; top: 20px; left: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out; border-left: 4px solid; pointer-events: auto; }
         .toast.success { border-color: #22c55e; } .toast.error { border-color: #ef4444; }
         @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        @media (max-width: 640px) {
+            body { padding-bottom: 5rem; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 pb-24 font-sans text-slate-800">

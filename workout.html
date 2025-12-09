@@ -18,6 +18,7 @@
     <script src="js/ui/loader.js"></script>
     <script src="js/pages/workout.page.js"></script>
 
+    <link rel="stylesheet" href="css/mobile.css">
     <style>
         /* Tiện ích */
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -39,6 +40,15 @@
         /* Modal Ảnh */
         #modal-image { backdrop-filter: blur(5px); transition: opacity 0.3s; }
         .img-zoom { max-height: 80vh; max-width: 90vw; object-fit: contain; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            body { padding-bottom: 6rem; }
+            .max-w-md { max-width: 100%; }
+            #tabs { gap: 0.5rem; padding: 0.5rem 0; }
+            #tabs button { padding: 0.75rem 1rem; font-size: 14px; min-width: 80px; }
+            #floating-action { left: 1rem; right: 1rem; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 pb-36 font-sans text-slate-800 select-none">
@@ -124,13 +134,28 @@
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Home</span></a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600"><i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">Tập</span></a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Ăn</span></a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span></a>
-            <button onclick="AuthService.logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Thoát</span></button>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb bottom-nav">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="home" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </a>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors active:bg-blue-50 rounded-lg">
+                <i data-lucide="dumbbell" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-bold">Tập</span>
+            </a>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="utensils" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Ăn</span>
+            </a>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="calendar" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Lịch</span>
+            </a>
+            <button onclick="AuthService.logout()" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-red-500 transition-colors active:bg-red-50 rounded-lg">
+                <i data-lucide="log-out" class="w-6 h-6 mb-0.5"></i>
+                <span class="text-[10px] font-medium">Thoát</span>
+            </button>
         </div>
     </div>
 

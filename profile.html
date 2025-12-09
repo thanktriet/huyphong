@@ -18,6 +18,7 @@
     <script src="js/pages/profile.page.js"></script>
     <!-- supabase/api.js will be loaded by API.init() -->
 
+    <link rel="stylesheet" href="css/mobile.css">
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
@@ -29,6 +30,10 @@
         /* Card Styles */
         .history-card { transition: transform 0.2s; }
         .history-card:active { transform: scale(0.98); }
+        
+        @media (max-width: 640px) {
+            body { padding-bottom: 5rem; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 pb-24 font-sans text-slate-800">

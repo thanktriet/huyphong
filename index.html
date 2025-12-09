@@ -6,9 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/mobile.css">
     <style>
         /* Ẩn thanh cuộn */
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            body { padding-bottom: 5rem; }
+            .max-w-md { max-width: 100%; padding: 0 1rem; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 pb-24 font-sans text-slate-800">
@@ -52,36 +59,36 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <a href="workout.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all">
-                    <div class="bg-blue-50 p-3 rounded-full"><i data-lucide="dumbbell" class="w-6 h-6 text-blue-500"></i></div>
-                    <span class="font-bold text-sm">Vào Tập</span>
+                <a href="workout.html" class="h-32 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-600 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all active:scale-95">
+                    <div class="bg-blue-50 p-4 rounded-full"><i data-lucide="dumbbell" class="w-7 h-7 text-blue-500"></i></div>
+                    <span class="font-bold text-base">Vào Tập</span>
                 </a>
-                <a href="nutrition.html" class="h-28 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-600 hover:bg-green-50 hover:border-green-400 hover:text-green-600 transition-all">
-                    <div class="bg-green-50 p-3 rounded-full"><i data-lucide="utensils" class="w-6 h-6 text-green-500"></i></div>
-                    <span class="font-bold text-sm">Nhập Ăn</span>
+                <a href="nutrition.html" class="h-32 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-600 hover:bg-green-50 hover:border-green-400 hover:text-green-600 transition-all active:scale-95">
+                    <div class="bg-green-50 p-4 rounded-full"><i data-lucide="utensils" class="w-7 h-7 text-green-500"></i></div>
+                    <span class="font-bold text-base">Nhập Ăn</span>
                 </a>
             </div>
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16">
-            <a href="index.html" class="flex flex-col items-center justify-center w-full text-blue-600 transition-colors">
-                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb bottom-nav">
+        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2">
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors active:bg-blue-50 rounded-lg">
+                <i data-lucide="home" class="w-6 h-6 mb-0.5"></i>
                 <span class="text-[10px] font-bold">Home</span>
             </a>
-            <a href="workout.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="dumbbell" class="w-6 h-6 mb-1"></i>
+            <a href="workout.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="dumbbell" class="w-6 h-6 mb-0.5"></i>
                 <span class="text-[10px] font-medium">Tập</span>
             </a>
-            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="utensils" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Ăn</span>
+            <a href="nutrition.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="utensils" class="w-6 h-6 mb-0.5"></i><span class="text-[10px] font-medium">Ăn</span>
             </a>
-            <a href="schedule.html" class="flex flex-col items-center justify-center w-full text-slate-400 hover:text-slate-600 transition-colors">
-                <i data-lucide="calendar" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-medium">Lịch</span>
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 transition-colors active:bg-slate-50 rounded-lg">
+                <i data-lucide="calendar" class="w-6 h-6 mb-0.5"></i><span class="text-[10px] font-medium">Lịch</span>
             </a>
-            <button onclick="logout()" class="flex flex-col items-center justify-center w-full text-red-400 hover:text-red-600 transition-colors">
-                <i data-lucide="log-out" class="w-6 h-6 mb-1"></i>
+            <button onclick="logout()" class="flex flex-col items-center justify-center w-full h-full text-red-400 hover:text-red-600 transition-colors active:bg-red-50 rounded-lg">
+                <i data-lucide="log-out" class="w-6 h-6 mb-0.5"></i>
                 <span class="text-[10px] font-medium">Thoát</span>
             </button>
         </div>
