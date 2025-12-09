@@ -236,10 +236,12 @@ const AdminDashboard = {
                         <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
                         Chọn học viên ở trên để xem chi tiết
                     </p>
+                    ${stats.activeStudents > 20 ? '<p class="text-xs text-slate-400 text-center mt-2">* Chỉ hiển thị thống kê cho 20 học viên đầu tiên</p>' : ''}
                 </div>
             `;
             lucide.createIcons();
         } catch (error) {
+            console.error('Error in loadOverview:', error);
             throw error;
         }
     },
