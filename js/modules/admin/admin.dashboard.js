@@ -63,35 +63,66 @@ const AdminDashboard = {
 
     async loadDashboardData() {
         const container = document.getElementById('dashboard-content');
-        if (!container) return;
+        if (!container) {
+            console.error('Dashboard container not found');
+            return;
+        }
 
         container.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải dữ liệu...</p></div>';
         lucide.createIcons();
 
         try {
+            console.log('Loading dashboard data, selectedStudentId:', this.selectedStudentId);
+            
             if (this.selectedStudentId) {
                 // Load data for specific student
+                console.log('Loading student stats for:', this.selectedStudentId);
                 await this.loadStudentStats(this.selectedStudentId);
             } else {
                 // Load overview for all students
+                console.log('Loading overview, students count:', this.students?.length || 0);
                 await this.loadOverview();
             }
+            
+            console.log('Dashboard data loaded successfully');
         } catch (error) {
             console.error('Error loading dashboard data:', error);
-            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p></div>';
+            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p><p class="text-xs mt-2">Vui lòng thử lại hoặc chọn học viên cụ thể</p></div>';
             Toast.error('Lỗi: ' + (error.message || 'Không thể tải dữ liệu'));
+            lucide.createIcons();
         }
     },
 
     async loadStudentStats(studentId) {
         const container = document.getElementById('dashboard-content');
+        if (!container) {
+            console.error('Container not found in loadStudentStats');
+            throw new Error('Container not found');
+        }
         
         try {
-            const [workoutResult, nutritionResult, bodyResult] = await Promise.all([
-                API.getWorkoutHistory(studentId),
-                API.getNutritionHistory(studentId),
-                API.getBodyHistory(studentId)
+            console.log('Fetching stats for student:', studentId);
+            
+            const [workoutResult, nutritionResult, bodyResult] = await Promise.allSettled([
+                API.getWorkoutHistory(studentId, false).catch(err => {
+                    console.warn('Workout history error:', err);
+                    return { success: false, data: null };
+                }),
+                API.getNutritionHistory(studentId, false).catch(err => {
+                    console.warn('Nutrition history error:', err);
+                    return { success: false, data: null };
+                }),
+                API.getBodyHistory(studentId, false).catch(err => {
+                    console.warn('Body history error:', err);
+                    return { success: false, data: null };
+                })
             ]);
+
+            const workout = workoutResult.status === 'fulfilled' ? workoutResult.value : { success: false, data: null };
+            const nutrition = nutritionResult.status === 'fulfilled' ? nutritionResult.value : { success: false, data: null };
+            const body = bodyResult.status === 'fulfilled' ? bodyResult.value : { success: false, data: null };
+
+            console.log('Stats loaded:', { workout: workout.success, nutrition: nutrition.success, body: body.success });
 
             const student = this.students.find(s => s.id === studentId);
             const studentName = student ? student.name : 'Học viên';
@@ -103,25 +134,33 @@ const AdminDashboard = {
             `;
 
             // Workout Stats
-            html += this.renderWorkoutStats(workoutResult);
+            html += this.renderWorkoutStats(workout);
             
             // Nutrition Stats
-            html += this.renderNutritionStats(nutritionResult);
+            html += this.renderNutritionStats(nutrition);
             
             // Body Stats
-            html += this.renderBodyStats(bodyResult);
+            html += this.renderBodyStats(body);
 
             container.innerHTML = html;
             lucide.createIcons();
+            console.log('Student stats rendered successfully');
         } catch (error) {
+            console.error('Error in loadStudentStats:', error);
             throw error;
         }
     },
 
     async loadOverview() {
         const container = document.getElementById('dashboard-content');
+        if (!container) {
+            console.error('Container not found in loadOverview');
+            throw new Error('Container not found');
+        }
         
         try {
+            console.log('Loading overview, students:', this.students?.length || 0);
+            
             // Get stats for all students - limit to active students only for performance
             const stats = {
                 totalWorkouts: 0,
@@ -130,6 +169,12 @@ const AdminDashboard = {
                 activeStudents: 0
             };
 
+            if (!this.students || this.students.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có học viên nào</p></div>';
+                lucide.createIcons();
+                return;
+            }
+
             // Count active students first
             this.students.forEach(student => {
                 if (student.status === 'Active') {
@@ -137,28 +182,68 @@ const AdminDashboard = {
                 }
             });
 
-            // Limit to first 20 active students to avoid timeout
-            const activeStudents = this.students.filter(s => s.status === 'Active').slice(0, 20);
+            // Limit to first 10 active students to avoid timeout (reduced from 20)
+            const activeStudents = this.students.filter(s => s.status === 'Active').slice(0, 10);
+            
+            console.log('Active students to process:', activeStudents.length);
             
             // Show progress
             if (activeStudents.length > 0) {
                 container.innerHTML = `<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải thống kê cho ${activeStudents.length} học viên...</p></div>`;
                 lucide.createIcons();
+            } else {
+                // No active students
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="bg-orange-100 p-2 rounded-lg">
+                                    <i data-lucide="users" class="w-5 h-5 text-orange-600"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-orange-600 font-bold uppercase">Học Viên Active</div>
+                                    <div class="text-2xl font-black text-orange-700">${stats.activeStudents}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-sm text-slate-600 text-center">
+                            <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                            Chưa có học viên active. Chọn học viên ở trên để xem chi tiết.
+                        </p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
             }
 
             // Load stats in parallel with Promise.allSettled to handle errors gracefully
-            const promises = activeStudents.map(async (student) => {
+            // Add timeout to each promise
+            const promises = activeStudents.map(async (student, index) => {
                 try {
-                    const [workoutResult, nutritionResult, bodyResult] = await Promise.all([
-                        API.getWorkoutHistory(student.id, true).catch(() => ({ success: false })),
-                        API.getNutritionHistory(student.id, true).catch(() => ({ success: false })),
-                        API.getBodyHistory(student.id, true).catch(() => ({ success: false }))
-                    ]);
+                    console.log(`Loading stats for student ${index + 1}/${activeStudents.length}: ${student.name}`);
+                    
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout')), 10000)
+                    );
+                    
+                    const [workoutResult, nutritionResult, bodyResult] = await Promise.race([
+                        Promise.all([
+                            API.getWorkoutHistory(student.id, true).catch(() => ({ success: false, data: null })),
+                            API.getNutritionHistory(student.id, true).catch(() => ({ success: false, data: null })),
+                            API.getBodyHistory(student.id, true).catch(() => ({ success: false, data: null }))
+                        ]),
+                        timeoutPromise
+                    ]).catch(() => {
+                        console.warn(`Timeout loading stats for student ${student.id}`);
+                        return [{ success: false, data: null }, { success: false, data: null }, { success: false, data: null }];
+                    });
 
                     return {
-                        workout: workoutResult,
-                        nutrition: nutritionResult,
-                        body: bodyResult
+                        workout: workoutResult[0] || { success: false },
+                        nutrition: nutritionResult[1] || { success: false },
+                        body: bodyResult[2] || { success: false }
                     };
                 } catch (err) {
                     console.warn(`Error loading stats for student ${student.id}:`, err);
@@ -166,7 +251,9 @@ const AdminDashboard = {
                 }
             });
 
+            console.log('Waiting for all promises to settle...');
             const results = await Promise.allSettled(promises);
+            console.log('All promises settled, processing results...');
 
             // Process results
             results.forEach((result, index) => {
