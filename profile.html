@@ -203,6 +203,12 @@
                 btn.disabled = false;
             }
         });
+
+        // Body Stats Form
+        document.getElementById('form-body-stats').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await ProfilePage.saveBodyStats();
+        });
     </script>
 </body>
 </html>
