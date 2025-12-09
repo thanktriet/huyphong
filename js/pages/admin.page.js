@@ -121,11 +121,19 @@ const AdminPage = {
         const target = document.getElementById(`view-${name}`);
         if (target) target.classList.remove('hidden');
         
-        document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
-        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(e => {
+            e.classList.remove('active', 'bg-blue-600', 'text-white');
+            e.classList.add('text-slate-500');
+        });
+        if (btn) {
+            btn.classList.add('active', 'bg-blue-600', 'text-white');
+            btn.classList.remove('text-slate-500');
+        }
 
         // Load data for tab if needed
-        if (name === 'calendar') {
+        if (name === 'dashboard') {
+            AdminDashboard.init();
+        } else if (name === 'calendar') {
             AdminCalendar.init();
         } else if (name === 'students') {
             AdminStudents.init();
