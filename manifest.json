@@ -1,0 +1,44 @@
+{
+  "name": "PT Manager - Personal Trainer Management",
+  "short_name": "PT Manager",
+  "description": "Ứng dụng quản lý PT chuyên nghiệp với theo dõi tập luyện, dinh dưỡng và thể trạng",
+  "start_url": "/huyphong/",
+  "scope": "/huyphong/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Vào Tập",
+      "short_name": "Tập",
+      "description": "Mở trang tập luyện",
+      "url": "/huyphong/workout.html",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nhập Ăn",
+      "short_name": "Ăn",
+      "description": "Mở trang dinh dưỡng",
+      "url": "/huyphong/nutrition.html",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

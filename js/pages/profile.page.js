@@ -283,19 +283,71 @@ const ProfilePage = {
         btn.innerText = 'Đang lưu...';
         
         try {
-            const result = await API.logBodyStats(this.user.id, weight, waist);
-            
-            if (result.success) {
-                Toast.success('Đã lưu thể trạng thành công!');
+            // Check if offline - queue for sync
+            if (!navigator.onLine && typeof PWASync !== 'undefined') {
+                console.log('[ProfilePage] Offline - queueing body stats');
+                
+                await PWASync.queueAction({
+                    type: 'log_body_stats',
+                    url: `${CONFIG.SUPABASE_URL}/rest/v1/body_tracking`,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': CONFIG.SUPABASE_ANON_KEY,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        user_id: this.user.id,
+                        date: new Date().toISOString().split('T')[0],
+                        weight: weight,
+                        waist: waist
+                    })
+                });
+                
+                Toast.info("Đã lưu vào hàng đợi. Sẽ đồng bộ khi online.");
                 this.closeAddBodyStats();
-                // Reload history
                 await this.loadBodyHistory();
             } else {
-                Toast.error(result.message || 'Lỗi lưu dữ liệu');
+                const result = await API.logBodyStats(this.user.id, weight, waist);
+                
+                if (result.success) {
+                    Toast.success('Đã lưu thể trạng thành công!');
+                    this.closeAddBodyStats();
+                    // Reload history
+                    await this.loadBodyHistory();
+                } else {
+                    Toast.error(result.message || 'Lỗi lưu dữ liệu');
+                }
             }
         } catch (error) {
             console.error('Error saving body stats:', error);
-            Toast.error('Lỗi: ' + (error.message || 'Không thể lưu dữ liệu'));
+            
+            // If error and offline, try to queue
+            if (!navigator.onLine && typeof PWASync !== 'undefined') {
+                try {
+                    await PWASync.queueAction({
+                        type: 'log_body_stats',
+                        url: `${CONFIG.SUPABASE_URL}/rest/v1/body_tracking`,
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': CONFIG.SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({
+                            user_id: this.user.id,
+                            date: new Date().toISOString().split('T')[0],
+                            weight: weight,
+                            waist: waist
+                        })
+                    });
+                    Toast.info("Đã lưu vào hàng đợi. Sẽ đồng bộ khi online.");
+                    this.closeAddBodyStats();
+                } catch (queueError) {
+                    Toast.error('Lỗi: ' + (error.message || 'Không thể lưu dữ liệu'));
+                }
+            } else {
+                Toast.error('Lỗi: ' + (error.message || 'Không thể lưu dữ liệu'));
+            }
         } finally {
             btn.disabled = false;
             btn.innerText = 'Lưu';

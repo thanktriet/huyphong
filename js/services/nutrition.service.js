@@ -24,6 +24,38 @@ const NutritionService = {
     // Log meal
     async logMeal(data) {
         try {
+            // Check if offline - queue for sync
+            if (!navigator.onLine && typeof PWASync !== 'undefined') {
+                console.log('[NutritionService] Offline - queueing meal log');
+                
+                await PWASync.queueAction({
+                    type: 'log_meal',
+                    url: `${CONFIG.SUPABASE_URL}/rest/v1/meal_logs`,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': CONFIG.SUPABASE_ANON_KEY,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        user_id: data.userId,
+                        date: data.date || new Date().toISOString().split('T')[0],
+                        food_name: data.foodName,
+                        calories: data.calories,
+                        protein: data.protein,
+                        carb: data.carb,
+                        fat: data.fat,
+                        quantity: data.quantity || 1
+                    })
+                });
+                
+                if (typeof Toast !== 'undefined') {
+                    Toast.info('Đã lưu vào hàng đợi. Sẽ đồng bộ khi online.');
+                }
+                
+                return { success: true, queued: true, message: 'Queued for sync' };
+            }
+            
             const result = await API.call('logMeal', data);
             if (result.success) {
                 // Clear cache
@@ -32,6 +64,30 @@ const NutritionService = {
             }
             return result;
         } catch (error) {
+            // If error and offline, try to queue
+            if (!navigator.onLine && typeof PWASync !== 'undefined') {
+                console.log('[NutritionService] Error while offline - queueing meal log');
+                await PWASync.queueAction({
+                    type: 'log_meal',
+                    url: `${CONFIG.SUPABASE_URL}/rest/v1/meal_logs`,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': CONFIG.SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({
+                        user_id: data.userId,
+                        date: data.date || new Date().toISOString().split('T')[0],
+                        food_name: data.foodName,
+                        calories: data.calories,
+                        protein: data.protein,
+                        carb: data.carb,
+                        fat: data.fat,
+                        quantity: data.quantity || 1
+                    })
+                });
+                return { success: true, queued: true, message: 'Queued for sync' };
+            }
             return Utils.handleError(error, 'NutritionService.logMeal');
         }
     },

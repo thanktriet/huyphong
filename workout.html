@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tập Luyện - PT Manager</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PT Manager">
+    <meta name="description" content="Ứng dụng quản lý PT chuyên nghiệp với theo dõi tập luyện, dinh dưỡng và thể trạng">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -15,6 +24,12 @@
     <!-- supabase/api.js will be loaded by API.init() -->
     <script src="js/services/auth.service.js"></script>
     <script src="js/services/workout.service.js"></script>
+    
+    <!-- PWA Scripts -->
+    <script src="js/pwa/register.js"></script>
+    <script src="js/pwa/install.js"></script>
+    <script src="js/pwa/sync.js"></script>
+    <script src="js/pwa/notifications.js"></script>
     <script src="js/ui/toast.js"></script>
     <script src="js/ui/loader.js"></script>
     <script src="js/pages/workout.page.js"></script>
