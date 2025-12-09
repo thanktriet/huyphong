@@ -244,6 +244,16 @@ const NutritionPage = {
     },
 
     async confirmAddFood() {
+        // Ensure user is loaded
+        if (!this.user) {
+            this.user = AuthService.getCurrentUser();
+            if (!this.user) {
+                Toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
         const amtInput = document.getElementById('input-amount').value;
         const amt = this.parseNum(amtInput);
         
@@ -348,6 +358,14 @@ const NutritionPage = {
     },
 
     hardRefresh() {
+        // Ensure user is loaded
+        if (!this.user) {
+            this.user = AuthService.getCurrentUser();
+            if (!this.user) {
+                window.location.href = 'login.html';
+                return;
+            }
+        }
         const cacheKey = `pt_nutri_v4_${this.user.id}`;
         Utils.storage.remove(cacheKey);
         window.location.reload();
