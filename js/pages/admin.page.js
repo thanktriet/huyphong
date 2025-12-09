@@ -142,6 +142,7 @@ const AdminPage = {
         } else if (name === 'food') {
             AdminFoods.init();
         } else if (name === 'builder') {
+            // Re-init to ensure students are loaded
             AdminPlans.init();
         }
     },

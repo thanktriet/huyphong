@@ -36,12 +36,19 @@ const AdminPlans = {
 
     async loadStudents() {
         try {
+            console.log('AdminPlans.loadStudents() called');
             const result = await AdminService.getStudents(true);
             if (result.success) {
                 this.students = result.data || [];
+                console.log('AdminPlans.loadStudents() - loaded', this.students.length, 'students');
+            } else {
+                console.error('AdminPlans.loadStudents() - failed:', result.message);
+                this.students = [];
             }
         } catch (error) {
+            console.error('AdminPlans.loadStudents() - error:', error);
             Toast.error('Lỗi tải danh sách học viên');
+            this.students = [];
         }
     },
 
@@ -49,6 +56,7 @@ const AdminPlans = {
         this.renderPlans();
         this.renderTemplates();
         this.fillDropdowns();
+        console.log('AdminPlans.render() - students loaded:', this.students?.length || 0);
     },
 
     renderPlans() {
