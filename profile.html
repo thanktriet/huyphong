@@ -47,6 +47,39 @@
         .history-card { transition: transform 0.2s; }
         .history-card:active { transform: scale(0.98); }
         
+        /* Tab Content Transitions */
+        .tab-content {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            will-change: opacity, transform;
+        }
+        .tab-content.hidden {
+            opacity: 0;
+            transform: translateX(10px);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+            visibility: hidden;
+        }
+        .tab-content:not(.hidden) {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            position: relative;
+            visibility: visible;
+            animation: fadeInSlide 0.3s ease-out;
+        }
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .tab-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-btn.active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        
         @media (max-width: 640px) {
             body { padding-bottom: 5rem; }
         }
@@ -102,6 +135,7 @@
                 </button>
             </div>
             <div id="body-history" class="space-y-3 pb-10"></div>
+        </div>
         </div>
 
         <button onclick="document.getElementById('modal-pass').classList.remove('hidden')" class="w-full py-3 text-xs font-bold text-slate-400 hover:text-slate-600 border-t border-slate-200">

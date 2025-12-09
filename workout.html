@@ -36,6 +36,40 @@
 
     <link rel="stylesheet" href="css/mobile.css">
     <style>
+        /* Workout Tab Transitions */
+        .day-content {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            will-change: opacity, transform;
+        }
+        .day-content.hidden {
+            opacity: 0;
+            transform: translateX(10px);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+            visibility: hidden;
+        }
+        .day-content:not(.hidden) {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            position: relative;
+            visibility: visible;
+            animation: fadeInSlide 0.3s ease-out;
+        }
+        .day-tab {
+            transition: all 0.2s ease-in-out;
+        }
+        .day-tab.active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+    <style>
         /* Tiện ích */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }

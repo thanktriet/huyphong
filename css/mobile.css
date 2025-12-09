@@ -215,3 +215,93 @@ input[type="number"] {
     }
 }
 
+/* =======================================================
+   TAB TRANSITIONS - Smooth Tab Switching
+   ======================================================= */
+
+/* Tab Content Transitions */
+.view-section,
+.tab-content {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    will-change: opacity, transform;
+}
+
+/* Hide with fade out */
+.view-section.hidden,
+.tab-content.hidden {
+    opacity: 0;
+    transform: translateX(10px);
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+    visibility: hidden;
+}
+
+/* Show with fade in */
+.view-section:not(.hidden),
+.tab-content:not(.hidden) {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+    position: relative;
+    visibility: visible;
+    animation: fadeInSlide 0.3s ease-out;
+}
+
+/* Fade in slide animation */
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Tab Button Transitions */
+.tab-btn {
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.tab-btn.active::before {
+    transform: translateX(100%);
+}
+
+.tab-btn.active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+
+/* Smooth color transitions for tab buttons */
+.tab-btn {
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Prevent layout shift during transition */
+.view-section,
+.tab-content {
+    min-height: 200px;
+}
+
+/* Container for tabs to prevent layout shift */
+.tab-container {
+    position: relative;
+    min-height: 400px;
+}
+

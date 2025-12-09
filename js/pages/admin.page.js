@@ -117,10 +117,27 @@ const AdminPage = {
     async switchTab(name, btn) {
         this.currentTab = name;
         
-        document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
-        const target = document.getElementById(`view-${name}`);
-        if (target) target.classList.remove('hidden');
+        // Smooth transition: fade out current, then fade in new
+        const currentSection = document.querySelector('.view-section:not(.hidden)');
+        if (currentSection) {
+            currentSection.style.opacity = '0';
+            setTimeout(() => {
+                document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+                const target = document.getElementById(`view-${name}`);
+                if (target) {
+                    target.classList.remove('hidden');
+                    // Trigger reflow for animation
+                    target.offsetHeight;
+                    target.style.opacity = '1';
+                }
+            }, 150);
+        } else {
+            document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+            const target = document.getElementById(`view-${name}`);
+            if (target) target.classList.remove('hidden');
+        }
         
+        // Smooth tab button transition
         document.querySelectorAll('.tab-btn').forEach(e => {
             e.classList.remove('active', 'bg-blue-600', 'text-white');
             e.classList.add('text-slate-500');

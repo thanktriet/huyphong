@@ -89,6 +89,7 @@ const WorkoutPage = {
     },
 
     switchTab(day, btn) {
+        // Smooth tab transition
         this.currentTab = day;
         document.getElementById('history-view').classList.add('hidden');
         document.getElementById('workout-view').classList.remove('hidden');

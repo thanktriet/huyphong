@@ -36,7 +36,7 @@ const ProfilePage = {
     switchTab(tab) {
         this.currentTab = tab;
         
-        // Update tab buttons
+        // Smooth tab button transition
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active', 'bg-blue-600', 'text-white');
             btn.classList.add('bg-slate-100', 'text-slate-600');
@@ -48,14 +48,32 @@ const ProfilePage = {
             activeBtn.classList.remove('bg-slate-100', 'text-slate-600');
         }
 
-        // Show/hide content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        const activeContent = document.getElementById(`tab-${tab}`);
-        if (activeContent) {
-            activeContent.classList.remove('hidden');
+        // Smooth content transition: fade out current, then fade in new
+        const currentContent = document.querySelector('.tab-content:not(.hidden)');
+        if (currentContent) {
+            currentContent.style.opacity = '0';
+            setTimeout(() => {
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                const activeContent = document.getElementById(`tab-${tab}`);
+                if (activeContent) {
+                    activeContent.classList.remove('hidden');
+                    // Trigger reflow for animation
+                    activeContent.offsetHeight;
+                    activeContent.style.opacity = '1';
+                }
+            }, 150);
+        } else {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            const activeContent = document.getElementById(`tab-${tab}`);
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
+            }
         }
 
         // Load data for tab
