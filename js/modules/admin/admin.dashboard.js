@@ -122,7 +122,7 @@ const AdminDashboard = {
         const container = document.getElementById('dashboard-content');
         
         try {
-            // Get stats for all students
+            // Get stats for all students - limit to active students only for performance
             const stats = {
                 totalWorkouts: 0,
                 totalMeals: 0,
@@ -130,31 +130,59 @@ const AdminDashboard = {
                 activeStudents: 0
             };
 
-            for (const student of this.students) {
+            // Count active students first
+            this.students.forEach(student => {
                 if (student.status === 'Active') {
                     stats.activeStudents++;
                 }
+            });
 
+            // Limit to first 20 active students to avoid timeout
+            const activeStudents = this.students.filter(s => s.status === 'Active').slice(0, 20);
+            
+            // Show progress
+            if (activeStudents.length > 0) {
+                container.innerHTML = `<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải thống kê cho ${activeStudents.length} học viên...</p></div>`;
+                lucide.createIcons();
+            }
+
+            // Load stats in parallel with Promise.allSettled to handle errors gracefully
+            const promises = activeStudents.map(async (student) => {
                 try {
                     const [workoutResult, nutritionResult, bodyResult] = await Promise.all([
-                        API.getWorkoutHistory(student.id, true),
-                        API.getNutritionHistory(student.id, true),
-                        API.getBodyHistory(student.id, true)
+                        API.getWorkoutHistory(student.id, true).catch(() => ({ success: false })),
+                        API.getNutritionHistory(student.id, true).catch(() => ({ success: false })),
+                        API.getBodyHistory(student.id, true).catch(() => ({ success: false }))
                     ]);
 
-                    if (workoutResult.success && workoutResult.data) {
-                        stats.totalWorkouts += Object.keys(workoutResult.data).length;
-                    }
-                    if (nutritionResult.success && nutritionResult.data) {
-                        stats.totalMeals += Object.keys(nutritionResult.data).length;
-                    }
-                    if (bodyResult.success && bodyResult.data) {
-                        stats.totalBodyRecords += bodyResult.data.length;
-                    }
+                    return {
+                        workout: workoutResult,
+                        nutrition: nutritionResult,
+                        body: bodyResult
+                    };
                 } catch (err) {
                     console.warn(`Error loading stats for student ${student.id}:`, err);
+                    return { workout: { success: false }, nutrition: { success: false }, body: { success: false } };
                 }
-            }
+            });
+
+            const results = await Promise.allSettled(promises);
+
+            // Process results
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    const data = result.value;
+                    if (data.workout.success && data.workout.data) {
+                        stats.totalWorkouts += Object.keys(data.workout.data).length;
+                    }
+                    if (data.nutrition.success && data.nutrition.data) {
+                        stats.totalMeals += Object.keys(data.nutrition.data).length;
+                    }
+                    if (data.body.success && data.body.data) {
+                        stats.totalBodyRecords += data.body.data.length;
+                    }
+                }
+            });
 
             container.innerHTML = `
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
