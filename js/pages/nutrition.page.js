@@ -312,6 +312,16 @@ const NutritionPage = {
     },
 
     async addManualFood() {
+        // Ensure user is loaded
+        if (!this.user) {
+            this.user = AuthService.getCurrentUser();
+            if (!this.user) {
+                Toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
         const name = document.getElementById('man-name').value;
         const cal = document.getElementById('man-cal').value;
         
