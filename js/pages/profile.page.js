@@ -200,13 +200,18 @@ const ProfilePage = {
         lucide.createIcons();
 
         try {
-            const result = await API.getBodyHistory(this.user.id, true);
+            const result = await API.getBodyHistory(this.user.id, false); // Don't use cache to get fresh data
             
             if (result.success && result.data && result.data.length > 0) {
                 // Sort by date descending
                 const sortedData = result.data.sort((a, b) => {
-                    const dateA = new Date(a.date.split('/').reverse().join('-'));
-                    const dateB = new Date(b.date.split('/').reverse().join('-'));
+                    // Handle both date formats
+                    const dateA = a.date.includes('-') 
+                        ? new Date(a.date)
+                        : new Date(a.date.split('/').reverse().join('-'));
+                    const dateB = b.date.includes('-')
+                        ? new Date(b.date)
+                        : new Date(b.date.split('/').reverse().join('-'));
                     return dateB - dateA;
                 });
                 
@@ -229,18 +234,18 @@ const ProfilePage = {
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
                                     <div class="text-xs text-blue-600 font-bold mb-1">Cân nặng</div>
-                                    <div class="text-lg font-black text-blue-700">${item.weight || '---'} kg</div>
+                                    <div class="text-lg font-black text-blue-700">${item.weight ? parseFloat(item.weight).toFixed(1) : '---'} kg</div>
                                 </div>
                                 <div class="bg-purple-50 p-3 rounded-lg border border-purple-100">
                                     <div class="text-xs text-purple-600 font-bold mb-1">Vòng eo</div>
-                                    <div class="text-lg font-black text-purple-700">${item.waist || '---'} cm</div>
+                                    <div class="text-lg font-black text-purple-700">${item.waist ? parseFloat(item.waist).toFixed(1) : '---'} cm</div>
                                 </div>
                             </div>
                         </div>
                     `;
                 }).join('');
             } else {
-                container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có dữ liệu theo dõi cơ thể.</p></div>';
+                container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có dữ liệu theo dõi cơ thể.</p><p class="text-xs mt-2">Nhấn "Thêm Mới" để bắt đầu theo dõi</p></div>';
             }
         } catch (error) {
             console.error('Error loading body history:', error);
@@ -249,6 +254,52 @@ const ProfilePage = {
         }
         
         lucide.createIcons();
+    },
+
+    openAddBodyStats() {
+        document.getElementById('modal-body-stats').classList.remove('hidden');
+        document.getElementById('body-weight').value = '';
+        document.getElementById('body-waist').value = '';
+        document.getElementById('body-weight').focus();
+        lucide.createIcons();
+    },
+
+    closeAddBodyStats() {
+        document.getElementById('modal-body-stats').classList.add('hidden');
+        document.getElementById('form-body-stats').reset();
+    },
+
+    async saveBodyStats() {
+        const weight = document.getElementById('body-weight').value;
+        const waist = document.getElementById('body-waist').value;
+        const btn = document.getElementById('btnSaveBodyStats');
+        
+        if (!weight || !waist || parseFloat(weight) <= 0 || parseFloat(waist) <= 0) {
+            Toast.error('Vui lòng nhập đầy đủ thông tin và giá trị phải lớn hơn 0');
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.innerText = 'Đang lưu...';
+        
+        try {
+            const result = await API.logBodyStats(this.user.id, weight, waist);
+            
+            if (result.success) {
+                Toast.success('Đã lưu thể trạng thành công!');
+                this.closeAddBodyStats();
+                // Reload history
+                await this.loadBodyHistory();
+            } else {
+                Toast.error(result.message || 'Lỗi lưu dữ liệu');
+            }
+        } catch (error) {
+            console.error('Error saving body stats:', error);
+            Toast.error('Lỗi: ' + (error.message || 'Không thể lưu dữ liệu'));
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Lưu';
+        }
     }
 };
 

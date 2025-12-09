@@ -313,6 +313,26 @@ class APIClient {
         return result;
     }
 
+    // Log Body Stats
+    async logBodyStats(userId, weight, waist) {
+        await this.init();
+        if (!this.api || !this.api.logBodyStats) {
+            throw new Error('Supabase API not initialized or logBodyStats function not found.');
+        }
+        const result = await this.api.logBodyStats({
+            userId,
+            weight: parseFloat(weight) || 0,
+            waist: parseFloat(waist) || 0
+        });
+        
+        // Clear cache after logging
+        if (result.success) {
+            Utils.cache.clear(`body_history_${userId}`);
+        }
+        
+        return result;
+    }
+
     // Meal Planning
     async createMealPlan(userId, weekStartDate, meals, createdBy = null) {
         return this.call('createMealPlan', { userId, weekStartDate, meals, createdBy });

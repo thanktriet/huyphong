@@ -79,6 +79,12 @@
         </div>
 
         <div id="tab-body" class="tab-content hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-slate-800 text-base">Lịch Sử Thể Trạng</h2>
+                <button onclick="ProfilePage.openAddBodyStats()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow hover:bg-blue-700 transition-colors active:scale-95">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Thêm Mới
+                </button>
+            </div>
             <div id="body-history" class="space-y-3 pb-10"></div>
         </div>
 
@@ -97,6 +103,37 @@
                 <div class="flex gap-3 mt-4">
                     <button type="button" onclick="document.getElementById('modal-pass').classList.add('hidden')" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm">Hủy</button>
                     <button type="submit" id="btnChange" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-body-stats" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 px-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Thêm Thể Trạng</h3>
+                <button onclick="ProfilePage.closeAddBodyStats()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="form-body-stats" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Cân nặng (kg)</label>
+                    <div class="relative">
+                        <input type="number" id="body-weight" step="0.1" min="0" class="w-full border-2 border-slate-200 p-3.5 rounded-xl text-lg font-bold text-slate-800 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 ring-blue-500 outline-none" placeholder="0.0" required>
+                        <span class="absolute right-4 top-4 text-sm text-slate-400 font-bold">kg</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Vòng eo (cm)</label>
+                    <div class="relative">
+                        <input type="number" id="body-waist" step="0.1" min="0" class="w-full border-2 border-slate-200 p-3.5 rounded-xl text-lg font-bold text-slate-800 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 ring-blue-500 outline-none" placeholder="0.0" required>
+                        <span class="absolute right-4 top-4 text-sm text-slate-400 font-bold">cm</span>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="ProfilePage.closeAddBodyStats()" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm active:scale-95 transition-all">Hủy</button>
+                    <button type="submit" id="btnSaveBodyStats" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg active:scale-95 transition-all">Lưu</button>
                 </div>
             </form>
         </div>
