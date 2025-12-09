@@ -31,10 +31,28 @@ const WorkoutService = {
     // Get workout history
     async getHistory(userId, useCache = true) {
         try {
-            return await API.call('getWorkoutHistory', { userId }, {
-                useCache,
-                cacheKey: `workout_history_${userId}`
-            });
+            // Check cache first
+            if (useCache) {
+                const cacheKey = `workout_history_${userId}`;
+                const cached = Utils.cache.get(cacheKey);
+                if (cached) return cached;
+            }
+
+            // Call API directly
+            await API.init();
+            if (!API.api || !API.api.getWorkoutHistory) {
+                throw new Error('Supabase API not initialized or getWorkoutHistory function not found.');
+            }
+            
+            const result = await API.api.getWorkoutHistory(userId);
+            
+            // Cache result
+            if (useCache && result.success) {
+                const cacheKey = `workout_history_${userId}`;
+                Utils.cache.set(cacheKey, result);
+            }
+            
+            return result;
         } catch (error) {
             return Utils.handleError(error, 'WorkoutService.getHistory');
         }
