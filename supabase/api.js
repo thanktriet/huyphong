@@ -889,41 +889,26 @@ async function getDailyMacros(userId) {
 
         if (mealError) throw mealError;
 
-        // Get user targets
-        let targets = {
-            calories: 2000,
-            protein: 0,
-            carb: 0,
-            fat: 0
-        };
+        // Get user target calories only
+        let targetCalories = 2000;
         
         try {
             const { data: userData, error: userError } = await getSupabase()
                 .from('users')
-                .select('target_calories, target_protein, target_carb, target_fat')
+                .select('target_calories')
                 .eq('id', userId)
                 .single();
 
             if (!userError && userData && userData !== null) {
-                // Safe access with nullish coalescing
-                targets = {
-                    calories: (userData.target_calories !== undefined && userData.target_calories !== null) 
-                        ? parseFloat(userData.target_calories) || 2000 
-                        : 2000,
-                    protein: (userData.target_protein !== undefined && userData.target_protein !== null) 
-                        ? parseFloat(userData.target_protein) || 0 
-                        : 0,
-                    carb: (userData.target_carb !== undefined && userData.target_carb !== null) 
-                        ? parseFloat(userData.target_carb) || 0 
-                        : 0,
-                    fat: (userData.target_fat !== undefined && userData.target_fat !== null) 
-                        ? parseFloat(userData.target_fat) || 0 
-                        : 0
-                };
+                targetCalories = (userData.target_calories !== undefined && userData.target_calories !== null) 
+                    ? parseFloat(userData.target_calories) || 2000 
+                    : 2000;
             }
         } catch (targetError) {
-            console.warn('Error loading user targets, using defaults:', targetError);
+            console.warn('Error loading user target calories, using default:', targetError);
         }
+        
+        const targets = { calories: targetCalories };
 
         let totals = { cal: 0, pro: 0, carb: 0, fat: 0, list: [] };
 
