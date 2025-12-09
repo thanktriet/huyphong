@@ -82,21 +82,14 @@ const NutritionPage = {
     renderStats() {
         const cleanNum = (n) => (isNaN(n) || n > 10000) ? 0 : Math.round(n);
         
-        // Get targets and progress from data - with safe defaults
+        // Get target calories from data - with safe defaults
         const targets = (this.data && this.data.targets && typeof this.data.targets === 'object') 
             ? this.data.targets 
-            : { calories: 2000, protein: 0, carb: 0, fat: 0 };
-        const progress = (this.data && this.data.progress && typeof this.data.progress === 'object') 
-            ? this.data.progress 
-            : { calories: 0, protein: 0, carb: 0, fat: 0 };
+            : { calories: 2000 };
         
-        // Ensure targets has all required properties
-        const safeTargets = {
-            calories: (targets.calories !== undefined && targets.calories !== null) ? targets.calories : 2000,
-            protein: (targets.protein !== undefined && targets.protein !== null) ? targets.protein : 0,
-            carb: (targets.carb !== undefined && targets.carb !== null) ? targets.carb : 0,
-            fat: (targets.fat !== undefined && targets.fat !== null) ? targets.fat : 0
-        };
+        // Ensure target calories exists
+        const targetCalories = (targets.calories !== undefined && targets.calories !== null) 
+            ? targets.calories : 2000;
         
         // Update values
         document.getElementById('val-cal').innerText = cleanNum(this.data.cal);
@@ -104,23 +97,13 @@ const NutritionPage = {
         document.getElementById('val-carb').innerText = cleanNum(this.data.carb);
         document.getElementById('val-fat').innerText = cleanNum(this.data.fat);
         
-        // Update targets
-        document.getElementById('target-cal').innerText = cleanNum(safeTargets.calories);
-        document.getElementById('target-pro').innerText = cleanNum(safeTargets.protein);
-        document.getElementById('target-carb').innerText = cleanNum(safeTargets.carb);
-        document.getElementById('target-fat').innerText = cleanNum(safeTargets.fat);
+        // Update target calories only
+        document.getElementById('target-cal').innerText = cleanNum(targetCalories);
         
-        // Update progress bars
-        const calProgress = safeTargets.calories > 0 ? Math.min((cleanNum(this.data.cal) / safeTargets.calories) * 100, 100) : 0;
-        const proProgress = safeTargets.protein > 0 ? Math.min((cleanNum(this.data.pro) / safeTargets.protein) * 100, 100) : 0;
-        const carbProgress = safeTargets.carb > 0 ? Math.min((cleanNum(this.data.carb) / safeTargets.carb) * 100, 100) : 0;
-        const fatProgress = safeTargets.fat > 0 ? Math.min((cleanNum(this.data.fat) / safeTargets.fat) * 100, 100) : 0;
+        // Update progress bar for calories only
+        const calProgress = targetCalories > 0 ? Math.min((cleanNum(this.data.cal) / targetCalories) * 100, 100) : 0;
         
         document.getElementById('bar-cal').style.width = calProgress + '%';
-        document.getElementById('bar-pro').style.width = proProgress + '%';
-        document.getElementById('bar-carb').style.width = carbProgress + '%';
-        document.getElementById('bar-fat').style.width = fatProgress + '%';
-        
         document.getElementById('progress-cal').innerText = Math.round(calProgress) + '%';
         document.getElementById('log-count').innerText = `${this.data.list.length} món`;
         
