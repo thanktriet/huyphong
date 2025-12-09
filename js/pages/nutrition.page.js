@@ -54,23 +54,17 @@ const NutritionPage = {
                 this.data.cal = this.data.cal || 0;
                 this.data.list = this.data.list || [];
                 
-                // Ensure targets and progress exist with safe defaults
+                // Ensure target calories exists
                 if (!this.data.targets || typeof this.data.targets !== 'object') {
-                    this.data.targets = { calories: 2000, protein: 0, carb: 0, fat: 0 };
+                    this.data.targets = { calories: 2000 };
                 } else {
-                    // Ensure all target properties exist
+                    // Ensure target calories exists
                     this.data.targets.calories = (this.data.targets.calories !== undefined && this.data.targets.calories !== null) 
                         ? this.data.targets.calories : 2000;
-                    this.data.targets.protein = (this.data.targets.protein !== undefined && this.data.targets.protein !== null) 
-                        ? this.data.targets.protein : 0;
-                    this.data.targets.carb = (this.data.targets.carb !== undefined && this.data.targets.carb !== null) 
-                        ? this.data.targets.carb : 0;
-                    this.data.targets.fat = (this.data.targets.fat !== undefined && this.data.targets.fat !== null) 
-                        ? this.data.targets.fat : 0;
                 }
                 
                 if (!this.data.progress || typeof this.data.progress !== 'object') {
-                    this.data.progress = { calories: 0, protein: 0, carb: 0, fat: 0 };
+                    this.data.progress = { calories: 0 };
                 }
                 
                 const cacheKey = `pt_nutri_v4_${this.user.id}`;

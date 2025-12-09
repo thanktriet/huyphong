@@ -939,24 +939,11 @@ async function getDailyMacros(userId) {
             });
         });
 
-        // Add targets and progress - ensure targets exists
-        if (!targets || typeof targets !== 'object') {
-            targets = { calories: 2000, protein: 0, carb: 0, fat: 0 };
-        }
-        
+        // Add targets and progress - only calories
         totals.targets = targets;
         totals.progress = {
             calories: (targets.calories && targets.calories > 0) 
                 ? Math.min((totals.cal / targets.calories) * 100, 100) 
-                : 0,
-            protein: (targets.protein && targets.protein > 0) 
-                ? Math.min((totals.pro / targets.protein) * 100, 100) 
-                : 0,
-            carb: (targets.carb && targets.carb > 0) 
-                ? Math.min((totals.carb / targets.carb) * 100, 100) 
-                : 0,
-            fat: (targets.fat && targets.fat > 0) 
-                ? Math.min((totals.fat / targets.fat) * 100, 100) 
                 : 0
         };
 
@@ -1055,25 +1042,14 @@ async function setUserTargets(userId, targets) {
             return { success: false, message: 'Targets object is required' };
         }
 
-        // Safe parse with defaults - handle undefined/null
-        const updateData = {
-            target_calories: targets.calories !== undefined && targets.calories !== null 
-                ? parseFloat(targets.calories) || 2000 
-                : 2000,
-            target_protein: targets.protein !== undefined && targets.protein !== null 
-                ? parseFloat(targets.protein) || 0 
-                : 0,
-            target_carb: targets.carb !== undefined && targets.carb !== null 
-                ? parseFloat(targets.carb) || 0 
-                : 0,
-            target_fat: targets.fat !== undefined && targets.fat !== null 
-                ? parseFloat(targets.fat) || 0 
-                : 0
-        };
+        // Only update target calories (no macros)
+        const targetCalories = targets.calories !== undefined && targets.calories !== null 
+            ? parseFloat(targets.calories) || 2000 
+            : 2000;
 
         const { error } = await getSupabase()
             .from('users')
-            .update(updateData)
+            .update({ target_calories: targetCalories })
             .eq('id', userId);
 
         if (error) throw error;

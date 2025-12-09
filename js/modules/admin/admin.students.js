@@ -45,6 +45,7 @@ const AdminStudents = {
                     <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold hover:bg-blue-100">Nạp Buổi</button>
                         <button onclick="AdminStudents.openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button>
+                        <button onclick="AdminStudents.openSetTargetCalories('${st.id}','${st.name}',${st.targetCalories || 2000})" class="bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100">🎯 Calories</button>
                     </div>
                     <div class="flex gap-1 justify-end">
                         <button onclick="AdminStudents.openEdit('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
@@ -239,15 +240,47 @@ const AdminStudents = {
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         if (assignStudents) assignStudents.innerHTML = 
             this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        if (mealplanStudent) {
-            mealplanStudent.innerHTML = '<option value="">-- Chọn Học Viên --</option>' + 
-                this.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-            console.log('Meal plan dropdown populated with', this.students.length, 'students');
-        } else {
-            console.warn('mealplan-student-select element not found');
-        }
     },
 
+    openSetTargetCalories(id, name, currentTarget) {
+        document.getElementById('target-cal-student-id').value = id;
+        document.getElementById('target-cal-student-name').innerText = name;
+        document.getElementById('target-cal-input').value = currentTarget || 2000;
+        toggleModal('modal-set-target-calories');
+    },
+
+    async saveTargetCalories() {
+        const id = document.getElementById('target-cal-student-id').value;
+        const calories = parseFloat(document.getElementById('target-cal-input').value) || 2000;
+        
+        if (!id) {
+            Toast.error('Không tìm thấy học viên');
+            return;
+        }
+
+        if (calories <= 0) {
+            Toast.error('Calories phải lớn hơn 0');
+            return;
+        }
+
+        try {
+            Loader.show();
+            const result = await AdminService.setUserTargets(id, { calories });
+            
+            if (result.success) {
+                Toast.success("Đã cập nhật mục tiêu calories");
+                toggleModal('modal-set-target-calories');
+                await this.init();
+            } else {
+                Toast.error(result.message || 'Lỗi cập nhật');
+            }
+        } catch (error) {
+            console.error('Error saving target calories:', error);
+            Toast.error('Lỗi: ' + (error.message || 'Không thể lưu mục tiêu'));
+        } finally {
+            Loader.hide();
+        }
+    }
 };
 
 window.AdminStudents = AdminStudents;

@@ -68,7 +68,6 @@
             <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('calendar', this)" class="tab-btn active flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Lịch Trình</button>
             <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('builder', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="pencil-ruler" class="w-4 h-4"></i> Giáo Án</button>
             <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('students', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="users" class="w-4 h-4"></i> Học Viên</button>
-            <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('mealplan', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="chef-hat" class="w-4 h-4"></i> Meal Plan</button>
             <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('exercise', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="dumbbell" class="w-4 h-4"></i> Bài Tập</button>
             <button onclick="if(typeof AdminPage !== 'undefined') AdminPage.switchTab('food', this)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 flex justify-center gap-2 whitespace-nowrap transition-colors"><i data-lucide="utensils" class="w-4 h-4"></i> Món Ăn</button>
         </div>
@@ -106,45 +105,6 @@
             <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow border"><div class="flex justify-between mb-4"><h2 class="font-bold">Kho Bài Tập</h2><input onkeyup="filterTable('ex-list',this.value)" class="border p-2 rounded text-sm pl-8" placeholder="Tìm kiếm..."><i data-lucide="search" class="absolute ml-2 mt-2.5 w-4 text-slate-400"></i></div><div class="table-container"><table class="w-full text-sm"><tbody id="ex-list" class="divide-y divide-slate-100"></tbody></table></div></div>
         </div>
 
-        <div id="view-mealplan" class="view-section hidden space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-lg font-bold text-slate-700">Meal Planning & Targets</h2>
-                <select id="mealplan-student-select" class="border p-2.5 rounded-lg text-sm bg-white min-w-[200px]">
-                    <option value="">-- Chọn Học Viên --</option>
-                </select>
-            </div>
-            
-            <!-- Targets Section -->
-            <div id="mealplan-targets-section" class="bg-white rounded-xl shadow border border-slate-200 p-4 sm:p-6 hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-700">Mục Tiêu Calories & Macros</h3>
-                    <button onclick="AdminMealPlan.saveTargets()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700">💾 Lưu Mục Tiêu</button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 mb-1 block">Calories/ngày</label>
-                        <input id="mealplan-target-calories" type="number" class="w-full border p-2.5 rounded-lg font-bold" placeholder="2000" min="0">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 mb-1 block">Protein (g)</label>
-                        <input id="mealplan-target-protein" type="number" class="w-full border p-2.5 rounded-lg" placeholder="0" min="0">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 mb-1 block">Carb (g)</label>
-                        <input id="mealplan-target-carb" type="number" class="w-full border p-2.5 rounded-lg" placeholder="0" min="0">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 mb-1 block">Fat (g)</label>
-                        <input id="mealplan-target-fat" type="number" class="w-full border p-2.5 rounded-lg" placeholder="0" min="0">
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Meal Plan Section -->
-            <div id="mealplan-container" class="bg-white rounded-xl shadow border border-slate-200 p-4 sm:p-6">
-                <div class="text-center text-slate-400 py-10">Chọn học viên để tạo meal plan</div>
-            </div>
-        </div>
 
         <div id="view-food" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow border h-fit sticky top-24"><h2 class="font-bold mb-4 flex justify-between items-center"><span id="fd-form-title">Thêm Món Ăn</span> <button onclick="AdminFoods.resetForm()" class="text-xs text-slate-400 hover:text-red-500">Hủy</button></h2><form id="form-food" class="space-y-3"><input type="hidden" id="fd-id-edit"><input id="fd-name" class="w-full border p-2.5 rounded" placeholder="Tên món" required><div class="grid grid-cols-2 gap-2"><input id="fd-cal" type="number" class="border p-2 rounded" placeholder="Calo" required><input id="fd-unit" class="border p-2 rounded" value="100g"></div><div class="grid grid-cols-3 gap-2"><input id="fd-pro" type="number" class="border p-2 rounded" placeholder="Pro"><input id="fd-carb" type="number" class="border p-2 rounded" placeholder="Carb"><input id="fd-fat" type="number" class="border p-2 rounded" placeholder="Fat"></div><button id="btn-fd-save" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow hover:bg-green-700">Thêm Mới</button></form></div>
@@ -157,6 +117,7 @@
     <div id="modal-add-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Thêm Học Viên</h3><form id="form-register" class="space-y-3"><input id="reg-name" class="w-full border p-3 rounded" placeholder="Họ tên" required><input id="reg-email" class="w-full border p-3 rounded" placeholder="Email" required><input id="reg-phone" class="w-full border p-3 rounded" placeholder="SĐT" required><button class="w-full bg-blue-600 text-white font-bold py-3 rounded">Tạo</button></form></div></div>
     <div id="modal-extend" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-extend')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Gia Hạn Gói Tập</h3><input type="hidden" id="ext-id"><div class="space-y-3"><label class="block text-sm font-bold text-slate-600">Hạn sử dụng mới:</label><input id="ext-date" type="date" class="w-full border p-3 rounded-lg font-bold bg-slate-50"><button onclick="AdminStudents.submitExtend()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700">Xác Nhận</button></div></div></div>
     <div id="modal-edit-student" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-edit-student')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Sửa Thông Tin</h3><input type="hidden" id="edt-st-id"><div class="space-y-3"><input id="edt-st-name" class="w-full border p-3 rounded" placeholder="Họ tên"><input id="edt-st-email" class="w-full border p-3 rounded" placeholder="Email"><input id="edt-st-phone" class="w-full border p-3 rounded" placeholder="SĐT"><button onclick="AdminStudents.submitEdit()" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl hover:bg-orange-600">Cập Nhật</button></div></div></div>
+    <div id="modal-set-target-calories" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50"><div class="absolute inset-0 bg-slate-900 opacity-50"></div><div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl z-50 p-6 relative"><button onclick="toggleModal('modal-set-target-calories')" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x"></i></button><h3 class="font-bold mb-4">Đặt Mục Tiêu Calories</h3><input type="hidden" id="target-cal-student-id"><div class="space-y-3"><p class="text-sm text-slate-600">Học viên: <span id="target-cal-student-name" class="font-bold text-slate-800"></span></p><label class="block text-sm font-bold text-slate-600">Calories mục tiêu/ngày:</label><input id="target-cal-input" type="number" class="w-full border p-3 rounded-lg font-bold bg-slate-50" placeholder="2000" min="0" step="50"><button onclick="AdminStudents.saveTargetCalories()" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700">💾 Lưu Mục Tiêu</button></div></div></div>
 
     <datalist id="dl-exercises"></datalist>
 
@@ -179,7 +140,6 @@
     <script src="js/modules/admin/admin.exercises.js"></script>
     <script src="js/modules/admin/admin.foods.js"></script>
     <script src="js/modules/admin/admin.plans.js"></script>
-    <script src="js/modules/admin/admin.mealplan.js"></script>
     <script src="js/pages/admin.page.js"></script>
     <!-- supabase/api.js will be loaded by API.init() -->
 

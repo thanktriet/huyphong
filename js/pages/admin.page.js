@@ -112,12 +112,6 @@ const AdminPage = {
         }
 
         // Meal Plan student select
-        const mealplanSelect = document.getElementById('mealplan-student-select');
-        if (mealplanSelect) {
-            mealplanSelect.addEventListener('change', async () => {
-                await AdminMealPlan.onStudentSelect();
-            });
-        }
     },
 
     async switchTab(name, btn) {
@@ -141,14 +135,6 @@ const AdminPage = {
             AdminFoods.init();
         } else if (name === 'builder') {
             AdminPlans.init();
-        } else if (name === 'mealplan') {
-            // Ensure students are loaded first to populate dropdown
-            if (!AdminStudents.students || AdminStudents.students.length === 0) {
-                await AdminStudents.load();
-            }
-            AdminStudents.fillDropdowns();
-            AdminMealPlan.init();
-        }
     },
 
     async refresh() {
