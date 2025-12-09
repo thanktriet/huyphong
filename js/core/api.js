@@ -277,6 +277,24 @@ class APIClient {
         return this.call('getUserTargets', { userId });
     }
 
+    // Workout History
+    async getWorkoutHistory(userId, useCache = true) {
+        await this.init();
+        if (!this.api || !this.api.getWorkoutHistory) {
+            throw new Error('Supabase API not initialized or getWorkoutHistory function not found.');
+        }
+        const cacheKey = `workout_history_${userId}`;
+        if (useCache) {
+            const cached = Utils.cache.get(cacheKey);
+            if (cached) return cached;
+        }
+        const result = await this.api.getWorkoutHistory(userId);
+        if (useCache && result.success) {
+            Utils.cache.set(cacheKey, result);
+        }
+        return result;
+    }
+
     // Nutrition History
     async getNutritionHistory(userId, useCache = true) {
         await this.init();
