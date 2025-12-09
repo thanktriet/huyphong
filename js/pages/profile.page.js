@@ -123,19 +123,39 @@ const ProfilePage = {
         try {
             const result = await NutritionService.getHistory(this.user.id, true);
             
-            if (result.success && Object.keys(result.data).length > 0) {
-                const dates = Object.keys(result.data).sort((a, b) => 
-                    new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'))
-                );
+            if (result.success && result.data && Object.keys(result.data).length > 0) {
+                // Format dates - handle both YYYY-MM-DD and DD/MM/YYYY formats
+                const formatDate = (dateStr) => {
+                    if (dateStr.includes('/')) {
+                        return dateStr; // Already in DD/MM/YYYY format
+                    }
+                    // Convert YYYY-MM-DD to DD/MM/YYYY
+                    const [year, month, day] = dateStr.split('-');
+                    return `${day}/${month}/${year}`;
+                };
+                
+                const sortDates = (a, b) => {
+                    // Handle both formats
+                    const dateA = a.includes('/') 
+                        ? new Date(a.split('/').reverse().join('-'))
+                        : new Date(a);
+                    const dateB = b.includes('/')
+                        ? new Date(b.split('/').reverse().join('-'))
+                        : new Date(b);
+                    return dateB - dateA;
+                };
+                
+                const dates = Object.keys(result.data).sort(sortDates);
                 
                 container.innerHTML = dates.map(date => {
                     const day = result.data[date];
+                    const formattedDate = formatDate(date);
                     return `
                         <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
                             <div class="flex justify-between items-center mb-3">
                                 <h3 class="font-bold text-slate-700 flex items-center gap-2">
                                     <i data-lucide="calendar-check" class="w-4 h-4 text-green-500"></i>
-                                    ${date}
+                                    ${formattedDate}
                                 </h3>
                                 <span class="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-lg font-bold">
                                     ${day.count || 0} món
@@ -166,8 +186,9 @@ const ProfilePage = {
                 container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có lịch sử dinh dưỡng.</p></div>';
             }
         } catch (error) {
-            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu.</p></div>';
-            Toast.error('Lỗi: ' + error.message);
+            console.error('Error loading nutrition history:', error);
+            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p></div>';
+            Toast.error('Lỗi: ' + (error.message || 'Không thể tải dữ liệu'));
         }
         
         lucide.createIcons();
