@@ -369,6 +369,16 @@ const WorkoutPage = {
     },
 
     async showHistory(btn) {
+        // Ensure user is loaded
+        if (!this.user) {
+            this.user = AuthService.getCurrentUser();
+            if (!this.user) {
+                Toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
         this.currentTab = "HISTORY";
         
         document.querySelectorAll('#tabs button').forEach(b => {
@@ -378,7 +388,10 @@ const WorkoutPage = {
         btn.className = 'px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap border bg-orange-50 text-orange-600 border-orange-200 flex items-center gap-1 transform scale-105 transition-transform';
         
         document.getElementById('workout-view').classList.add('hidden');
-        document.getElementById('floating-action').classList.add('translate-y-[150%]');
+        const floatingAction = document.getElementById('floating-action');
+        if (floatingAction) {
+            floatingAction.classList.add('translate-y-[150%]');
+        }
         
         const histView = document.getElementById('history-view');
         histView.classList.remove('hidden');
@@ -386,41 +399,75 @@ const WorkoutPage = {
         lucide.createIcons();
 
         try {
+            console.log('Loading workout history for user:', this.user.id);
             const result = await WorkoutService.getHistory(this.user.id);
+            console.log('Workout history result:', result);
             
-            if (result.success && Object.keys(result.data).length > 0) {
-                const dates = Object.keys(result.data).sort((a, b) => 
-                    new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'))
-                );
+            if (result && result.success && result.data && typeof result.data === 'object') {
+                const dataKeys = Object.keys(result.data);
+                console.log('History data keys:', dataKeys);
                 
-                histView.innerHTML = dates.map(date => `
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-                            <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
-                                <i data-lucide="calendar-check" class="w-4 h-4 text-green-500"></i> ${date}
-                            </span>
-                            <span class="text-[10px] text-slate-500 bg-white border px-2 py-1 rounded-lg font-bold">
-                                ${result.data[date].length} sets
-                            </span>
-                        </div>
-                        <div class="divide-y divide-slate-50">
-                            ${result.data[date].map(l => `
-                                <div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50">
-                                    <span class="font-medium text-slate-700 line-clamp-1">${l.exercise}</span>
-                                    <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold text-xs border border-blue-100 whitespace-nowrap">
-                                        ${l.weight}kg x ${l.reps}
+                if (dataKeys.length > 0) {
+                    // Format dates - handle both YYYY-MM-DD and DD/MM/YYYY formats
+                    const formatDate = (dateStr) => {
+                        if (dateStr.includes('/')) {
+                            return dateStr; // Already in DD/MM/YYYY format
+                        }
+                        // Convert YYYY-MM-DD to DD/MM/YYYY
+                        const [year, month, day] = dateStr.split('-');
+                        return `${day}/${month}/${year}`;
+                    };
+                    
+                    const sortDates = (a, b) => {
+                        // Handle both formats
+                        const dateA = a.includes('/') 
+                            ? new Date(a.split('/').reverse().join('-'))
+                            : new Date(a);
+                        const dateB = b.includes('/')
+                            ? new Date(b.split('/').reverse().join('-'))
+                            : new Date(b);
+                        return dateB - dateA;
+                    };
+                    
+                    const dates = dataKeys.sort(sortDates);
+                    
+                    histView.innerHTML = dates.map(date => {
+                        const formattedDate = formatDate(date);
+                        const logs = result.data[date] || [];
+                        return `
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                                <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+                                    <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                        <i data-lucide="calendar-check" class="w-4 h-4 text-green-500"></i> ${formattedDate}
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 bg-white border px-2 py-1 rounded-lg font-bold">
+                                        ${logs.length} sets
                                     </span>
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('');
+                                <div class="divide-y divide-slate-50">
+                                    ${logs.map(l => `
+                                        <div class="p-3 flex justify-between items-center text-sm hover:bg-slate-50">
+                                            <span class="font-medium text-slate-700 line-clamp-1">${l.exercise || 'N/A'}</span>
+                                            <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold text-xs border border-blue-100 whitespace-nowrap">
+                                                ${l.weight || 0}kg x ${l.reps || 0}
+                                            </span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    histView.innerHTML = '<div class="text-center text-slate-400 mt-10"><p>Chưa có lịch sử tập luyện.</p></div>';
+                }
             } else {
+                console.warn('No history data or invalid format:', result);
                 histView.innerHTML = '<div class="text-center text-slate-400 mt-10"><p>Chưa có lịch sử tập luyện.</p></div>';
             }
         } catch (error) {
-            histView.innerHTML = '<div class="text-center text-red-400 mt-10"><p>Lỗi tải lịch sử.</p></div>';
-            Toast.error('Lỗi: ' + error.message);
+            console.error('Error loading workout history:', error);
+            histView.innerHTML = '<div class="text-center text-red-400 mt-10"><p>Lỗi tải lịch sử: ' + (error.message || 'Unknown error') + '</p></div>';
+            Toast.error('Lỗi: ' + (error.message || 'Không thể tải lịch sử'));
         }
         
         lucide.createIcons();
