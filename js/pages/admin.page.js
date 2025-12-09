@@ -135,6 +135,7 @@ const AdminPage = {
             AdminFoods.init();
         } else if (name === 'builder') {
             AdminPlans.init();
+        }
     },
 
     async refresh() {
