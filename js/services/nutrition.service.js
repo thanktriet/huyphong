@@ -39,10 +39,7 @@ const NutritionService = {
     // Get nutrition history
     async getHistory(userId, useCache = true) {
         try {
-            return await API.call('getNutritionHistory', { userId }, {
-                useCache,
-                cacheKey: `nutrition_history_${userId}`
-            });
+            return await API.getNutritionHistory(userId, useCache);
         } catch (error) {
             return Utils.handleError(error, 'NutritionService.getHistory');
         }

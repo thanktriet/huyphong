@@ -277,6 +277,42 @@ class APIClient {
         return this.call('getUserTargets', { userId });
     }
 
+    // Nutrition History
+    async getNutritionHistory(userId, useCache = true) {
+        await this.init();
+        if (!this.api || !this.api.getNutritionHistory) {
+            throw new Error('Supabase API not initialized or getNutritionHistory function not found.');
+        }
+        const cacheKey = `nutrition_history_${userId}`;
+        if (useCache) {
+            const cached = Utils.cache.get(cacheKey);
+            if (cached) return cached;
+        }
+        const result = await this.api.getNutritionHistory(userId);
+        if (useCache && result.success) {
+            Utils.cache.set(cacheKey, result);
+        }
+        return result;
+    }
+
+    // Body History
+    async getBodyHistory(userId, useCache = true) {
+        await this.init();
+        if (!this.api || !this.api.getBodyHistory) {
+            throw new Error('Supabase API not initialized or getBodyHistory function not found.');
+        }
+        const cacheKey = `body_history_${userId}`;
+        if (useCache) {
+            const cached = Utils.cache.get(cacheKey);
+            if (cached) return cached;
+        }
+        const result = await this.api.getBodyHistory(userId);
+        if (useCache && result.success) {
+            Utils.cache.set(cacheKey, result);
+        }
+        return result;
+    }
+
     // Meal Planning
     async createMealPlan(userId, weekStartDate, meals, createdBy = null) {
         return this.call('createMealPlan', { userId, weekStartDate, meals, createdBy });

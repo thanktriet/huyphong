@@ -179,35 +179,52 @@ const ProfilePage = {
         lucide.createIcons();
 
         try {
-            const result = await API.call('getBodyHistory', { userId: this.user.id });
+            const result = await API.getBodyHistory(this.user.id, true);
             
             if (result.success && result.data && result.data.length > 0) {
-                container.innerHTML = result.data.map(item => `
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                                <i data-lucide="calendar-check" class="w-4 h-4 text-blue-500"></i>
-                                ${item.date}
-                            </h3>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                                <div class="text-xs text-blue-600 font-bold mb-1">Cân nặng</div>
-                                <div class="text-lg font-black text-blue-700">${item.weight || '---'} kg</div>
+                // Sort by date descending
+                const sortedData = result.data.sort((a, b) => {
+                    const dateA = new Date(a.date.split('/').reverse().join('-'));
+                    const dateB = new Date(b.date.split('/').reverse().join('-'));
+                    return dateB - dateA;
+                });
+                
+                container.innerHTML = sortedData.map(item => {
+                    // Format date if needed
+                    let dateStr = item.date;
+                    if (dateStr.includes('-')) {
+                        const [year, month, day] = dateStr.split('-');
+                        dateStr = `${day}/${month}/${year}`;
+                    }
+                    
+                    return `
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                    <i data-lucide="calendar-check" class="w-4 h-4 text-blue-500"></i>
+                                    ${dateStr}
+                                </h3>
                             </div>
-                            <div class="bg-purple-50 p-3 rounded-lg border border-purple-100">
-                                <div class="text-xs text-purple-600 font-bold mb-1">Vòng eo</div>
-                                <div class="text-lg font-black text-purple-700">${item.waist || '---'} cm</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                    <div class="text-xs text-blue-600 font-bold mb-1">Cân nặng</div>
+                                    <div class="text-lg font-black text-blue-700">${item.weight || '---'} kg</div>
+                                </div>
+                                <div class="bg-purple-50 p-3 rounded-lg border border-purple-100">
+                                    <div class="text-xs text-purple-600 font-bold mb-1">Vòng eo</div>
+                                    <div class="text-lg font-black text-purple-700">${item.waist || '---'} cm</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
                 container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có dữ liệu theo dõi cơ thể.</p></div>';
             }
         } catch (error) {
-            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu.</p></div>';
-            Toast.error('Lỗi: ' + error.message);
+            console.error('Error loading body history:', error);
+            container.innerHTML = '<div class="text-center text-red-400 py-10"><p>Lỗi tải dữ liệu: ' + (error.message || 'Unknown error') + '</p></div>';
+            Toast.error('Lỗi: ' + (error.message || 'Không thể tải dữ liệu'));
         }
         
         lucide.createIcons();
