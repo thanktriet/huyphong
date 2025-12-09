@@ -204,7 +204,11 @@ class APIClient {
     }
 
     async getDailyMacros(userId) {
-        return this.call('getDailyMacros', { userId });
+        await this.init();
+        if (!this.api || !this.api.getDailyMacros) {
+            throw new Error('Supabase API not initialized or getDailyMacros function not found.');
+        }
+        return await this.api.getDailyMacros(userId);
     }
 
     async getSchedule(useCache = true) {
