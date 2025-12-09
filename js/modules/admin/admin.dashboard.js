@@ -111,7 +111,35 @@ const AdminDashboard = {
             return;
         }
 
-        // Show loading immediately
+        // If no student selected, show prompt to select
+        if (!this.selectedStudentId) {
+            const activeCount = this.students ? this.students.filter(s => s.status === 'Active').length : 0;
+            const totalCount = this.students ? this.students.length : 0;
+            
+            container.innerHTML = `
+                <div class="text-center py-10">
+                    <div class="mb-6">
+                        <i data-lucide="user-search" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
+                        <h3 class="text-lg font-bold text-slate-700 mb-2">Chọn học viên để xem thống kê</h3>
+                        <p class="text-sm text-slate-500">Vui lòng chọn học viên ở dropdown phía trên</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                            <div class="text-xs text-blue-600 font-bold uppercase mb-1">Tổng Học Viên</div>
+                            <div class="text-2xl font-black text-blue-700">${totalCount}</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                            <div class="text-xs text-green-600 font-bold uppercase mb-1">Active</div>
+                            <div class="text-2xl font-black text-green-700">${activeCount}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        // Show loading for selected student
         container.innerHTML = '<div class="text-center py-10 text-slate-400"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i><p>Đang tải dữ liệu...</p></div>';
         lucide.createIcons();
 
@@ -129,73 +157,19 @@ const AdminDashboard = {
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600 space-y-2">
                             <p>💡 <strong>Gợi ý:</strong></p>
-                            <p>• Chọn học viên cụ thể ở trên để xem chi tiết</p>
-                            <p>• Hoặc làm mới trang (F5)</p>
+                            <p>• Thử chọn học viên khác</p>
+                            <p>• Làm mới trang (F5)</p>
                             <p>• Kiểm tra kết nối internet</p>
                         </div>
                     </div>
                 `;
                 lucide.createIcons();
             }
-        }, 10000); // Reduced to 10 seconds
+        }, 10000);
 
         try {
-            console.log('Loading dashboard data, selectedStudentId:', this.selectedStudentId);
-            console.log('Students available:', this.students?.length || 0);
-            
-            if (this.selectedStudentId) {
-                // Load data for specific student
-                console.log('Loading student stats for:', this.selectedStudentId);
-                await this.loadStudentStats(this.selectedStudentId);
-            } else {
-                // Load overview for all students - simplified version
-                console.log('Loading overview, students count:', this.students?.length || 0);
-                
-                // If no students, show immediately
-                if (!this.students || this.students.length === 0) {
-                    clearTimeout(timeoutId);
-                    container.innerHTML = '<div class="text-center text-slate-400 py-10"><p>Chưa có học viên nào</p><p class="text-xs mt-2">Vui lòng thêm học viên trong tab "Học Viên"</p></div>';
-                    lucide.createIcons();
-                    return;
-                }
-                
-                // Try to load overview with timeout protection
-                try {
-                    await Promise.race([
-                        this.loadOverview(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Overview timeout')), 8000))
-                    ]);
-                } catch (overviewError) {
-                    console.error('Overview loading error or timeout:', overviewError);
-                    // Show basic stats even if overview fails
-                    const activeCount = this.students.filter(s => s.status === 'Active').length;
-                    container.innerHTML = `
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <div class="bg-orange-100 p-2 rounded-lg">
-                                        <i data-lucide="users" class="w-5 h-5 text-orange-600"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs text-orange-600 font-bold uppercase">Học Viên Active</div>
-                                        <div class="text-2xl font-black text-orange-700">${activeCount}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                            <p class="text-sm text-slate-600 text-center">
-                                <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
-                                Chọn học viên cụ thể ở trên để xem chi tiết thống kê
-                            </p>
-                            <p class="text-xs text-orange-400 text-center mt-2">
-                                ⚠️ Không thể tải thống kê tổng hợp. Vui lòng chọn học viên cụ thể.
-                            </p>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                }
-            }
+            console.log('Loading student stats for:', this.selectedStudentId);
+            await this.loadStudentStats(this.selectedStudentId);
             
             if (!timeoutTriggered) {
                 clearTimeout(timeoutId);
@@ -219,7 +193,7 @@ const AdminDashboard = {
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600">
                             <p>Vui lòng thử:</p>
-                            <p>• Chọn học viên cụ thể</p>
+                            <p>• Chọn học viên khác</p>
                             <p>• Làm mới trang</p>
                             <p>• Kiểm tra console (F12) để xem chi tiết lỗi</p>
                         </div>
