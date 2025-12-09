@@ -370,7 +370,8 @@ const NutritionPage = {
         window.location.reload();
     },
 
-    async showMealPlan() {
+    // Removed showMealPlan - meal plan feature removed
+    async _showMealPlan() {
         // Get Monday of current week
         const today = new Date();
         const day = today.getDay();
