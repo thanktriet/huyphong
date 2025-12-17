@@ -180,7 +180,23 @@
 
         <div id="view-students" class="view-section hidden space-y-4">
             <div class="flex justify-between items-center"><h2 class="text-lg font-bold text-slate-700">Danh sách Học viên</h2><button onclick="toggleModal('modal-add-student')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex gap-2 shadow hover:bg-blue-700"><i data-lucide="user-plus" class="w-4 h-4"></i> Thêm</button></div>
-            <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden admin-table-wrapper"><table class="w-full text-sm text-left admin-table"><thead class="bg-slate-50 font-bold border-b"><tr><th class="p-4">Học viên</th><th class="p-4 text-center">Gói Tập</th><th class="p-4 text-right w-56">Thao tác</th></tr></thead><tbody id="student-list" class="divide-y divide-slate-100"></tbody></table></div>
+            <!-- Desktop: Table layout -->
+            <div class="hidden md:block bg-white rounded-xl shadow border border-slate-200 overflow-hidden admin-table-wrapper">
+                <table class="w-full text-sm text-left admin-table">
+                    <thead class="bg-slate-50 font-bold border-b">
+                        <tr>
+                            <th class="p-4">Học viên</th>
+                            <th class="p-4 text-center">Gói Tập</th>
+                            <th class="p-4 text-right w-56">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-list" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <!-- Mobile: Card layout -->
+            <div class="block md:hidden bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                <div id="student-list-mobile" class="divide-y divide-slate-100"></div>
+            </div>
         </div>
 
         <div id="view-exercise" class="view-section hidden grid grid-cols-1 lg:grid-cols-3 gap-6">

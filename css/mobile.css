@@ -138,15 +138,117 @@ input[type="number"] {
     }
 }
 
+/* Student cards on mobile */
+@media (max-width: 767px) {
+    .student-card-mobile {
+        transition: background-color 0.2s;
+    }
+    
+    .student-card-mobile:last-child {
+        border-bottom: none;
+    }
+    
+    .student-card-mobile .student-action-btn {
+        min-height: 40px;
+        font-size: 12px;
+    }
+}
+
 /* Better admin tables on mobile */
 @media (max-width: 768px) {
     .admin-table-wrapper {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        position: relative;
+        /* Add visual indicator for horizontal scroll */
+        background: white;
+        border-radius: 0.75rem;
+    }
+    
+    /* Add scroll indicator shadow */
+    .admin-table-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 40px;
+        height: 100%;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.08));
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        border-radius: 0 0.75rem 0.75rem 0;
+    }
+    
+    .admin-table-wrapper.scrollable::after {
+        opacity: 1;
+    }
+    
+    /* Add scroll hint on mobile */
+    .admin-table-wrapper.scrollable::before {
+        content: '← Vuốt để xem thêm →';
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        animation: fadeOut 3s ease-out forwards;
+    }
+    
+    @keyframes fadeOut {
+        0%, 60% { opacity: 1; }
+        100% { opacity: 0; }
     }
     
     .admin-table {
         min-width: 600px;
+    }
+    
+    /* Optimize button sizes on mobile for student list */
+    .admin-table .student-actions-cell {
+        min-width: 240px;
+        padding-right: 1.5rem !important;
+        padding-left: 0.75rem !important;
+        position: relative;
+    }
+    
+    .admin-table .student-action-btn {
+        font-size: 11px !important;
+        padding: 6px 10px !important;
+        min-width: auto !important;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .admin-table .student-actions-cell .flex {
+        flex-wrap: nowrap;
+        gap: 4px !important;
+    }
+    
+    /* Ensure buttons are always visible and clickable */
+    .admin-table .student-actions-cell {
+        background: white;
+        z-index: 5;
+    }
+    
+    .admin-table tr:hover .student-actions-cell,
+    .admin-table tr:active .student-actions-cell {
+        background: #f8fafc;
+    }
+    
+    /* Make sure the last column header also has proper width */
+    .admin-table thead th:last-child {
+        min-width: 240px;
+        padding-right: 1.5rem !important;
     }
     
     /* Stack table cells on very small screens */

@@ -8,6 +8,15 @@ const AdminStudents = {
     async init() {
         await this.load();
         this.render();
+        
+        // Re-render on window resize to switch between mobile/desktop layouts
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.render();
+            }, 250);
+        });
     },
 
     async load() {
@@ -22,47 +31,107 @@ const AdminStudents = {
     },
 
     render() {
-        const container = document.getElementById('student-list');
+        const isMobile = window.innerWidth < 768;
+        const container = isMobile ? document.getElementById('student-list-mobile') : document.getElementById('student-list');
+        
+        if (!container) {
+            console.error('Student list container not found');
+            return;
+        }
+        
         if (!this.students || this.students.length === 0) {
-            container.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-slate-400">Chưa có học viên nào.</td></tr>';
+            if (isMobile) {
+                container.innerHTML = '<div class="p-10 text-center text-slate-400">Chưa có học viên nào.</div>';
+            } else {
+                container.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-slate-400">Chưa có học viên nào.</td></tr>';
+            }
             return;
         }
 
-        container.innerHTML = this.students.map(st => `
-            <tr class="hover:bg-slate-50 border-b">
-                <td class="p-4">
-                    <a href="profile-student.html?id=${st.id}" class="font-bold text-blue-600 hover:underline text-lg">${st.name}</a>
-                    <br><span class="text-xs text-slate-400">${st.email}</span>
-                    <br><span class="text-[10px] ${st.isExpired ? 'text-red-500' : 'text-green-600'} font-bold">
-                        ${st.isExpired ? 'Hết hạn' : 'Hạn: ' + st.expiryDate}
-                    </span>
-                </td>
-                <td class="p-4 text-center">
-                    <div class="font-black text-lg text-blue-600">${st.sessionLeft || 0}</div>
-                    <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
-                </td>
-                <td class="p-4 text-right space-y-2">
-                    <div class="flex gap-1 justify-end">
-                        <button onclick="AdminStudents.topUp('${st.id}','${st.name}')" class="bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold hover:bg-blue-100">Nạp Buổi</button>
-                        <button onclick="AdminStudents.openExtendModal('${st.id}')" class="bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100">Gia Hạn</button>
-                        <button onclick="AdminStudents.openSetTargetCalories('${st.id}','${st.name}',${st.targetCalories || 2000})" class="bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100">🎯 Calories</button>
+        if (isMobile) {
+            // Mobile: Card layout
+            container.innerHTML = this.students.map(st => `
+                <div class="student-card-mobile border-b border-slate-200 p-4 bg-white hover:bg-slate-50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <a href="profile-student.html?id=${st.id}" class="font-bold text-blue-600 hover:underline text-base block mb-1">${st.name}</a>
+                            <span class="text-xs text-slate-400 block mb-1">${st.email}</span>
+                            <span class="text-[10px] ${st.isExpired ? 'text-red-500' : 'text-green-600'} font-bold">
+                                ${st.isExpired ? 'Hết hạn' : 'Hạn: ' + st.expiryDate}
+                            </span>
+                        </div>
+                        <div class="text-center ml-4">
+                            <div class="font-black text-xl text-blue-600">${st.sessionLeft || 0}</div>
+                            <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
+                        </div>
                     </div>
-                    <div class="flex gap-1 justify-end">
-                        <button onclick="AdminStudents.openEdit('${st.id}')" class="bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
-                            <i data-lucide="edit-2" class="w-3 h-3"></i>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button onclick="AdminStudents.topUp('${st.id}','${st.name}')" class="student-action-btn bg-blue-50 text-blue-600 px-3 py-2 rounded border text-xs font-bold hover:bg-blue-100 flex items-center justify-center gap-1">
+                            <i data-lucide="plus-circle" class="w-3 h-3"></i> Nạp Buổi
                         </button>
-                        <button onclick="AdminStudents.toggleStatus('${st.id}','${st.status}')" class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-xs border" title="Khóa/Mở">
-                            ${st.status === 'Active' ? '🔒' : '🔓'}
+                        <button onclick="AdminStudents.openExtendModal('${st.id}')" class="student-action-btn bg-green-50 text-green-600 px-3 py-2 rounded border text-xs font-bold hover:bg-green-100 flex items-center justify-center gap-1">
+                            <i data-lucide="calendar-plus" class="w-3 h-3"></i> Gia Hạn
                         </button>
-                        <button onclick="AdminStudents.deleteStudent('${st.id}','${st.name}')" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs border" title="Xóa">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        <button onclick="AdminStudents.openSetTargetCalories('${st.id}','${st.name}',${st.targetCalories || 2000})" class="student-action-btn bg-purple-50 text-purple-600 px-3 py-2 rounded border text-xs font-bold hover:bg-purple-100 flex items-center justify-center gap-1 col-span-2">
+                            <i data-lucide="target" class="w-3 h-3"></i> 🎯 Đặt Mục Tiêu Calories
                         </button>
                     </div>
-                </td>
-            </tr>
-        `).join('');
+                    <div class="flex gap-2 justify-end pt-2 border-t border-slate-100">
+                        <button onclick="AdminStudents.openEdit('${st.id}')" class="student-action-btn bg-slate-50 text-slate-600 px-3 py-2 rounded text-xs border flex items-center gap-1" title="Sửa">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i> Sửa
+                        </button>
+                        <button onclick="AdminStudents.toggleStatus('${st.id}','${st.status}')" class="student-action-btn bg-yellow-50 text-yellow-600 px-3 py-2 rounded text-xs border flex items-center gap-1" title="Khóa/Mở">
+                            ${st.status === 'Active' ? '🔒' : '🔓'} ${st.status === 'Active' ? 'Khóa' : 'Mở'}
+                        </button>
+                        <button onclick="AdminStudents.deleteStudent('${st.id}','${st.name}')" class="student-action-btn bg-red-50 text-red-600 px-3 py-2 rounded text-xs border flex items-center gap-1" title="Xóa">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            // Desktop: Table layout
+            container.innerHTML = this.students.map(st => `
+                <tr class="hover:bg-slate-50 border-b">
+                    <td class="p-4">
+                        <a href="profile-student.html?id=${st.id}" class="font-bold text-blue-600 hover:underline text-lg">${st.name}</a>
+                        <br><span class="text-xs text-slate-400">${st.email}</span>
+                        <br><span class="text-[10px] ${st.isExpired ? 'text-red-500' : 'text-green-600'} font-bold">
+                            ${st.isExpired ? 'Hết hạn' : 'Hạn: ' + st.expiryDate}
+                        </span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="font-black text-lg text-blue-600">${st.sessionLeft || 0}</div>
+                        <div class="text-[10px] text-slate-400 uppercase">Buổi</div>
+                    </td>
+                    <td class="p-3 md:p-4 text-right space-y-2 student-actions-cell">
+                        <div class="flex gap-1 justify-end flex-wrap">
+                            <button onclick="AdminStudents.topUp('${st.id}','${st.name}')" class="student-action-btn bg-blue-50 text-blue-600 px-2 py-1 rounded border text-xs font-bold hover:bg-blue-100 whitespace-nowrap">Nạp Buổi</button>
+                            <button onclick="AdminStudents.openExtendModal('${st.id}')" class="student-action-btn bg-green-50 text-green-600 px-2 py-1 rounded border text-xs font-bold hover:bg-green-100 whitespace-nowrap">Gia Hạn</button>
+                            <button onclick="AdminStudents.openSetTargetCalories('${st.id}','${st.name}',${st.targetCalories || 2000})" class="student-action-btn bg-purple-50 text-purple-600 px-2 py-1 rounded border text-xs font-bold hover:bg-purple-100 whitespace-nowrap">🎯 Calories</button>
+                        </div>
+                        <div class="flex gap-1 justify-end flex-wrap">
+                            <button onclick="AdminStudents.openEdit('${st.id}')" class="student-action-btn bg-slate-50 text-slate-600 px-2 py-1 rounded text-xs border" title="Sửa">
+                                <i data-lucide="edit-2" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="AdminStudents.toggleStatus('${st.id}','${st.status}')" class="student-action-btn bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-xs border" title="Khóa/Mở">
+                                ${st.status === 'Active' ? '🔒' : '🔓'}
+                            </button>
+                            <button onclick="AdminStudents.deleteStudent('${st.id}','${st.name}')" class="student-action-btn bg-red-50 text-red-600 px-2 py-1 rounded text-xs border" title="Xóa">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
         lucide.createIcons();
+        
+        // Trigger scroll detection after render (for desktop)
+        if (!isMobile && typeof AdminPage !== 'undefined' && AdminPage.setupTableScrollDetection) {
+            setTimeout(() => AdminPage.setupTableScrollDetection(), 100);
+        }
     },
 
     async topUp(id, name) {

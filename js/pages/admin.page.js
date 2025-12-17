@@ -28,6 +28,31 @@ const AdminPage = {
 
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Setup table scroll detection for mobile
+        this.setupTableScrollDetection();
+    },
+    
+    setupTableScrollDetection() {
+        // Detect horizontal scroll on admin tables
+        const tableWrappers = document.querySelectorAll('.admin-table-wrapper');
+        tableWrappers.forEach(wrapper => {
+            const checkScroll = () => {
+                const canScroll = wrapper.scrollWidth > wrapper.clientWidth;
+                if (canScroll) {
+                    wrapper.classList.add('scrollable');
+                } else {
+                    wrapper.classList.remove('scrollable');
+                }
+            };
+            
+            // Check on load and resize
+            checkScroll();
+            window.addEventListener('resize', checkScroll);
+            
+            // Check after content loads
+            setTimeout(checkScroll, 500);
+        });
     },
 
     setupEventListeners() {
