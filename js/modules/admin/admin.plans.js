@@ -72,32 +72,62 @@ const AdminPlans = {
         this.students.forEach(s => { studentsMap[s.id] = s.name; });
 
         container.innerHTML = filtered.map(p => {
-            // Ensure ID is a string and escape it properly
-            const planId = String(p.id || '').replace(/"/g, '&quot;');
+            // Ensure ID is a valid string - handle various cases
+            let planId = '';
+            if (p.id !== null && p.id !== undefined) {
+                if (typeof p.id === 'string') {
+                    planId = p.id.trim();
+                } else if (typeof p.id === 'number') {
+                    planId = String(p.id);
+                } else if (typeof p.id === 'object') {
+                    // If it's an object, try to get a string representation
+                    console.warn('[AdminPlans] Plan ID is an object:', p.id);
+                    planId = p.id.toString ? p.id.toString() : JSON.stringify(p.id);
+                } else {
+                    planId = String(p.id);
+                }
+            }
+            
+            // Validate planId
+            if (!planId || planId === '[object Object]' || planId === 'undefined' || planId === 'null') {
+                console.error('[AdminPlans] Invalid plan ID:', p.id, 'Converted:', planId);
+                return ''; // Skip this row if ID is invalid
+            }
+            
+            // Escape for HTML attribute
+            const planIdEscaped = planId.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
             const planName = String(p.name || '').replace(/"/g, '&quot;');
+            
             return `
             <tr class="border-b hover:bg-slate-50">
                 <td class="p-3 font-bold text-blue-600">${planName}</td>
                 <td class="p-3 text-xs text-slate-600">${studentsMap[p.userId] || p.userId}</td>
                 <td class="p-3 text-right space-x-2">
-                    <button class="text-blue-500 hover:text-blue-700 plan-edit-btn" data-plan-edit="${planId}">
+                    <button class="text-blue-500 hover:text-blue-700 plan-edit-btn" data-plan-edit="${planIdEscaped}">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="AdminPlans.delete('${planId}')" class="text-red-400 hover:text-red-600">
+                    <button onclick="AdminPlans.delete('${planIdEscaped}')" class="text-red-400 hover:text-red-600">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </td>
             </tr>
         `;
-        }).join('');
+        }).filter(html => html !== '').join(''); // Filter out empty rows
         
         // Setup event listeners for edit buttons
         container.querySelectorAll('.plan-edit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const planId = btn.getAttribute('data-plan-edit');
+                e.stopPropagation();
+                // Get the button element (in case click is on icon inside)
+                const button = e.currentTarget || e.target.closest('.plan-edit-btn');
+                const planId = button ? button.getAttribute('data-plan-edit') : null;
+                console.log('[AdminPlans] Edit button clicked, planId:', planId, 'Type:', typeof planId);
                 if (planId) {
-                    this.edit(planId);
+                    this.edit(String(planId).trim());
+                } else {
+                    console.error('[AdminPlans] No planId found on button');
+                    Toast.error('Không tìm thấy ID giáo án');
                 }
             });
         });
@@ -119,33 +149,62 @@ const AdminPlans = {
                 templateList.innerHTML = '<p class="text-xs text-center text-slate-400">Chưa có mẫu nào.</p>';
             } else {
                 templateList.innerHTML = this.templates.map(t => {
-                    // Ensure ID is a string and escape it properly
-                    const templateId = String(t.id || '').replace(/"/g, '&quot;');
+                    // Ensure ID is a valid string - handle various cases
+                    let templateId = '';
+                    if (t.id !== null && t.id !== undefined) {
+                        if (typeof t.id === 'string') {
+                            templateId = t.id.trim();
+                        } else if (typeof t.id === 'number') {
+                            templateId = String(t.id);
+                        } else if (typeof t.id === 'object') {
+                            console.warn('[AdminPlans] Template ID is an object:', t.id);
+                            templateId = t.id.toString ? t.id.toString() : JSON.stringify(t.id);
+                        } else {
+                            templateId = String(t.id);
+                        }
+                    }
+                    
+                    // Validate templateId
+                    if (!templateId || templateId === '[object Object]' || templateId === 'undefined' || templateId === 'null') {
+                        console.error('[AdminPlans] Invalid template ID:', t.id, 'Converted:', templateId);
+                        return ''; // Skip this template if ID is invalid
+                    }
+                    
+                    // Escape for HTML attribute
+                    const templateIdEscaped = templateId.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                     const templateName = String(t.name || '').replace(/"/g, '&quot;');
+                    
                     return `
                     <div class="flex justify-between p-2 bg-slate-50 border rounded mb-2 group hover:border-blue-200">
-                        <span class="text-sm font-bold cursor-pointer hover:text-blue-600 template-edit-btn" data-plan-edit="${templateId}">
+                        <span class="text-sm font-bold cursor-pointer hover:text-blue-600 template-edit-btn" data-plan-edit="${templateIdEscaped}">
                             ${templateName} (${t.count} bài)
                         </span>
                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="p-1 bg-white border rounded hover:text-blue-600 template-edit-btn" data-plan-edit="${templateId}">
+                            <button class="p-1 bg-white border rounded hover:text-blue-600 template-edit-btn" data-plan-edit="${templateIdEscaped}">
                                 <i data-lucide="edit-2" class="w-3 h-3"></i>
                             </button>
-                            <button onclick="AdminPlans.delete('${templateId}')" class="p-1 bg-white border rounded hover:text-red-600">
+                            <button onclick="AdminPlans.delete('${templateIdEscaped}')" class="p-1 bg-white border rounded hover:text-red-600">
                                 <i data-lucide="trash-2" class="w-3 h-3"></i>
                             </button>
                         </div>
                     </div>
                 `;
-                }).join('');
+                }).filter(html => html !== '').join(''); // Filter out empty templates
                 
                 // Setup event listeners for template edit buttons
                 templateList.querySelectorAll('.template-edit-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.preventDefault();
-                        const planId = btn.getAttribute('data-plan-edit');
+                        e.stopPropagation();
+                        // Get the button element (in case click is on icon inside)
+                        const button = e.currentTarget || e.target.closest('.template-edit-btn');
+                        const planId = button ? button.getAttribute('data-plan-edit') : null;
+                        console.log('[AdminPlans] Template edit button clicked, planId:', planId, 'Type:', typeof planId);
                         if (planId) {
-                            this.edit(planId);
+                            this.edit(String(planId).trim());
+                        } else {
+                            console.error('[AdminPlans] No planId found on template button');
+                            Toast.error('Không tìm thấy ID giáo án');
                         }
                     });
                 });
@@ -202,12 +261,36 @@ const AdminPlans = {
 
     async edit(planId) {
         try {
+            // Log the input to debug
+            console.log('[AdminPlans.edit] Called with planId:', planId, 'Type:', typeof planId);
+            
+            // Handle if planId is an object (shouldn't happen but just in case)
+            if (typeof planId === 'object' && planId !== null) {
+                console.error('[AdminPlans.edit] planId is an object:', planId);
+                // Try to extract from common object properties
+                if (planId.id) {
+                    planId = planId.id;
+                } else if (planId.target) {
+                    // It's an event object
+                    const btn = planId.target.closest('[data-plan-edit]');
+                    if (btn) {
+                        planId = btn.getAttribute('data-plan-edit');
+                    } else {
+                        Toast.error('Không thể lấy ID giáo án từ event');
+                        return;
+                    }
+                } else {
+                    Toast.error('ID giáo án không hợp lệ (object)');
+                    return;
+                }
+            }
+            
             // Ensure planId is a string
             let actualPlanId = String(planId || '').trim();
             
-            if (!actualPlanId || actualPlanId === 'undefined' || actualPlanId === 'null' || actualPlanId === '') {
-                console.error('[AdminPlans.edit] Invalid planId:', planId);
-                Toast.error('Không có ID giáo án');
+            if (!actualPlanId || actualPlanId === 'undefined' || actualPlanId === 'null' || actualPlanId === '' || actualPlanId === '[object Object]') {
+                console.error('[AdminPlans.edit] Invalid planId after conversion:', actualPlanId, 'Original:', planId);
+                Toast.error('Không có ID giáo án hợp lệ');
                 return;
             }
             
