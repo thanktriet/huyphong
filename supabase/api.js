@@ -464,11 +464,23 @@ async function getTemplates() {
 
 async function getPlanDetails(planId) {
     try {
+        // Handle if planId is passed as an object (from API.call)
+        if (typeof planId === 'object' && planId !== null) {
+            if (planId.planId) {
+                planId = planId.planId;
+            } else {
+                return { success: false, message: 'Plan ID is required' };
+            }
+        }
+        
+        // Ensure planId is a string
+        planId = String(planId || '').trim();
+        
         if (!planId) {
             return { success: false, message: 'Plan ID is required' };
         }
 
-        console.log('[getPlanDetails] Looking for plan with ID:', planId);
+        console.log('[getPlanDetails] Looking for plan with ID:', planId, 'Type:', typeof planId);
         
         const { data, error } = await getSupabase()
             .from('workout_plans')

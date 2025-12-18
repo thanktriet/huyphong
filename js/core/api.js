@@ -139,6 +139,9 @@ class APIClient {
                 if (action === 'deductSession' && data.userId) {
                     // deductSession expects userId directly, not an object
                     functionArgs = data.userId;
+                } else if (action === 'getPlanDetails' && data.planId) {
+                    // getPlanDetails expects planId directly, not an object
+                    functionArgs = data.planId;
                 } else {
                     // Default: pass data object
                     functionArgs = data;
