@@ -223,6 +223,27 @@ const AdminCalendar = {
         m.classList.toggle('opacity-0');
         m.classList.toggle('pointer-events-none');
         document.body.classList.toggle('modal-active');
+        
+        // Fill student dropdown when opening book modal
+        if (id === 'modal-book') {
+            this.fillStudentDropdown();
+        }
+    },
+    
+    fillStudentDropdown() {
+        const dropdown = document.getElementById('bk-student');
+        if (!dropdown) return;
+        
+        if (!this.students || this.students.length === 0) {
+            dropdown.innerHTML = '<option value="">Chưa có học viên</option>';
+            return;
+        }
+        
+        dropdown.innerHTML = '<option value="">-- Chọn Học Viên --</option>' +
+            this.students
+                .filter(s => s.status === 'Active') // Only show active students
+                .map(s => `<option value="${s.id}">${s.name}</option>`)
+                .join('');
     }
 };
 

@@ -42,7 +42,7 @@ const AdminExercises = {
                         <i data-lucide="image" class="w-3 h-3"></i> Xem ảnh
                     </a>` : ''}
                 </td>
-                <td class="p-3 text-slate-500 text-xs">${e.group}</td>
+                <td class="p-3 text-slate-500 text-xs">${e.group_name || e.group || 'Chưa phân loại'}</td>
                 <td class="p-3 text-right space-x-1">
                     <button onclick='AdminExercises.edit(${JSON.stringify(e)})' class="text-blue-500 hover:text-blue-700">
                         <i data-lucide="edit-2" class="w-4"></i>
@@ -60,9 +60,9 @@ const AdminExercises = {
     edit(exercise) {
         document.getElementById('ex-id-edit').value = exercise.id;
         document.getElementById('ex-name').value = exercise.name;
-        document.getElementById('ex-group').value = exercise.group;
+        document.getElementById('ex-group').value = exercise.group_name || exercise.group || "";
         document.getElementById('ex-image').value = exercise.image || "";
-        document.getElementById('ex-desc').value = exercise.desc || "";
+        document.getElementById('ex-desc').value = exercise.description || exercise.desc || "";
         document.getElementById('ex-form-title').innerText = "Sửa Bài Tập";
         document.getElementById('btn-ex-save').innerText = "Cập Nhật";
     },

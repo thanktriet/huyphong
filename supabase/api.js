@@ -464,19 +464,55 @@ async function getTemplates() {
 
 async function getPlanDetails(planId) {
     try {
+        if (!planId) {
+            return { success: false, message: 'Plan ID is required' };
+        }
+
+        console.log('[getPlanDetails] Looking for plan with ID:', planId);
+        
         const { data, error } = await getSupabase()
             .from('workout_plans')
             .select('*')
             .eq('id', planId)
             .order('day');
 
-        if (error) throw error;
+        if (error) {
+            console.error('[getPlanDetails] Database error:', error);
+            throw error;
+        }
 
-        if (data.length === 0) {
-            return { success: false, message: 'Plan not found' };
+        console.log('[getPlanDetails] Found', data?.length || 0, 'rows');
+
+        if (!data || data.length === 0) {
+            // Try to find by name if ID doesn't work (fallback)
+            const { data: dataByName, error: errorByName } = await getSupabase()
+                .from('workout_plans')
+                .select('*')
+                .eq('name', planId)
+                .order('day');
+            
+            if (!errorByName && dataByName && dataByName.length > 0) {
+                console.log('[getPlanDetails] Found plan by name instead');
+                const plan = {
+                    name: dataByName[0].name,
+                    userId: dataByName[0].user_id,
+                    details: dataByName.map(p => ({
+                        day: p.day,
+                        exercise: p.exercise,
+                        sets: p.sets,
+                        reps: p.reps,
+                        note: p.note,
+                        image: p.image
+                    }))
+                };
+                return { success: true, data: plan };
+            }
+            
+            return { success: false, message: `Không tìm thấy giáo án với ID: ${planId}` };
         }
 
         const plan = {
+            id: data[0].id, // Include plan ID in response
             name: data[0].name,
             userId: data[0].user_id,
             details: data.map(p => ({
@@ -491,7 +527,8 @@ async function getPlanDetails(planId) {
 
         return { success: true, data: plan };
     } catch (error) {
-        return { success: false, message: error.message };
+        console.error('[getPlanDetails] Error:', error);
+        return { success: false, message: error.message || 'Lỗi khi tải chi tiết giáo án' };
     }
 }
 

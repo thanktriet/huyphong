@@ -5,7 +5,8 @@
 const CACHE_VERSION = 'v1.0.0';
 const CACHE_NAME = `pt-manager-${CACHE_VERSION}`;
 
-// Static assets to cache on install
+// Static assets to cache on install (only local files)
+// External CDN resources are handled separately with network-first strategy
 const STATIC_CACHE = [
     '/huyphong/',
     '/huyphong/index.html',
@@ -25,9 +26,7 @@ const STATIC_CACHE = [
     '/huyphong/js/core/api.js',
     '/huyphong/js/services/auth.service.js',
     '/huyphong/js/ui/toast.js',
-    '/huyphong/js/ui/loader.js',
-    'https://cdn.tailwindcss.com',
-    'https://unpkg.com/lucide@latest'
+    '/huyphong/js/ui/loader.js'
 ];
 
 // API endpoints to cache (read-only, network first)
@@ -48,19 +47,20 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log('[SW] Caching static assets');
-                return cache.addAll(STATIC_CACHE.filter(url => {
-                    // Only cache local files, skip external CDN
-                    return url.startsWith('/huyphong/') || url.startsWith('https://cdn.tailwindcss.com') || url.startsWith('https://unpkg.com');
-                }).map(url => {
-                    // Convert relative URLs to absolute for GitHub Pages
-                    if (url.startsWith('/huyphong/')) {
-                        return url;
-                    }
-                    return url;
-                }));
+                // Cache each file individually to handle failures gracefully
+                return Promise.allSettled(
+                    STATIC_CACHE.map(url => {
+                        return cache.add(url).catch(error => {
+                            console.warn(`[SW] Failed to cache ${url}:`, error);
+                            // Don't throw - continue with other files
+                            return null;
+                        });
+                    })
+                );
             })
             .catch((error) => {
                 console.error('[SW] Error caching static assets:', error);
+                // Don't fail installation if caching fails
             })
     );
     
@@ -105,28 +105,30 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Strategy: Cache First for static assets, Network First for API
+    // Strategy: Cache First for local static assets, Network First for API and external resources
     if (isStaticAsset(request.url)) {
         event.respondWith(cacheFirst(request));
     } else if (isAPIRequest(request.url)) {
         event.respondWith(networkFirstWithCache(request));
     } else {
-        // Default: Network first with cache fallback
+        // Default: Network first with cache fallback (for CDN resources, etc.)
         event.respondWith(networkFirstWithCache(request));
     }
 });
 
 // Check if request is for static asset
 function isStaticAsset(url) {
-    return url.includes('.html') ||
-           url.includes('.css') ||
-           url.includes('.js') ||
-           url.includes('.png') ||
-           url.includes('.jpg') ||
-           url.includes('.ico') ||
-           url.includes('manifest.json') ||
-           url.includes('tailwindcss.com') ||
-           url.includes('unpkg.com/lucide');
+    // Only treat local files as static assets
+    // External CDN resources use network-first strategy
+    return (url.includes('/huyphong/') && (
+        url.includes('.html') ||
+        url.includes('.css') ||
+        url.includes('.js') ||
+        url.includes('.png') ||
+        url.includes('.jpg') ||
+        url.includes('.ico') ||
+        url.includes('manifest.json')
+    ));
 }
 
 // Check if request is for API
@@ -137,27 +139,51 @@ function isAPIRequest(url) {
 
 // Cache First strategy - for static assets
 async function cacheFirst(request) {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-        return cached;
-    }
-    
     try {
-        const response = await fetch(request);
-        if (response.ok) {
-            cache.put(request, response.clone());
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        
+        if (cached) {
+            return cached;
         }
-        return response;
+        
+        // Try to fetch from network
+        try {
+            const response = await fetch(request);
+            // Only cache successful responses
+            if (response && response.ok) {
+                // Clone response before caching (responses can only be read once)
+                cache.put(request, response.clone()).catch(err => {
+                    console.warn('[SW] Failed to cache response:', err);
+                });
+            }
+            return response;
+        } catch (fetchError) {
+            console.warn('[SW] Network fetch failed for:', request.url, fetchError);
+            
+            // For HTML requests, return offline page
+            if (request.url.includes('.html') || request.url.endsWith('/huyphong/')) {
+                const offlinePage = await cache.match('/huyphong/index.html');
+                if (offlinePage) {
+                    return offlinePage;
+                }
+            }
+            
+            // For other static assets, return a basic error response instead of throwing
+            return new Response('Resource unavailable offline', {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'text/plain' }
+            });
+        }
     } catch (error) {
         console.error('[SW] Cache First error:', error);
-        // Return offline page if available
-        const offlinePage = await cache.match('/huyphong/index.html');
-        if (offlinePage) {
-            return offlinePage;
-        }
-        throw error;
+        // Return a graceful error response instead of throwing
+        return new Response('Service Worker error', {
+            status: 500,
+            statusText: 'Internal Server Error',
+            headers: { 'Content-Type': 'text/plain' }
+        });
     }
 }
 

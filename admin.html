@@ -253,6 +253,10 @@
 
         // Helper functions
         function toggleModal(id) {
+            // If opening book modal, fill student dropdown
+            if (id === 'modal-book' && typeof AdminCalendar !== 'undefined') {
+                AdminCalendar.fillStudentDropdown();
+            }
             if (typeof AdminCalendar !== 'undefined' && AdminCalendar.toggleModal) {
                 AdminCalendar.toggleModal(id);
             }

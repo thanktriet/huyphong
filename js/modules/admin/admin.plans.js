@@ -170,12 +170,24 @@ const AdminPlans = {
 
     async edit(planId) {
         try {
+            if (!planId) {
+                Toast.error('Không có ID giáo án');
+                return;
+            }
+            
+            console.log('[AdminPlans.edit] Editing plan with ID:', planId);
             Loader.show();
+            
             const result = await API.getPlanDetails(planId);
             
             if (result.success) {
                 const p = result.data;
-                document.getElementById('plan-id-edit').value = planId;
+                // Use the plan ID from response if available, otherwise use the passed planId
+                const actualPlanId = p.id || planId;
+                
+                console.log('[AdminPlans.edit] Loaded plan:', p.name, 'ID:', actualPlanId);
+                
+                document.getElementById('plan-id-edit').value = actualPlanId;
                 document.getElementById('plan-name').value = p.name;
                 document.getElementById('plan-student').value = p.userId;
                 document.getElementById('plan-form-title').innerText = "Sửa: " + p.name;
@@ -184,36 +196,41 @@ const AdminPlans = {
                 const tbody = document.getElementById('plan-rows');
                 tbody.innerHTML = '';
                 
-                p.details.forEach(d => {
-                    tbody.insertAdjacentHTML('beforeend', `
-                        <tr>
-                            <td class="p-2">
-                                <select class="w-full border p-1 rounded text-sm bg-slate-50">
-                                    ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
-                                        `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
-                                    ).join('')}
-                                </select>
-                            </td>
-                            <td class="p-2">
-                                <input list="dl-exercises" value="${d.exercise}" class="w-full border p-1 rounded text-sm font-bold">
-                            </td>
-                            <td class="p-2">
-                                <input type="number" value="${d.sets}" class="w-full border p-1 rounded text-sm text-center">
-                            </td>
-                            <td class="p-2">
-                                <input type="number" value="${d.reps}" class="w-full border p-1 rounded text-center">
-                            </td>
-                            <td class="p-2">
-                                <input type="text" value="${d.note || ''}" class="w-full border p-1 rounded text-sm">
-                            </td>
-                            <td class="p-2">
-                                <button onclick="this.closest('tr').remove()">
-                                    <i data-lucide="trash-2" class="text-red-400 w-4"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `);
-                });
+                if (p.details && p.details.length > 0) {
+                    p.details.forEach(d => {
+                        tbody.insertAdjacentHTML('beforeend', `
+                            <tr>
+                                <td class="p-2">
+                                    <select class="w-full border p-1 rounded text-sm bg-slate-50">
+                                        ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
+                                            `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
+                                        ).join('')}
+                                    </select>
+                                </td>
+                                <td class="p-2">
+                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border p-1 rounded text-sm font-bold">
+                                </td>
+                                <td class="p-2">
+                                    <input type="number" value="${d.sets || ''}" class="w-full border p-1 rounded text-sm text-center">
+                                </td>
+                                <td class="p-2">
+                                    <input type="number" value="${d.reps || ''}" class="w-full border p-1 rounded text-center">
+                                </td>
+                                <td class="p-2">
+                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border p-1 rounded text-sm">
+                                </td>
+                                <td class="p-2">
+                                    <button onclick="this.closest('tr').remove()">
+                                        <i data-lucide="trash-2" class="text-red-400 w-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                } else {
+                    // Add one empty row if no details
+                    this.addRow();
+                }
                 
                 lucide.createIcons();
                 
@@ -223,10 +240,12 @@ const AdminPlans = {
                 
                 document.getElementById('plan-editor').scrollIntoView({ behavior: 'smooth' });
             } else {
+                console.error('[AdminPlans.edit] Failed to load plan:', result.message);
                 Toast.error(result.message || 'Lỗi tải giáo án');
             }
         } catch (error) {
-            Toast.error('Lỗi: ' + error.message);
+            console.error('[AdminPlans.edit] Error:', error);
+            Toast.error('Lỗi: ' + (error.message || 'Không thể tải giáo án'));
         } finally {
             Loader.hide();
         }
