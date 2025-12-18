@@ -318,35 +318,35 @@ const AdminPlans = {
                 if (p.details && p.details.length > 0) {
                     p.details.forEach((d, index) => {
                         const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                        tbody.insertAdjacentHTML('beforeend', `
+                    tbody.insertAdjacentHTML('beforeend', `
                             <tr class="${rowClass} hover:bg-blue-50 transition-colors border-b border-slate-200">
-                                <td class="p-3">
-                                    <select class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
-                                        ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
-                                            `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
-                                        ).join('')}
-                                    </select>
-                                </td>
-                                <td class="p-3">
-                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
-                                </td>
-                                <td class="p-3">
-                                    <input type="number" value="${d.sets || ''}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
-                                </td>
-                                <td class="p-3">
-                                    <input type="number" value="${d.reps || ''}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
-                                </td>
-                                <td class="p-3">
-                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
-                                </td>
-                                <td class="p-3 text-center">
-                                    <button onclick="this.closest('tr').remove()" class="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
+                                <td class="p-3 w-[15%]">
+                                    <select class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                                    ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
+                                        `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
+                                    ).join('')}
+                                </select>
+                            </td>
+                                <td class="p-3 w-[35%]">
+                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            </td>
+                                <td class="p-3 w-[10%]">
+                                    <input type="number" value="${d.sets || ''}" class="w-full border-2 border-slate-300 p-2 rounded-lg text-xs text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            </td>
+                                <td class="p-3 w-[10%]">
+                                    <input type="number" value="${d.reps || ''}" class="w-full border-2 border-slate-300 p-2 rounded-lg text-xs text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                            </td>
+                                <td class="p-3 w-[20%]">
+                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
+                            </td>
+                                <td class="p-3 text-center w-[10%]">
+                                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `);
-                    });
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
                 } else {
                     // Add one empty row if no details
                     this.addRow();
@@ -405,27 +405,27 @@ const AdminPlans = {
         
         tbody.insertAdjacentHTML('beforeend', `
             <tr class="${rowClass} hover:bg-blue-50 transition-colors border-b border-slate-200">
-                <td class="p-3">
-                    <select class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                <td class="p-3 w-[15%]">
+                    <select class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option>
                         <option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option>
                         <option>CN</option>
                     </select>
                 </td>
-                <td class="p-3">
-                    <input list="dl-exercises" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Tên bài tập...">
+                <td class="p-3 w-[35%]">
+                    <input list="dl-exercises" class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Tên bài tập...">
                 </td>
-                <td class="p-3">
-                    <input type="number" value="3" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                <td class="p-3 w-[10%]">
+                    <input type="number" value="3" class="w-full border-2 border-slate-300 p-2 rounded-lg text-xs text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
-                <td class="p-3">
-                    <input type="number" value="10" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                <td class="p-3 w-[10%]">
+                    <input type="number" value="10" class="w-full border-2 border-slate-300 p-2 rounded-lg text-xs text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
-                <td class="p-3">
-                    <input class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
+                <td class="p-3 w-[20%]">
+                    <input class="w-full border-2 border-slate-300 p-2 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
                 </td>
-                <td class="p-3 text-center">
-                    <button onclick="this.closest('tr').remove()" class="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
+                <td class="p-3 text-center w-[10%]">
+                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </td>
