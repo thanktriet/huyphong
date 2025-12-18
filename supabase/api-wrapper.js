@@ -77,6 +77,7 @@ async function callAPI(action, data = {}) {
             case 'cancel_session':
                 return await api.cancelSession(data.bookingId);
             case 'deduct_session':
+            case 'deductSession': // Support both snake_case and camelCase
                 return await api.deductSession(data.userId);
 
             // Workout

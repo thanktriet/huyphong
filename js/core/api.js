@@ -134,10 +134,20 @@ class APIClient {
                     throw new Error(`API function '${action}' not found`);
                 }
                 
+                // Handle special cases where function expects specific parameters
+                let functionArgs;
+                if (action === 'deductSession' && data.userId) {
+                    // deductSession expects userId directly, not an object
+                    functionArgs = data.userId;
+                } else {
+                    // Default: pass data object
+                    functionArgs = data;
+                }
+                
                 // Call the API function
                 // Note: login() should be called via API.login() directly, not via call()
                 let result = await Promise.race([
-                    apiFunction(data),
+                    apiFunction(functionArgs),
                     new Promise((_, reject) => 
                         setTimeout(() => reject(new Error('Request timeout')), timeout)
                     )

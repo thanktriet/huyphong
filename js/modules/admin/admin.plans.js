@@ -71,20 +71,36 @@ const AdminPlans = {
         const studentsMap = {};
         this.students.forEach(s => { studentsMap[s.id] = s.name; });
 
-        container.innerHTML = filtered.map(p => `
+        container.innerHTML = filtered.map(p => {
+            // Ensure ID is a string and escape it properly
+            const planId = String(p.id || '').replace(/"/g, '&quot;');
+            const planName = String(p.name || '').replace(/"/g, '&quot;');
+            return `
             <tr class="border-b hover:bg-slate-50">
-                <td class="p-3 font-bold text-blue-600">${p.name}</td>
+                <td class="p-3 font-bold text-blue-600">${planName}</td>
                 <td class="p-3 text-xs text-slate-600">${studentsMap[p.userId] || p.userId}</td>
                 <td class="p-3 text-right space-x-2">
-                    <button onclick="AdminPlans.edit('${p.id}')" class="text-blue-500 hover:text-blue-700">
+                    <button class="text-blue-500 hover:text-blue-700 plan-edit-btn" data-plan-edit="${planId}">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="AdminPlans.delete('${p.id}')" class="text-red-400 hover:text-red-600">
+                    <button onclick="AdminPlans.delete('${planId}')" class="text-red-400 hover:text-red-600">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
+        
+        // Setup event listeners for edit buttons
+        container.querySelectorAll('.plan-edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const planId = btn.getAttribute('data-plan-edit');
+                if (planId) {
+                    this.edit(planId);
+                }
+            });
+        });
 
         lucide.createIcons();
     },
@@ -102,21 +118,37 @@ const AdminPlans = {
             if (this.templates.length === 0) {
                 templateList.innerHTML = '<p class="text-xs text-center text-slate-400">Chưa có mẫu nào.</p>';
             } else {
-                templateList.innerHTML = this.templates.map(t => `
+                templateList.innerHTML = this.templates.map(t => {
+                    // Ensure ID is a string and escape it properly
+                    const templateId = String(t.id || '').replace(/"/g, '&quot;');
+                    const templateName = String(t.name || '').replace(/"/g, '&quot;');
+                    return `
                     <div class="flex justify-between p-2 bg-slate-50 border rounded mb-2 group hover:border-blue-200">
-                        <span class="text-sm font-bold cursor-pointer hover:text-blue-600" onclick="AdminPlans.edit('${t.id}')">
-                            ${t.name} (${t.count} bài)
+                        <span class="text-sm font-bold cursor-pointer hover:text-blue-600 template-edit-btn" data-plan-edit="${templateId}">
+                            ${templateName} (${t.count} bài)
                         </span>
                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="AdminPlans.edit('${t.id}')" class="p-1 bg-white border rounded hover:text-blue-600">
+                            <button class="p-1 bg-white border rounded hover:text-blue-600 template-edit-btn" data-plan-edit="${templateId}">
                                 <i data-lucide="edit-2" class="w-3 h-3"></i>
                             </button>
-                            <button onclick="AdminPlans.delete('${t.id}')" class="p-1 bg-white border rounded hover:text-red-600">
+                            <button onclick="AdminPlans.delete('${templateId}')" class="p-1 bg-white border rounded hover:text-red-600">
                                 <i data-lucide="trash-2" class="w-3 h-3"></i>
                             </button>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
+                
+                // Setup event listeners for template edit buttons
+                templateList.querySelectorAll('.template-edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const planId = btn.getAttribute('data-plan-edit');
+                        if (planId) {
+                            this.edit(planId);
+                        }
+                    });
+                });
             }
         }
 
@@ -170,24 +202,28 @@ const AdminPlans = {
 
     async edit(planId) {
         try {
-            if (!planId) {
+            // Ensure planId is a string
+            let actualPlanId = String(planId || '').trim();
+            
+            if (!actualPlanId || actualPlanId === 'undefined' || actualPlanId === 'null' || actualPlanId === '') {
+                console.error('[AdminPlans.edit] Invalid planId:', planId);
                 Toast.error('Không có ID giáo án');
                 return;
             }
             
-            console.log('[AdminPlans.edit] Editing plan with ID:', planId);
+            console.log('[AdminPlans.edit] Editing plan with ID:', actualPlanId, 'Type:', typeof actualPlanId);
             Loader.show();
             
-            const result = await API.getPlanDetails(planId);
+            const result = await API.getPlanDetails(actualPlanId);
             
             if (result.success) {
                 const p = result.data;
-                // Use the plan ID from response if available, otherwise use the passed planId
-                const actualPlanId = p.id || planId;
+                // Use the plan ID from response if available, otherwise use the actualPlanId we already processed
+                const finalPlanId = String(p.id || actualPlanId).trim();
                 
-                console.log('[AdminPlans.edit] Loaded plan:', p.name, 'ID:', actualPlanId);
+                console.log('[AdminPlans.edit] Loaded plan:', p.name, 'ID:', finalPlanId);
                 
-                document.getElementById('plan-id-edit').value = actualPlanId;
+                document.getElementById('plan-id-edit').value = finalPlanId;
                 document.getElementById('plan-name').value = p.name;
                 document.getElementById('plan-student').value = p.userId;
                 document.getElementById('plan-form-title').innerText = "Sửa: " + p.name;
