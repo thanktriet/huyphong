@@ -175,16 +175,16 @@ const AdminPlans = {
                     const templateName = String(t.name || '').replace(/"/g, '&quot;');
                     
                     return `
-                    <div class="flex justify-between p-2 bg-slate-50 border rounded mb-2 group hover:border-blue-200">
-                        <span class="text-sm font-bold cursor-pointer hover:text-blue-600 template-edit-btn" data-plan-edit="${templateIdEscaped}">
-                            ${templateName} (${t.count} bài)
+                    <div class="flex justify-between items-center p-3 bg-white border-2 border-slate-200 rounded-lg mb-2 group hover:border-blue-300 hover:shadow-md transition-all">
+                        <span class="text-sm font-bold text-slate-700 cursor-pointer hover:text-blue-600 template-edit-btn flex-1" data-plan-edit="${templateIdEscaped}">
+                            ${templateName} <span class="text-xs font-normal text-slate-500">(${t.count} bài)</span>
                         </span>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="p-1 bg-white border rounded hover:text-blue-600 template-edit-btn" data-plan-edit="${templateIdEscaped}">
-                                <i data-lucide="edit-2" class="w-3 h-3"></i>
+                        <div class="flex gap-2 ml-3">
+                            <button class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors template-edit-btn" data-plan-edit="${templateIdEscaped}" title="Sửa">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
                             </button>
-                            <button onclick="AdminPlans.delete('${templateIdEscaped}')" class="p-1 bg-white border rounded hover:text-red-600">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            <button onclick="AdminPlans.delete('${templateIdEscaped}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Xóa">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
@@ -316,30 +316,31 @@ const AdminPlans = {
                 tbody.innerHTML = '';
                 
                 if (p.details && p.details.length > 0) {
-                    p.details.forEach(d => {
+                    p.details.forEach((d, index) => {
+                        const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
                         tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-blue-50 transition-colors">
+                            <tr class="${rowClass} hover:bg-blue-50 transition-colors border-b border-slate-200">
                                 <td class="p-3">
-                                    <select class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                                    <select class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                         ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
                                             `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
                                         ).join('')}
                                     </select>
                                 </td>
                                 <td class="p-3">
-                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
                                 <td class="p-3">
-                                    <input type="number" value="${d.sets || ''}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                                    <input type="number" value="${d.sets || ''}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
                                 <td class="p-3">
-                                    <input type="number" value="${d.reps || ''}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                                    <input type="number" value="${d.reps || ''}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
                                 <td class="p-3">
-                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
+                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
                                 </td>
                                 <td class="p-3 text-center">
-                                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                                    <button onclick="this.closest('tr').remove()" class="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </td>
@@ -398,29 +399,33 @@ const AdminPlans = {
     },
 
     addRow() {
-        document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `
-            <tr class="hover:bg-blue-50 transition-colors">
+        const tbody = document.getElementById('plan-rows');
+        const rowCount = tbody.querySelectorAll('tr').length;
+        const rowClass = rowCount % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+        
+        tbody.insertAdjacentHTML('beforeend', `
+            <tr class="${rowClass} hover:bg-blue-50 transition-colors border-b border-slate-200">
                 <td class="p-3">
-                    <select class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                    <select class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm bg-white font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option>
                         <option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option>
                         <option>CN</option>
                     </select>
                 </td>
                 <td class="p-3">
-                    <input list="dl-exercises" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Tên bài tập...">
+                    <input list="dl-exercises" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Tên bài tập...">
                 </td>
                 <td class="p-3">
-                    <input type="number" value="3" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                    <input type="number" value="3" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
                 <td class="p-3">
-                    <input type="number" value="10" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+                    <input type="number" value="10" class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-center font-semibold text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
                 <td class="p-3">
-                    <input class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
+                    <input class="w-full border-2 border-slate-300 p-2.5 rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
                 </td>
                 <td class="p-3 text-center">
-                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                    <button onclick="this.closest('tr').remove()" class="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors shadow-sm hover:shadow" title="Xóa">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </td>
