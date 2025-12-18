@@ -318,29 +318,29 @@ const AdminPlans = {
                 if (p.details && p.details.length > 0) {
                     p.details.forEach(d => {
                         tbody.insertAdjacentHTML('beforeend', `
-                            <tr>
-                                <td class="p-2">
-                                    <select class="w-full border p-1 rounded text-sm bg-slate-50">
+                            <tr class="hover:bg-blue-50 transition-colors">
+                                <td class="p-3">
+                                    <select class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                         ${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'].map(day => 
                                             `<option ${d.day === day ? 'selected' : ''}>${day}</option>`
                                         ).join('')}
                                     </select>
                                 </td>
-                                <td class="p-2">
-                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border p-1 rounded text-sm font-bold">
+                                <td class="p-3">
+                                    <input list="dl-exercises" value="${(d.exercise || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
-                                <td class="p-2">
-                                    <input type="number" value="${d.sets || ''}" class="w-full border p-1 rounded text-sm text-center">
+                                <td class="p-3">
+                                    <input type="number" value="${d.sets || ''}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
-                                <td class="p-2">
-                                    <input type="number" value="${d.reps || ''}" class="w-full border p-1 rounded text-center">
+                                <td class="p-3">
+                                    <input type="number" value="${d.reps || ''}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                                 </td>
-                                <td class="p-2">
-                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border p-1 rounded text-sm">
+                                <td class="p-3">
+                                    <input type="text" value="${(d.note || '').replace(/"/g, '&quot;')}" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
                                 </td>
-                                <td class="p-2">
-                                    <button onclick="this.closest('tr').remove()">
-                                        <i data-lucide="trash-2" class="text-red-400 w-4"></i>
+                                <td class="p-3 text-center">
+                                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -353,11 +353,29 @@ const AdminPlans = {
                 
                 lucide.createIcons();
                 
-                // Switch to builder tab
-                const builderBtn = document.querySelectorAll('.tab-btn')[1];
-                if (builderBtn) builderBtn.click();
+                // Switch to builder tab - call switchTab directly instead of clicking button
+                if (typeof AdminPage !== 'undefined' && AdminPage.switchTab) {
+                    const builderBtn = document.querySelectorAll('.tab-btn')[2]; // Index 2 is "Giáo Án" tab (0=dashboard, 1=calendar, 2=builder)
+                    if (builderBtn) {
+                        AdminPage.switchTab('builder', builderBtn);
+                    } else {
+                        // Fallback: try to find button by onclick attribute
+                        const allTabs = document.querySelectorAll('.tab-btn');
+                        allTabs.forEach(btn => {
+                            if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes("'builder'")) {
+                                AdminPage.switchTab('builder', btn);
+                            }
+                        });
+                    }
+                }
                 
-                document.getElementById('plan-editor').scrollIntoView({ behavior: 'smooth' });
+                // Scroll to plan editor after a short delay to ensure tab is switched
+                setTimeout(() => {
+                    const planEditor = document.getElementById('plan-editor');
+                    if (planEditor) {
+                        planEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 200);
             } else {
                 console.error('[AdminPlans.edit] Failed to load plan:', result.message);
                 Toast.error(result.message || 'Lỗi tải giáo án');
@@ -381,28 +399,29 @@ const AdminPlans = {
 
     addRow() {
         document.getElementById('plan-rows').insertAdjacentHTML('beforeend', `
-            <tr>
-                <td class="p-2">
-                    <select class="w-full border p-1 rounded text-sm bg-slate-50">
+            <tr class="hover:bg-blue-50 transition-colors">
+                <td class="p-3">
+                    <select class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                         <option>Thứ 2</option><option>Thứ 3</option><option>Thứ 4</option>
                         <option>Thứ 5</option><option>Thứ 6</option><option>Thứ 7</option>
+                        <option>CN</option>
                     </select>
                 </td>
-                <td class="p-2">
-                    <input list="dl-exercises" class="w-full border p-1 rounded text-sm font-bold" placeholder="Tên bài...">
+                <td class="p-3">
+                    <input list="dl-exercises" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Tên bài tập...">
                 </td>
-                <td class="p-2">
-                    <input type="number" value="3" class="w-full border p-1 rounded text-center">
+                <td class="p-3">
+                    <input type="number" value="3" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
-                <td class="p-2">
-                    <input type="number" value="10" class="w-full border p-1 rounded text-center">
+                <td class="p-3">
+                    <input type="number" value="10" class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 </td>
-                <td class="p-2">
-                    <input class="w-full border p-1 rounded">
+                <td class="p-3">
+                    <input class="w-full border-2 border-slate-200 p-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Ghi chú...">
                 </td>
-                <td class="p-2">
-                    <button onclick="this.closest('tr').remove()">
-                        <i data-lucide="trash-2" class="text-red-400 w-4"></i>
+                <td class="p-3 text-center">
+                    <button onclick="this.closest('tr').remove()" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </td>
             </tr>
