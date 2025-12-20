@@ -188,11 +188,16 @@ const AdminPage = {
             await AdminCalendar.init();
         } else if (name === 'students') {
             console.log('[AdminPage] Initializing students tab...');
+            // Ensure tab is visible before initializing
+            const target = document.getElementById(`view-${name}`);
+            if (target) {
+                target.classList.remove('hidden');
+            }
             await AdminStudents.init();
             // Re-render after a short delay to ensure DOM is ready
             setTimeout(() => {
                 AdminStudents.render();
-            }, 100);
+            }, 200);
         } else if (name === 'exercise') {
             await AdminExercises.init();
         } else if (name === 'food') {

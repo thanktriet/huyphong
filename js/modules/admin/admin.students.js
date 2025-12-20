@@ -41,15 +41,40 @@ const AdminStudents = {
         const isMobile = window.innerWidth < 768;
         const mobileContainer = document.getElementById('student-list-mobile');
         const desktopContainer = document.getElementById('student-list');
+        const viewSection = document.getElementById('view-students');
         
-        console.log('[AdminStudents] Rendering students. Count:', this.students?.length || 0, 'isMobile:', isMobile);
+        console.log('[AdminStudents] Rendering students. Count:', this.students?.length || 0, 
+            'isMobile:', isMobile,
+            'mobileContainer:', !!mobileContainer,
+            'desktopContainer:', !!desktopContainer,
+            'viewSection hidden:', viewSection?.classList.contains('hidden'));
         
-        // Render to both containers to ensure data is available when switching between mobile/desktop
-        if (mobileContainer) {
-            this.renderToContainer(mobileContainer, true);
-        }
-        if (desktopContainer) {
-            this.renderToContainer(desktopContainer, false);
+        // Ensure view section is visible temporarily if needed for container access
+        const wasHidden = viewSection?.classList.contains('hidden');
+        if (wasHidden && (!mobileContainer || !desktopContainer)) {
+            viewSection?.classList.remove('hidden');
+            // Re-query containers after making section visible
+            const mobileContainerRetry = document.getElementById('student-list-mobile');
+            const desktopContainerRetry = document.getElementById('student-list');
+            
+            // Render to both containers to ensure data is available when switching between mobile/desktop
+            if (mobileContainerRetry) {
+                this.renderToContainer(mobileContainerRetry, true);
+            }
+            if (desktopContainerRetry) {
+                this.renderToContainer(desktopContainerRetry, false);
+            }
+            
+            // Hide section again if it was hidden
+            viewSection?.classList.add('hidden');
+        } else {
+            // Render to both containers to ensure data is available when switching between mobile/desktop
+            if (mobileContainer) {
+                this.renderToContainer(mobileContainer, true);
+            }
+            if (desktopContainer) {
+                this.renderToContainer(desktopContainer, false);
+            }
         }
         
         if (!mobileContainer && !desktopContainer) {
