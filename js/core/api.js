@@ -156,9 +156,14 @@ class APIClient {
                     )
                 ]);
 
-                // Cache result
+                // Cache result ONLY if useCache is true
                 if (useCache && cacheKey && result.success) {
                     Utils.cache.set(cacheKey, result);
+                } else if (!useCache && cacheKey) {
+                    // Explicitly clear cache when not using cache to ensure fresh data
+                    if (typeof Utils !== 'undefined' && Utils.cache) {
+                        Utils.cache.clear(cacheKey);
+                    }
                 }
 
                 return result;

@@ -21,6 +21,11 @@ const AdminStudents = {
 
     async load(useCache = true) {
         try {
+            // If not using cache, clear it first to ensure fresh data
+            if (!useCache && typeof Utils !== 'undefined' && Utils.cache) {
+                Utils.cache.clear('students');
+            }
+            
             console.log('[AdminStudents] Loading students... (useCache:', useCache, ')');
             const result = await AdminService.getStudents(useCache);
             console.log('[AdminStudents] Load result:', result);
@@ -37,13 +42,24 @@ const AdminStudents = {
         }
     },
 
-    async refresh() {
-        // Clear cache and reload fresh data
+    async refresh(delay = 200) {
+        // Clear all related caches FIRST, before any delay
         if (typeof Utils !== 'undefined' && Utils.cache) {
             Utils.cache.clear('students');
+            Utils.cache.clear('dashboard_stats'); // Also clear dashboard cache
+            console.log('[AdminStudents] Cache cleared');
         }
+        
+        // Small delay to ensure Supabase has committed the changes
+        if (delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        // Load without cache - force fresh data
         await this.load(false); // Load without cache
         this.render();
+        
+        console.log('[AdminStudents] Refresh completed');
     },
 
     render() {
@@ -201,7 +217,8 @@ const AdminStudents = {
             
             if (result.success) {
                 Toast.success("Đã nạp");
-                await this.refresh();
+                // Refresh immediately without delay for better UX
+                await this.refresh(200);
             } else {
                 Toast.error(result.message || 'Lỗi nạp buổi');
             }
@@ -236,7 +253,8 @@ const AdminStudents = {
             if (result.success) {
                 Toast.success("Đã gia hạn");
                 AdminCalendar.toggleModal('modal-extend');
-                await this.refresh();
+                // Refresh immediately without delay for better UX
+                await this.refresh(200);
             } else {
                 Toast.error(result.message || 'Lỗi gia hạn');
             }
