@@ -19,10 +19,10 @@ const AdminStudents = {
         });
     },
 
-    async load() {
+    async load(useCache = true) {
         try {
-            console.log('[AdminStudents] Loading students...');
-            const result = await AdminService.getStudents(true);
+            console.log('[AdminStudents] Loading students... (useCache:', useCache, ')');
+            const result = await AdminService.getStudents(useCache);
             console.log('[AdminStudents] Load result:', result);
             if (result.success) {
                 this.students = result.data || [];
@@ -35,6 +35,15 @@ const AdminStudents = {
             console.error('[AdminStudents] Load error:', error);
             Toast.error('Lỗi tải danh sách học viên: ' + error.message);
         }
+    },
+
+    async refresh() {
+        // Clear cache and reload fresh data
+        if (typeof Utils !== 'undefined' && Utils.cache) {
+            Utils.cache.clear('students');
+        }
+        await this.load(false); // Load without cache
+        this.render();
     },
 
     render() {
@@ -192,7 +201,7 @@ const AdminStudents = {
             
             if (result.success) {
                 Toast.success("Đã nạp");
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi nạp buổi');
             }
@@ -227,7 +236,7 @@ const AdminStudents = {
             if (result.success) {
                 Toast.success("Đã gia hạn");
                 AdminCalendar.toggleModal('modal-extend');
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi gia hạn');
             }
@@ -247,7 +256,7 @@ const AdminStudents = {
             
             if (result.success) {
                 Toast.success("Đã xóa");
-                await this.init();
+                await this.refresh();
                 await AdminDashboard.load();
             } else {
                 Toast.error(result.message || 'Lỗi xóa');
@@ -283,7 +292,7 @@ const AdminStudents = {
             if (result.success) {
                 Toast.success("Đã cập nhật");
                 AdminCalendar.toggleModal('modal-edit-student');
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi cập nhật');
             }
@@ -305,7 +314,7 @@ const AdminStudents = {
             });
             
             if (result.success) {
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi đổi trạng thái');
             }
@@ -324,7 +333,7 @@ const AdminStudents = {
             if (result.success) {
                 Toast.success("Đã thêm học viên");
                 AdminCalendar.toggleModal('modal-add-student');
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi thêm học viên');
             }
@@ -384,7 +393,7 @@ const AdminStudents = {
             if (result.success) {
                 Toast.success("Đã cập nhật mục tiêu calories");
                 toggleModal('modal-set-target-calories');
-                await this.init();
+                await this.refresh();
             } else {
                 Toast.error(result.message || 'Lỗi cập nhật');
             }
