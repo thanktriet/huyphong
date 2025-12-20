@@ -21,26 +21,46 @@ const AdminStudents = {
 
     async load() {
         try {
+            console.log('[AdminStudents] Loading students...');
             const result = await AdminService.getStudents(true);
+            console.log('[AdminStudents] Load result:', result);
             if (result.success) {
                 this.students = result.data || [];
+                console.log('[AdminStudents] Loaded', this.students.length, 'students');
+            } else {
+                console.error('[AdminStudents] Load failed:', result.message);
+                Toast.error('Lỗi tải danh sách học viên: ' + (result.message || 'Unknown error'));
             }
         } catch (error) {
-            Toast.error('Lỗi tải danh sách học viên');
+            console.error('[AdminStudents] Load error:', error);
+            Toast.error('Lỗi tải danh sách học viên: ' + error.message);
         }
     },
 
     render() {
         const isMobile = window.innerWidth < 768;
-        const container = isMobile ? document.getElementById('student-list-mobile') : document.getElementById('student-list');
+        const mobileContainer = document.getElementById('student-list-mobile');
+        const desktopContainer = document.getElementById('student-list');
         
-        if (!container) {
-            console.error('Student list container not found');
-            return;
+        console.log('[AdminStudents] Rendering students. Count:', this.students?.length || 0, 'isMobile:', isMobile);
+        
+        // Render to both containers to ensure data is available when switching between mobile/desktop
+        if (mobileContainer) {
+            this.renderToContainer(mobileContainer, true);
+        }
+        if (desktopContainer) {
+            this.renderToContainer(desktopContainer, false);
         }
         
+        if (!mobileContainer && !desktopContainer) {
+            console.error('[AdminStudents] Both containers are missing!');
+        }
+    },
+    
+    renderToContainer(container, isMobile) {
+        
         if (!this.students || this.students.length === 0) {
-            if (isMobile) {
+            if (isMobile || container.id === 'student-list-mobile') {
                 container.innerHTML = '<div class="p-10 text-center text-slate-400">Chưa có học viên nào.</div>';
             } else {
                 container.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-slate-400">Chưa có học viên nào.</td></tr>';
@@ -48,7 +68,7 @@ const AdminStudents = {
             return;
         }
 
-        if (isMobile) {
+        if (isMobile || container.id === 'student-list-mobile') {
             // Mobile: Card layout
             container.innerHTML = this.students.map(st => `
                 <div class="student-card-mobile border-b border-slate-200 p-4 bg-white hover:bg-slate-50">

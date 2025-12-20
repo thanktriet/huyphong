@@ -141,6 +141,7 @@ const AdminPage = {
 
     async switchTab(name, btn) {
         this.currentTab = name;
+        console.log('[AdminPage] Switching to tab:', name);
         
         // Smooth transition: fade out current, then fade in new
         const currentSection = document.querySelector('.view-section:not(.hidden)');
@@ -154,12 +155,20 @@ const AdminPage = {
                     // Trigger reflow for animation
                     target.offsetHeight;
                     target.style.opacity = '1';
+                    console.log('[AdminPage] Tab view shown:', name);
+                } else {
+                    console.error('[AdminPage] Tab view not found:', `view-${name}`);
                 }
             }, 150);
         } else {
             document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
             const target = document.getElementById(`view-${name}`);
-            if (target) target.classList.remove('hidden');
+            if (target) {
+                target.classList.remove('hidden');
+                console.log('[AdminPage] Tab view shown (no transition):', name);
+            } else {
+                console.error('[AdminPage] Tab view not found:', `view-${name}`);
+            }
         }
         
         // Smooth tab button transition
@@ -174,18 +183,23 @@ const AdminPage = {
 
         // Load data for tab if needed
         if (name === 'dashboard') {
-            AdminDashboard.init();
+            await AdminDashboard.init();
         } else if (name === 'calendar') {
-            AdminCalendar.init();
+            await AdminCalendar.init();
         } else if (name === 'students') {
-            AdminStudents.init();
+            console.log('[AdminPage] Initializing students tab...');
+            await AdminStudents.init();
+            // Re-render after a short delay to ensure DOM is ready
+            setTimeout(() => {
+                AdminStudents.render();
+            }, 100);
         } else if (name === 'exercise') {
-            AdminExercises.init();
+            await AdminExercises.init();
         } else if (name === 'food') {
-            AdminFoods.init();
+            await AdminFoods.init();
         } else if (name === 'builder') {
             // Re-init to ensure students are loaded
-            AdminPlans.init();
+            await AdminPlans.init();
         }
     },
 
