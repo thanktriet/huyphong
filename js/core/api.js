@@ -142,6 +142,9 @@ class APIClient {
                 } else if (action === 'getPlanDetails' && data.planId) {
                     // getPlanDetails expects planId directly, not an object
                     functionArgs = data.planId;
+                } else if (action === 'adminDeleteStudent' && data.id) {
+                    // adminDeleteStudent expects id directly, not an object
+                    functionArgs = data.id;
                 } else {
                     // Default: pass data object
                     functionArgs = data;
