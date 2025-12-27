@@ -237,15 +237,45 @@ async function adminEditStudentInfo(data) {
 
 async function adminDeleteStudent(id) {
     try {
+        console.log('[adminDeleteStudent] Attempting to delete user:', id);
+        
+        if (!id) {
+            throw new Error('User ID is required');
+        }
+
+        // First check if user exists
+        const { data: userData, error: checkError } = await getSupabase()
+            .from('users')
+            .select('id, name, email')
+            .eq('id', id)
+            .single();
+
+        if (checkError || !userData) {
+            console.error('[adminDeleteStudent] User not found:', checkError);
+            throw new Error('Không tìm thấy học viên');
+        }
+
+        console.log('[adminDeleteStudent] Found user:', userData.name, userData.email);
+
+        // Delete the user (cascade will handle related records)
         const { error } = await getSupabase()
             .from('users')
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            console.error('[adminDeleteStudent] Delete error:', error);
+            throw error;
+        }
+
+        console.log('[adminDeleteStudent] Successfully deleted user:', id);
         return { success: true };
     } catch (error) {
-        return { success: false, message: error.message };
+        console.error('[adminDeleteStudent] Error:', error);
+        return { 
+            success: false, 
+            message: error.message || 'Lỗi xóa học viên. Vui lòng kiểm tra RLS policies hoặc foreign key constraints.' 
+        };
     }
 }
 

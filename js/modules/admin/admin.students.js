@@ -266,20 +266,27 @@ const AdminStudents = {
     },
 
     async deleteStudent(id, name) {
-        if (!confirm(`XÓA VĨNH VIỄN ${name}?`)) return;
+        if (!confirm(`XÓA VĨNH VIỄN ${name}?\n\nTất cả dữ liệu liên quan (lịch học, giáo án, nhật ký tập luyện, v.v.) sẽ bị xóa theo.`)) return;
 
         try {
             Loader.show();
+            console.log('[AdminStudents.deleteStudent] Deleting student:', id, name);
+            
             const result = await API.adminDeleteStudent(id);
+            console.log('[AdminStudents.deleteStudent] Result:', result);
             
             if (result.success) {
-                Toast.success("Đã xóa");
-                await this.refresh();
-                await AdminDashboard.load();
+                Toast.success("Đã xóa học viên");
+                await this.refresh(200);
+                if (typeof AdminDashboard !== 'undefined' && AdminDashboard.load) {
+                    await AdminDashboard.load();
+                }
             } else {
-                Toast.error(result.message || 'Lỗi xóa');
+                console.error('[AdminStudents.deleteStudent] Delete failed:', result.message);
+                Toast.error(result.message || 'Lỗi xóa học viên');
             }
         } catch (error) {
+            console.error('[AdminStudents.deleteStudent] Error:', error);
             Toast.error('Lỗi: ' + error.message);
         } finally {
             Loader.hide();
